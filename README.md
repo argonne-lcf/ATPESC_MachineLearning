@@ -6,7 +6,7 @@
 
 Do the following before you come to the tutorial:
 *  You need a Google Account to use Colaboratory
-*  Goto [Google's Colaboratory Platform](https://colabresearch.google.com) 
+*  Goto [Google's Colaboratory Platform](https://colab.research.google.com) 
 *  You should see this page
 ![start_page](README_imgs/colab_start_page.png)
 *  Click on the `New Python 3 Notebook` - it may say `Python 2` but just click the drop down arrow and select the `Python 3` option.
