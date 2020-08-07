@@ -2,7 +2,7 @@
 #COBALT -n 4
 #COBALT -t 1:00:00
 #COBALT -q ATPESC2020 --attrs mcdram=cache:numa=quad
-#COBALT -A ATPESC2020
+#COBALT -A ATPESC2020 -O pytorch_mnist
 
 #submisstion script for running tensorflow_mnist with horovod
 
@@ -17,5 +17,5 @@ aprun -n $(($COBALT_JOBSIZE*$PROC_PER_NODE)) -N $PROC_PER_NODE \
     -j 2 -d 32 -cc depth \
     -e OMP_NUM_THREADS=32 \
     -e KMP_BLOCKTIME=0 \
-    python pytorch_mnist.py --num_threads=32 --device cpu
+    python pytorch_mnist.py --num_threads=32 --device cpu --epochs 8
 

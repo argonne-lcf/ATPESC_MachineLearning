@@ -35,9 +35,9 @@ parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--epochs', type=int, default=4, metavar='N',
-                    help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                    help='learning rate (default: 0.001)')
+                    help='number of epochs to train (default: 4)')
+parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                    help='learning rate (default: 0.01)')
 parser.add_argument('--device', default='cpu',
                     help='Wheter this is running on cpu or gpu')
 parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
@@ -114,13 +114,14 @@ def training_step(images, labels, first_batch):
 
 
 # Horovod: adjust number of steps based on number of GPUs.
-for batch, (images, labels) in enumerate(dataset.take(10000 // hvd.size())):
-    loss_value = training_step(images, labels, batch == 0)
+for ep in args.epochs:
+    for batch, (images, labels) in enumerate(dataset.take(10000 // hvd.size())):
+        loss_value = training_step(images, labels, (batch == 0) and (ep == 0))
 
-    if batch % 10 == 0:
-        print('[%d] Step #%d\tLoss: %.6f' % (hvd.rank(), batch, loss_value))
-    if hvd.rank() == 0 and batch % 10 == 0:
-        checkpoint.save(checkpoint_dir)
+        if batch % 10 == 0:
+            print('[%d] Epoch - %d, step #%d\tLoss: %.6f' % (ep, hvd.rank(), batch, loss_value))
+        if hvd.rank() == 0 and batch % 10 == 0:
+            checkpoint.save(checkpoint_dir)
 
 # Horovod: save checkpoints only on worker 0 to prevent other workers from
 # corrupting it.
