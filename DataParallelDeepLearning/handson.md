@@ -38,3 +38,16 @@ aprun -n 16 -N 4 -e OMP_NUM_THREADS=32 -d 32 -j 2 -e KMP_BLOCKTIME=0 -cc depth p
 ```bash
 aprun -n 16 -N 4 -e OMP_NUM_THREADS=32 -d 32 -j 2 -e KMP_BLOCKTIME=0 -cc depth python tensorflow2_keras_mnist.py  --device cpu
 ```
+
+5. Testing scaling and investigating the issue of large batch size training
+You can do a simply scaling test. 
+```bash
+for n in 1 2 4 8 16 32 64 
+do
+  qsub -O pytorch_mnist_${n}nodes_t -n ${n} -q ATPESC2020 -A ATPESC2020 sumissions/theta/qsub_pytorch_mnist.sh
+done
+```
+You can check the test accuracy and the timing for different scales. 
+
+6. Warmup epochs
+We could use a small learning rate (do not scale by the number of workers) in the begining 1 or 2 epochs, and see whether that improve the training results at large scale. 
