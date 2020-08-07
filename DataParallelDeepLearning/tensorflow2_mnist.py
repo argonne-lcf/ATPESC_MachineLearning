@@ -115,7 +115,7 @@ def training_step(images, labels, first_batch):
 
 
 # Horovod: adjust number of steps based on number of GPUs.
-for ep in args.epochs:
+for ep in range(args.epochs):
     for batch, (images, labels) in enumerate(dataset.take(10000 // hvd.size())):
         loss_value = training_step(images, labels, (batch == 0) and (ep == 0))
 
