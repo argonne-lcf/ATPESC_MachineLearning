@@ -1,15 +1,15 @@
 #!/bin/bash
-#COBALT -n 1 
+#COBALT -n 4
 #COBALT -t 1:00:00
-#COBALT -q training --attrs mcdram=cache:numa=quad
-#COBALT -A SDL_Workshop
+#COBALT -q ATPESC2020 --attrs mcdram=cache:numa=quad
+#COBALT -A ATPESC2020
 
 #submisstion script for running tensorflow_mnist with horovod
 
 echo "Running Cobalt Job $COBALT_JOBID."
 
 #Loading modules
-module load datascience/pytorch-1.1
+module load datascience/pytorch-1.4
 
 PROC_PER_NODE=4
 

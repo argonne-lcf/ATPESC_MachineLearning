@@ -15,25 +15,45 @@
 
 import tensorflow as tf
 import horovod.tensorflow.keras as hvd
-
+import argparse
 # Horovod: initialize Horovod.
 hvd.init()
+parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
+parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
+parser.add_argument('--epochs', type=int, default=4, metavar='N',
+                    help='number of epochs to train (default: 10)')
+parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+                    help='learning rate (default: 0.001)')
+parser.add_argument('--device', default='cpu',
+                    help='Wheter this is running on cpu or gpu')
+parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
+parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
+
+args = parser.parse_args()
 
 # Horovod: pin GPU to be used to process local rank (one GPU per process)
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+
+print("I am rank %s of %s" %(hvd.rank(), hvd.size()))
+# Horovod: pin GPU to be used to process local rank (one GPU per process)
+if args.device == 'cpu':
+    tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
+    tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
+else:
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if gpus:
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 (mnist_images, mnist_labels), _ = \
-    tf.keras.datasets.mnist.load_data(path='mnist-%d.npz' % hvd.rank())
+    tf.keras.datasets.mnist.load_data(path='mnist.npz')
 
 dataset = tf.data.Dataset.from_tensor_slices(
     (tf.cast(mnist_images[..., tf.newaxis] / 255.0, tf.float32),
              tf.cast(mnist_labels, tf.int64))
 )
-dataset = dataset.repeat().shuffle(10000).batch(128)
+dataset = dataset.repeat().shuffle(10000).batch(args.batch_size)
 
 mnist_model = tf.keras.Sequential([
     tf.keras.layers.Conv2D(32, [3, 3], activation='relu'),
@@ -47,7 +67,7 @@ mnist_model = tf.keras.Sequential([
 ])
 
 # Horovod: adjust learning rate based on number of GPUs.
-opt = tf.optimizers.Adam(0.001 * hvd.size())
+opt = tf.optimizers.Adam(args.lr * hvd.size())
 
 # Horovod: add Horovod DistributedOptimizer.
 opt = hvd.DistributedOptimizer(opt)
@@ -86,4 +106,4 @@ verbose = 1 if hvd.rank() == 0 else 0
 
 # Train the model.
 # Horovod: adjust number of steps based on number of GPUs.
-mnist_model.fit(dataset, steps_per_epoch=500 // hvd.size(), callbacks=callbacks, epochs=24, verbose=verbose)
+mnist_model.fit(dataset, steps_per_epoch=10000 // hvd.size(), callbacks=callbacks, epochs=args.epochs, verbose=verbose)
