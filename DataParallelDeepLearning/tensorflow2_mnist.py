@@ -30,7 +30,8 @@ except:
         def size():
             return 1
     hvd=Hvd()
-
+import time
+t0 = time.time()
 parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
@@ -127,3 +128,6 @@ for ep in args.epochs:
 # corrupting it.
 if hvd.rank() == 0:
     checkpoint.save(checkpoint_dir)
+t1 = time.time()
+if hvd.rank()==0:
+    print("Total training time: %s seconds" %(t1 - t0))

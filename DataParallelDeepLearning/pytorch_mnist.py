@@ -6,7 +6,9 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import torch.utils.data.distributed
 import horovod.torch as hvd
-import os
+import time
+
+t0 = time.time()
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
@@ -172,3 +174,6 @@ def test():
 for epoch in range(1, args.epochs + 1):
     train(epoch)
     test()
+t1 = time.time()
+if hvd.rank()==0:
+    print("Total training time: %s seconds" %(t1 - t0))
