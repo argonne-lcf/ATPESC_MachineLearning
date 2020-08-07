@@ -21,19 +21,19 @@ source setup.sh
 ```
 
 4. Run examples
-	* PyTorch MNIST
+  -  PyTorch MNIST
   
 ```bash
 aprun -n 16 -N 4 -e OMP_NUM_THREADS=32 -d 32 -j 2 -e KMP_BLOCKTIME=0 -cc depth python pytorch_mnist.py --device cpu
 ```
 
-	* TensorFlow MNIST
+  -  TensorFlow MNIST
   
 ```bash
-  aprun -n 16 -N 4 -e OMP_NUM_THREADS=32 -d 32 -j 2 -e KMP_BLOCKTIME=0 -cc depth python tensorflow2_mnist.py --device cpu
+aprun -n 16 -N 4 -e OMP_NUM_THREADS=32 -d 32 -j 2 -e KMP_BLOCKTIME=0 -cc depth python tensorflow2_mnist.py --device cpu
 ```
 
-	* TensorFlow Keras MNIST
+  - TensorFlow Keras MNIST
   
 ```bash
 aprun -n 16 -N 4 -e OMP_NUM_THREADS=32 -d 32 -j 2 -e KMP_BLOCKTIME=0 -cc depth python tensorflow2_keras_mnist.py  --device cpu
