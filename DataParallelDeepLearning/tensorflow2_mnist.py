@@ -120,7 +120,7 @@ for ep in range(args.epochs):
         loss_value = training_step(images, labels, (batch == 0) and (ep == 0))
 
         if batch % 10 == 0:
-            print('[%d] Epoch - %d, step #%d\tLoss: %.6f' % (ep, hvd.rank(), batch, loss_value))
+            print('[%d] Epoch - %d, step #%d\tLoss: %.6f' % (hvd.rank(), ep, batch, loss_value))
         if hvd.rank() == 0 and batch % 10 == 0:
             checkpoint.save(checkpoint_dir)
 
