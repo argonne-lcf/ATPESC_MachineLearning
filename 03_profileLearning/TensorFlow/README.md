@@ -1,29 +1,27 @@
 # Profiling TensorFlow
 
-In this example, we'll profile a Generative network.  We'll go through several steps of profile, each time enabling a new tool or optimization.  At the end of the exercise, you'll have a GAN that can generate images like this:
+In this example, we'll profile the CNN used to clasify MNIST digits in the previous
+exercises. We will complete several rounds of profiling, each time enabling a new tool or
+optimization.  At the end of the exercise, you'll have a much faster network.
 
-![Images](images/generated_images.png)
+Find the original script in `train_MNIST.py`.
 
-The tools behind the GAN are not the subject for this talk but feel free to reach out on Slack if you have questions about it!
-
-Find the original script in `train_GAN.py`.
-
-All the scripts used here work in the Tensorflow 2 container:
+All the scripts used here work in a Tensorflow 2 Singularity container:
 
 ```bash
-$ singularity exec --nv -B /lus -B /grand /grand/projects/Comp_Perf_Workshop/containers/tf2_cpw.simg bash
+$ singularity exec --nv -B /lus -B /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
 ```
 
 
 ## A Starting Point
 
-To download the mnist dataset, make sure to enable http forwarding:
+To download the MNIST dataset, make sure to enable http forwarding:
 ```bash
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 ```
 
-Run the original script, single node, like so: `python train_GAN.py`.  Feel free to ctrl+C once it hits a stable throughput.
+Run the original script, single node, like so: `python train_MNIST.py`.  Feel free to ctrl+C once it hits a stable throughput.
 
 Take note of the throughput reported!
 
