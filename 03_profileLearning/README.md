@@ -26,21 +26,20 @@ Run the original script, single node, like so: `python train_MNIST.py`.  Feel fr
 Take note of the throughput reported!
 
 ```
-2021-04-30 20:21:57,881 - INFO - (0, 0), G Loss: 0.718, D Loss: 0.694, step_time: 2.402, throughput: 53.286 img/s.
-2021-04-30 20:21:58,567 - INFO - (0, 1), G Loss: 0.831, D Loss: 0.636, step_time: 0.686, throughput: 186.688 img/s.
-2021-04-30 20:21:59,222 - INFO - (0, 2), G Loss: 0.855, D Loss: 0.608, step_time: 0.655, throughput: 195.538 img/s.
-2021-04-30 20:21:59,801 - INFO - (0, 3), G Loss: 0.859, D Loss: 0.592, step_time: 0.578, throughput: 221.365 img/s.
-2021-04-30 20:22:00,362 - INFO - (0, 4), G Loss: 0.814, D Loss: 0.599, step_time: 0.561, throughput: 228.349 img/s.
-2021-04-30 20:22:00,902 - INFO - (0, 5), G Loss: 0.770, D Loss: 0.593, step_time: 0.540, throughput: 236.824 img/s.
-2021-04-30 20:22:01,443 - INFO - (0, 6), G Loss: 0.727, D Loss: 0.600, step_time: 0.540, throughput: 236.819 img/s.
-2021-04-30 20:22:01,983 - INFO - (0, 7), G Loss: 0.707, D Loss: 0.597, step_time: 0.540, throughput: 237.101 img/s.
-2021-04-30 20:22:02,523 - INFO - (0, 8), G Loss: 0.710, D Loss: 0.593, step_time: 0.540, throughput: 237.136 img/s.
-2021-04-30 20:22:03,063 - INFO - (0, 9), G Loss: 0.678, D Loss: 0.610, step_time: 0.540, throughput: 237.176 img/s.
-2021-04-30 20:22:03,619 - INFO - (0, 10), G Loss: 0.676, D Loss: 0.609, step_time: 0.540, throughput: 237.097 img/s.
-2021-04-30 20:22:04,159 - INFO - (0, 11), G Loss: 0.665, D Loss: 0.616, step_time: 0.540, throughput: 237.068 img/s
+2021-08-02 21:49:36,778 - INFO - (0, 292), Loss: 0.109, step_time: 0.271, throughput: 235.822 img/s.
+2021-08-02 21:49:37,050 - INFO - (0, 293), Loss: 0.129, step_time: 0.271, throughput: 235.804 img/s.
+2021-08-02 21:49:37,321 - INFO - (0, 294), Loss: 0.022, step_time: 0.271, throughput: 236.466 img/s.
+2021-08-02 21:49:37,593 - INFO - (0, 295), Loss: 0.073, step_time: 0.272, throughput: 235.060 img/s.
+2021-08-02 21:49:37,865 - INFO - (0, 296), Loss: 0.026, step_time: 0.271, throughput: 235.941 img/s.
+2021-08-02 21:49:38,136 - INFO - (0, 297), Loss: 0.042, step_time: 0.271, throughput: 236.474 img/s.
+2021-08-02 21:49:38,407 - INFO - (0, 298), Loss: 0.054, step_time: 0.271, throughput: 236.156 img/s.
+2021-08-02 21:49:38,679 - INFO - (0, 299), Loss: 0.132, step_time: 0.272, throughput: 235.603 img/s.
+2021-08-02 21:49:38,951 - INFO - (0, 300), Loss: 0.091, step_time: 0.271, throughput: 235.760 img/s.
+2021-08-02 21:49:39,222 - INFO - (0, 301), Loss: 0.024, step_time: 0.271, throughput: 236.121 img/s.
+2021-08-02 21:49:39,494 - INFO - (0, 302), Loss: 0.229, step_time: 0.271, throughput: 235.878 img/s.
 ```
 
-On average, the A100 system is moving about 237 Images / second through this training loop.  Let's dig in to the first optimization in the [`line_profiler`](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow/line_profiler) directory.
+On average, the A100 system is moving about 237 Images / second through this training loop.  Let's dig in to the first optimization in the [`line_profiler/`](./line_profiler/) subdirectory.
 
 Below are the wrap up conclusions which you can read ahead or come back to later.
 
@@ -48,9 +47,9 @@ Below are the wrap up conclusions which you can read ahead or come back to later
 
 Try the `optimized` version of the code - what throughput are you getting?  It should be a good deal faster! (~132000 Img/s - about 556x faster)  So, after all the profiling, what optimizations did we learn?
 
- - Make sure that IO isn't a bottleneck.  In this case it was simple.  With big datasets it can be a challenge to keep the GPU fed and not idle on IO.
- - Make sure to use graph compilation where you can.  It's easy to make mistakes here: you must make sure to use only tensorflow operations!
+ - Make sure that IO isn't a bottleneck.  In this case, the fix for this bottleneck was simple.  With big datasets it can be a signficant challenge to keep the GPU fed and not idle on IO.
+ - Make sure to use graph compilation where you can.  It's easy to make mistakes here: you must make sure to use only TensorFlow operations!
  - Use XLA.  It can give excellent speed ups by fusing operations.
- - Use reduced precision ... if there isn't a bug.  Reduced precision becomes particularly powerful when XLA is involved, allowing you to keep the tensorcores chugging along with less memory-bound operations.
+ - Use reduced or mixed precision. Reduced precision becomes particularly powerful when XLA is involved, allowing you to keep the Tensor Cores chugging along with less memory-bound operations.
 
-In general, if you have an application running in tensorflow, it's a great idea to profile periodically and make sure you've got all the basic optimizations down!
+In general, if you have an application running in TensoFlow, it's a great idea to profile periodically and make sure you've got all the basic optimizations down!
