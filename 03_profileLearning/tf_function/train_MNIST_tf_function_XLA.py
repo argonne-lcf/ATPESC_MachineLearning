@@ -113,26 +113,7 @@ def compute_loss(y_true, y_pred):
     return scce(y_true, y_pred)  # .numpy()
 
 
-
-
-# def fetch_batch(_batch_size):
-#     # We count the total number of samples needed, and shuffle if we go over.
-
-#     target = _batch_size + batch_counter
-#     if target > x_train.shape[0]:
-#         indices = tf.range(start=0, limit=x_train.shape[0], dtype=tf.int32)
-#         shuffled_indices = tf.random.shuffle(indices)
-#         x_train = tf.gather(x_train, shuffled_indices)
-#         y_train = tf.gather(y_train, shuffled_indices)
-#         batch_counter = 0
-
-#     images = x_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 28, 28, 1)
-#     labels = y_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 1)
-
-#     return images, labels
-
-
-@tf.function()  # jit_compile=True)
+#@tf.function()  # jit_compile=True)
 def forward_pass(model, batch_data, y_true):
     y_pred = model(batch_data)
     loss = compute_loss(y_true, y_pred)
@@ -141,7 +122,7 @@ def forward_pass(model, batch_data, y_true):
 
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
-    @tf.function()  # jit_compile=True)
+    #@tf.function()  # jit_compile=True)
     def train_iteration(data, y_true, model, opt, global_size):
         with tf.GradientTape() as tape:
             loss = forward_pass(model, data, y_true)

@@ -84,7 +84,7 @@ class MNISTClassifier(tf.keras.models.Model):
         self.drop_6 = tf.keras.layers.Dropout(0.5)
         self.dense_7 = tf.keras.layers.Dense(10, activation='softmax')
 
-    @tf.function
+    #@tf.function
     def call(self, inputs):
         '''
         Reshape at input and output:
@@ -103,7 +103,7 @@ class MNISTClassifier(tf.keras.models.Model):
         return x
 
 
-@tf.function
+#@tf.function
 def compute_loss(y_true, y_pred):
     # if labels are integers, use sparse categorical crossentropy
     # network's final layer is softmax, so from_logtis=False
@@ -111,25 +111,6 @@ def compute_loss(y_true, y_pred):
     # if labels are one-hot encoded, use standard crossentropy
 
     return scce(y_true, y_pred)  # .numpy()
-
-
-
-
-# def fetch_batch(_batch_size):
-#     # We count the total number of samples needed, and shuffle if we go over.
-
-#     target = _batch_size + batch_counter
-#     if target > x_train.shape[0]:
-#         indices = tf.range(start=0, limit=x_train.shape[0], dtype=tf.int32)
-#         shuffled_indices = tf.random.shuffle(indices)
-#         x_train = tf.gather(x_train, shuffled_indices)
-#         y_train = tf.gather(y_train, shuffled_indices)
-#         batch_counter = 0
-
-#     images = x_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 28, 28, 1)
-#     labels = y_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 1)
-
-#     return images, labels
 
 
 @tf.function
@@ -141,7 +122,7 @@ def forward_pass(model, batch_data, y_true):
 
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
-    @tf.function
+    #@tf.function
     def train_iteration(data, y_true, model, opt, global_size):
         with tf.GradientTape() as tape:
             loss = forward_pass(model, data, y_true)
