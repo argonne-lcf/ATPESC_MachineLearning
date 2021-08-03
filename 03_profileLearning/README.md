@@ -9,7 +9,7 @@ Find the original script in `train_MNIST.py`.
 All the scripts used here work in a Tensorflow 2 Singularity container:
 
 ```bash
-$ singularity exec --nv -B /lus -B /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
+singularity exec --nv -B /lus -B /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
 ```
 
 
