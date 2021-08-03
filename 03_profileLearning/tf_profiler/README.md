@@ -13,30 +13,30 @@ Whatever you do, you can open TensorBoard like so:
 
 Next, open your browser and navigate to `localhost:6006` (or, whatever port you forwarded to) and you'll see a screen like the one below:
 
-![Tensorboard Profiler Overview](profiler_overview.png)
+![Tensorboard Profiler Overview](./images/profiler_overview.png)
 
 And, if you scroll down, you'll see the list of the top 10 most time consuming operations:
 
-![top 10](top10_ops.png)
+![top 10](./images/top10_ops.png)
 
 This list shows us that the top operations are largely all convolution ops (particularly backprop).  The profiler at the top also points out that 0% of the graph is in reduced precision, which could give us a speedup.  We'll try that next but first let's review the other tabs:
 
 Here is the Kernel Statistics page:
 
-![kernel stats](kernel-stats.png)
+![kernel stats](./images/kernel-stats.png)
 
 Again, this shows that the convolution operations are all the most dominant and equally distributed (roughly).
 
 The TensorFlow statistics shows similar info:
 
-![tf stats](tf-stats.png)
+![tf stats](./images/tf-stats.png)
 
 And there is also a timeline view of all ops (trace viewer)
 
-![timeline](trace-viewer.png)
+![timeline](./images/trace-viewer.png)
 
 And zoomed:
 
-![timeline zoom](trace-viewer-zoom.png)
+![timeline zoom](./images/trace-viewer-zoom.png)
 
 Now, let's try running in reduced precision.
