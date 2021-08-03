@@ -123,8 +123,15 @@ def fetch_batch(_batch_size):
     return images, labels
 
 
-# Here is a function that will manage the training loop for us:
+@profile
+def forward_pass(model, batch_size):
+    batch_data, y_true = fetch_batch(batch_size)
+    y_pred = model(batch_data)
+    loss = compute_loss(y_true, y_pred)
+    return loss
 
+
+@profile
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
     logger = logging.getLogger()
@@ -139,9 +146,7 @@ def train_loop(batch_size, n_training_epochs, model, opt, global_size):
             start = time.time()
 
             with tf.GradientTape() as tape:
-                batch_data, y_true = fetch_batch(batch_size)
-                y_pred = model(batch_data)
-                loss = compute_loss(y_true, y_pred)
+                loss = forward_pass(model, batch_size)
 
             if global_size != 1:
                 tape = hvd.DistributedGradientTape(tape)

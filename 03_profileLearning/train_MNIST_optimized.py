@@ -65,7 +65,6 @@ class MNISTClassifier(tf.keras.models.Model):
         self.conv_2 = tf.keras.layers.Conv2D(64, [3, 3], activation='relu')
         self.pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
         self.drop_4 = tf.keras.layers.Dropout(0.25)
-        # tf.keras.layers.Flatten(),
         self.dense_5 = tf.keras.layers.Dense(128, activation='relu')
         self.drop_6 = tf.keras.layers.Dropout(0.5)
         self.dense_7 = tf.keras.layers.Dense(10, activation='softmax')
@@ -80,7 +79,7 @@ class MNISTClassifier(tf.keras.models.Model):
         x = self.conv_2(x)
         x = self.pool_3(x)
         x = self.drop_4(x)
-        x = tf.keras.layers.Flatten(x)
+        x = tf.keras.layers.Flatten()(x)
         x = self.dense_5(x)
         x = self.drop_6(x)
         x = self.dense_7(x)
@@ -90,11 +89,11 @@ class MNISTClassifier(tf.keras.models.Model):
 
 def compute_loss(y_true, y_pred):
     # if labels are integers, use sparse categorical crossentropy
-    # network does not have softmax layer, so from_logtis=True
-    scce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    # network's final layer is softmax, so from_logtis=False
+    scce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
     # if labels are one-hot encoded, use standard crossentropy
 
-    return scce(y_true, y_pred).numpy()
+    return scce(y_true, y_pred)  # .numpy()
 
 
 def get_dataset():

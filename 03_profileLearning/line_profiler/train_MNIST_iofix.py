@@ -10,6 +10,21 @@ import numpy
 import horovod.tensorflow as hvd
 
 
+# Read in the mnist data so we have it loaded globally:
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_train = x_train.astype(numpy.float32)
+x_test  = x_test.astype(numpy.float32)
+
+x_train /= 255.
+x_test  /= 255.
+
+y_train = y_train.astype(numpy.int32)
+y_test  = y_test.astype(numpy.int32)
+
+dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+dataset.shuffle(60000)
+
+
 def init_mpi():
     # Using the presence of an env variable to determine if we're using MPI:
     try:
@@ -96,35 +111,34 @@ def compute_loss(y_true, y_pred):
     return scce(y_true, y_pred)  # .numpy()
 
 
-def get_dataset():
-
-    # Read in the mnist data so we have it loaded globally:
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    x_train = x_train.astype(numpy.float32)
-    x_test  = x_test.astype(numpy.float32)
-
-    x_train /= 255.
-    x_test  /= 255.
-
-    y_train = y_train.astype(numpy.int32)
-    y_test  = y_test.astype(numpy.int32)
-
-    return x_train, x_test, y_train, y_test
 
 
-def fetch_batch(_batch_size):
-    x_train, x_test, y_train, y_test = get_dataset()
+# def fetch_batch(_batch_size):
+#     # We count the total number of samples needed, and shuffle if we go over.
 
-    indexes = numpy.random.choice(a=x_train.shape[0], size=[_batch_size,])
+#     target = _batch_size + batch_counter
+#     if target > x_train.shape[0]:
+#         indices = tf.range(start=0, limit=x_train.shape[0], dtype=tf.int32)
+#         shuffled_indices = tf.random.shuffle(indices)
+#         x_train = tf.gather(x_train, shuffled_indices)
+#         y_train = tf.gather(y_train, shuffled_indices)
+#         batch_counter = 0
 
-    images = x_train[indexes].reshape(_batch_size, 28, 28, 1)
-    labels = y_train[indexes].reshape(_batch_size, 1)
+#     images = x_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 28, 28, 1)
+#     labels = y_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 1)
 
-    return images, labels
+#     return images, labels
+
+
+@profile
+def forward_pass(model, batch_data, y_true):
+    y_pred = model(batch_data)
+    loss = compute_loss(y_true, y_pred)
+    return loss
 
 
 # Here is a function that will manage the training loop for us:
-
+@profile
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
     logger = logging.getLogger()
@@ -133,15 +147,17 @@ def train_loop(batch_size, n_training_epochs, model, opt, global_size):
     for i_epoch in range(n_training_epochs):
 
         epoch_steps = int(60000/batch_size)
+        dataset.shuffle(60000) # Shuffle the whole dataset in memory
+        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
 
-        for i_batch in range(epoch_steps):
+        for i_batch, (batch_data, y_true) in enumerate(batches):
+
+            batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
 
             start = time.time()
 
             with tf.GradientTape() as tape:
-                batch_data, y_true = fetch_batch(batch_size)
-                y_pred = model(batch_data)
-                loss = compute_loss(y_true, y_pred)
+                loss = forward_pass(model, batch_data, y_true)
 
             if global_size != 1:
                 tape = hvd.DistributedGradientTape(tape)
