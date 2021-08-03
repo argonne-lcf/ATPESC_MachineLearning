@@ -176,6 +176,7 @@ def train_loop(batch_size, n_training_epochs, model, opt, global_size):
             logger.info(f"({i_epoch}, {i_batch}), Loss: {loss:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
 
 
+@profile
 def train_network(_batch_size, _training_iterations, _lr, global_size):
 
     mnist_model = MNISTClassifier()
