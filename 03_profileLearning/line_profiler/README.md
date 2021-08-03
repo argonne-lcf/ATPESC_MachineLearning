@@ -1,22 +1,22 @@
-# Line by Line profiling
+# Line-by-Line profiling
 
 # Installation
  
-Line profiler is, unfortunately, not part of the standard python installation.  It's also not built into the container.  Typically you can install it with:
+Line profiler is, unfortunately, not part of the standard Python installation.  It's also not built into the container.  Typically you can install it with:
 
 `pip install line_profiler` but on the ThetaGPU compute nodes, this doesn't work - they can't pull down the package.  You also need a place to install it, since you're running in a container for this application.
 
 The easiest way to get around this is to log in to the Theta log in nodes (theta.alcf.anl.gov).  Start up an interactive version of the container we'll use in this tutorial:
 
 ```bash
-$ singularity exec -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.02-py3.simg bash
+singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
 # Install line profiler into your user directory:
 pip install --user line_profiler
 ```
 
 With this solution, you will have to use `~/.local/bin/kernprof` below as the executable. 
 
-# Using line_profiler
+# Using `line_profiler`
 The first, and most easily accessible, profiling tool, is the line profiling tool.
 
 Run the profiling tool using `kernprof` instead of python.  This is only for single-node performance.  For example:
