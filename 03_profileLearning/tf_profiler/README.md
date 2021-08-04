@@ -6,14 +6,17 @@ Note the lines `tf.profiler.experimental.start('logdir')` and `tf.profiler.exper
 
 # Running the TensorFlow Profiler
 
-When you've captured your profile data, TensorBoard will dump it into the folder `logdir` (as above) and you will have to view it.  The simplest way, for this application, is to copy it to your own laptop if you have TensorFlow installed.  If not, you can run TensorBoard on Theta and use an ssh port forward to view it on your own laptop.
+When you've captured your profile data, TensorBoard will dump it into the folder `logdir` (as above) and you will have to view it.  The simplest way, for this application, is to copy it to your own laptop if you have TensorFlow installed.  If not, you can run TensorBoard on ThetaGPU and use SSH port forwarding to view it on your own laptop.
 
 Whatever you do, you can open TensorBoard like so:
-`tensorboard --logdir [your/own/path/to/logdir/]`
+```
+tensorboard --load_fast=false --logdir [your/own/path/to/logdir/]
+```
+For my local macOS system with TensorFlow 2.5.0, TensorBoard did not show any data unless the experimntal fast loading logic (which theoretically offers 100x-400x shorter loading times) was disabled. See  https://github.com/tensorflow/tensorboard/issues/4784
 
 Next, open your browser and navigate to `localhost:6006` (or, whatever port you forwarded to) and you'll see a screen like the one below:
 
-![Tensorboard Profiler Overview](./images/profiler_overview.png)
+![TensorBoard Profiler Overview](./images/profiler_overview.png)
 
 And, if you scroll down, you'll see the list of the top 10 most time consuming operations:
 
