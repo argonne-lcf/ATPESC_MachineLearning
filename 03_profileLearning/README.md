@@ -1,21 +1,28 @@
 # Profiling TensorFlow
 
+_Authors_: Kyle Felker (felker@anl.gov), Corey Adams (corey.adams@anl.gov)
+
+
+
 In this example, we'll profile the CNN used to clasify MNIST digits in the previous
 exercises. We will complete several rounds of profiling, each time enabling a new tool or
 optimization.  At the end of the exercise, you'll have a much faster network.
 
 Find the original script in `train_MNIST.py`.
 
-All the scripts used here work in a Tensorflow 2 Singularity container:
+All the scripts used here work in a Singularity container containing TensorFlow 2.5.0. 
 
 ```bash
 singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
 ```
 
+This walkthrough was adapted from an earlier tutorial from the May 2021 ALCF Computational Performance Workshop, which used a Generative Adversial Network (GAN) for the test code: [CPW21: Profiling TensorFlow](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow).
+A separate tutorial for profiling PyTorch codes (using a ResNet model) is also available from that workshop: [CPW21: Profiling PyTorch](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/PyTorchProfiler)
+
 
 ## A Starting Point
 
-To download the MNIST dataset, make sure to enable http forwarding:
+To download the MNIST dataset, make sure to enable HTTP forwarding:
 ```bash
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
