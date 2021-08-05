@@ -82,7 +82,8 @@ class MNISTClassifier(tf.keras.models.Model):
         self.drop_4 = tf.keras.layers.Dropout(0.25)
         self.dense_5 = tf.keras.layers.Dense(128, activation='relu')
         self.drop_6 = tf.keras.layers.Dropout(0.5)
-        self.dense_7 = tf.keras.layers.Dense(10, activation='softmax')
+        # softmax MUST be float32. Override global mixed precision policy
+        self.dense_7 = tf.keras.layers.Dense(10, activation='softmax', dtype='float32')
 
     @tf.function()  # experimental_compile=True)
     def call(self, inputs):
@@ -136,6 +137,7 @@ def train_loop(batch_size, n_training_epochs, model, opt, global_size):
         # Apply the update to the network (one at a time):
         scaled_grads = tape.gradient(scaled_loss, trainable_vars)
         grads = opt.get_unscaled_gradients(scaled_grads)
+        #grads = tape.gradient(loss, trainable_vars)
 
         opt.apply_gradients(zip(grads, trainable_vars))
         return loss
@@ -163,17 +165,24 @@ def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
             images = batch_size*global_size
 
-            logger.info(f"({i_epoch}, {i_batch}), Loss: {loss:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
+            logger.info(f"({i_epoch}, {i_batch}), Loss: {loss:.5f}, step_time: {end-start :.5f}, throughput: {images/(end-start):.2e} img/s.")
     #tf.profiler.experimental.stop()
 
 
 def train_network(_batch_size, _training_iterations, _lr, global_size):
 
-    tf.keras.mixed_precision.set_global_policy("mixed_float16")
+    tf.keras.mixed_precision.set_global_policy("mixed_float16")  # "float32")
 
     mnist_model = MNISTClassifier()
 
-    opt = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.Adam(_lr))
+    # Fixed loss scaling (cheap)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(
+        tf.keras.optimizers.Adam(_lr),
+        dynamic=False,
+        initial_scale=2**15,
+    )
+    # Dynamic loss scaling (more expensive, but more reliable)
+    #opt = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.SGD(_lr))
 
     if global_size != 1:
         hvd.broadcast_variables(mnist_model.variables, root_rank=0)
