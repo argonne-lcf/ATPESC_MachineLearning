@@ -1,5 +1,7 @@
 # Reduced and Mixed Precision
 
+*Note*: for a more extensive discussion and tutorial related to mixed precision training of neural networks, refer to [CPW21: Reduced and Mixed Precision](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/10_reduced-precision).
+
 Switching to reduced or mixed precision is not that hard in TensorFlow's Keras API:
 
 ```python
