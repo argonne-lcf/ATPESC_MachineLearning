@@ -85,7 +85,7 @@ class MNISTClassifier(tf.keras.models.Model):
         # softmax MUST be float32. Override global mixed precision policy
         self.dense_7 = tf.keras.layers.Dense(10, activation='softmax', dtype='float32')
 
-    @tf.function()  # experimental_compile=True)
+    #@tf.function(experimental_compile=True)
     def call(self, inputs):
         '''
         Reshape at input and output:
@@ -104,7 +104,7 @@ class MNISTClassifier(tf.keras.models.Model):
         return x
 
 
-@tf.function()  # experimental_compile=True)
+#@tf.function(experimental_compile=True)
 def compute_loss(y_true, y_pred):
     # if labels are integers, use sparse categorical crossentropy
     # network's final layer is softmax, so from_logtis=False
@@ -114,7 +114,7 @@ def compute_loss(y_true, y_pred):
     return scce(y_true, y_pred)  # .numpy()
 
 
-@tf.function()  # experimental_compile=True)
+#@tf.function(experimental_compile=True)
 def forward_pass(model, batch_data, y_true):
     y_pred = model(batch_data)
     loss = compute_loss(y_true, y_pred)
