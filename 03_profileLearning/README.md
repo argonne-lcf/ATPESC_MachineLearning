@@ -3,7 +3,6 @@
 _Authors_: Kyle Felker (felker@anl.gov), Corey Adams (corey.adams@anl.gov)
 
 
-
 In this example, we'll profile the CNN used to clasify MNIST digits in the previous
 exercises. We will complete several rounds of profiling, each time enabling a new tool or
 optimization.  At the end of the exercise, you'll have a much faster network.
@@ -52,11 +51,19 @@ Below are the wrap up conclusions which you can read ahead or come back to later
 
 # Conclusions
 
-Try the `optimized` version of the code - what throughput are you getting?  It should be a good deal faster! (~132000 Img/s - about 556x faster)  So, after all the profiling, what optimizations did we learn?
+Try the `optimized` version of the code - what throughput are you getting?  It should be a good deal faster! (1.05 million Img/s - about 4200x faster)  So, after all the profiling, what optimizations did we learn?
 
  - Make sure that IO isn't a bottleneck.  In this case, the fix for this bottleneck was simple.  With big datasets it can be a signficant challenge to keep the GPU fed and not idle on IO.
  - Make sure to use graph compilation where you can.  It's easy to make mistakes here: you must make sure to use only TensorFlow operations!
- - Use XLA.  It can give excellent speed ups by fusing operations.
- - Use reduced or mixed precision. Reduced precision becomes particularly powerful when XLA is involved, allowing you to keep the Tensor Cores chugging along with less memory-bound operations.
+ - Use XLA, if your training loops have more work in them than a simple MNIST CNN.  It can give excellent speed ups by fusing operations.
+ - Use reduced or mixed precision, again if your training loops have more local work than the example here. Reduced precision becomes particularly powerful when XLA is involved, allowing you to keep the Tensor Cores chugging along with less memory-bound operations.
 
 In general, if you have an application running in TensoFlow, it's a great idea to profile periodically and make sure you've got all the basic optimizations down!
+
+# Comparison to GAN example
+
+As mentioned above, a very similar walkthrough based on a Generative Adversial Network (GAN) is available here: [CPW21: Profiling TensorFlow](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow). You are encouraged to compare the results from that tutorial to the lessons learned here. Despite very similar source code, the performance behavior differs from this CNN in some key aspects:
+- The optimized GAN only reaches 137k images/second
+- XLA is very important to achieving the optimal performance at this throughput range. 
+- Mixed precision nets about +40k images/second on the performance over XLA
+- The CNN actually has more trainable parameters and is in some sense a "larger" model compared to the GAN, yet is much faster to train. All the extra “GAN-like” operations in the `forward_pass()` function (generate fake images, extra forward pass through the discriminator, label softening, randomly flipping the labels, etc.) cause the 5-10x slowdown relative to a standard feedforward CNN.
