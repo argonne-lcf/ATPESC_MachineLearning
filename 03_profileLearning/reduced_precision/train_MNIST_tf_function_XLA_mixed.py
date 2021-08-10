@@ -179,10 +179,11 @@ def train_network(_batch_size, _training_iterations, _lr, global_size):
     opt = tf.keras.mixed_precision.LossScaleOptimizer(
         tf.keras.optimizers.Adam(_lr),
         dynamic=False,
-        initial_scale=2**15,
+        initial_scale=1024,
     )
     # Dynamic loss scaling (more expensive, but more reliable)
     #opt = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.SGD(_lr))
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.Adam(_lr))
 
     if global_size != 1:
         hvd.broadcast_variables(mnist_model.variables, root_rank=0)
