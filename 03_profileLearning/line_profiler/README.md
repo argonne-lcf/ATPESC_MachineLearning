@@ -7,7 +7,7 @@ Line profiler is, unfortunately, not part of the standard Python installation.  
 The easiest way to get around this is to log in to the Theta log in nodes (`theta.alcf.anl.gov`).  Start up an interactive version of the container we'll use in this tutorial:
 
 ```bash
-singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
+singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.07-py3.simg bash
 # Install line profiler into your user directory:
 pip install --user line_profiler
 ```
