@@ -13,7 +13,7 @@ Find the original script in `train_MNIST.py`.
 All the scripts used here work in a Singularity container containing TensorFlow 2.5.0. 
 
 ```bash
-singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.06-py3.simg bash
+singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.07-py3.simg bash
 ```
 
 This walkthrough was adapted from an earlier tutorial from the May 2021 ALCF Computational Performance Workshop, which used a Generative Adversial Network (GAN) for the test code: [CPW21: Profiling TensorFlow](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow).
