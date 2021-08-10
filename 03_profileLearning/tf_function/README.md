@@ -41,7 +41,7 @@ Which yields:
 2021-08-10 01:44:13,739 - INFO - (0, 38), Loss: 0.112, step_time: 0.001, throughput: 1064691.942 img/s
 ```
 
-We also can enable XLA Fusion (for GPU or CPU) to speed up the computations by fusing small ops together.  
+We also can enable [XLA Fusion](https://www.tensorflow.org/xla) (for GPU or CPU) to speed up the computations by fusing small ops together.  
 
 XLA can be enabled (for code within `tf.function` sections) without any changes to your code by setting an environment variable on the command line:
 `TF_XLA_FLAGS=--tf_xla_auto_jit=2 python train_MNIST_tf_function.py --epochs 1 --batch_size 1024`
