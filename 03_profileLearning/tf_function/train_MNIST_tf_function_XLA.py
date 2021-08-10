@@ -84,7 +84,7 @@ class MNISTClassifier(tf.keras.models.Model):
         self.drop_6 = tf.keras.layers.Dropout(0.5)
         self.dense_7 = tf.keras.layers.Dense(10, activation='softmax')
 
-    @tf.function()  # jit_compile=True)
+    #@tf.function(jit_compile=True)
     def call(self, inputs):
         '''
         Reshape at input and output:
@@ -103,7 +103,7 @@ class MNISTClassifier(tf.keras.models.Model):
         return x
 
 
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def compute_loss(y_true, y_pred):
     # if labels are integers, use sparse categorical crossentropy
     # network's final layer is softmax, so from_logtis=False
@@ -113,7 +113,7 @@ def compute_loss(y_true, y_pred):
     return scce(y_true, y_pred)  # .numpy()
 
 
-#@tf.function()  # jit_compile=True)
+#@tf.function(jit_compile=True)
 def forward_pass(model, batch_data, y_true):
     y_pred = model(batch_data)
     loss = compute_loss(y_true, y_pred)
@@ -122,7 +122,7 @@ def forward_pass(model, batch_data, y_true):
 
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
-    #@tf.function()  # jit_compile=True)
+    @tf.function(jit_compile=True)
     def train_iteration(data, y_true, model, opt, global_size):
         with tf.GradientTape() as tape:
             loss = forward_pass(model, data, y_true)

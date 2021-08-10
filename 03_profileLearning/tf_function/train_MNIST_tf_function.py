@@ -113,7 +113,7 @@ def compute_loss(y_true, y_pred):
     return scce(y_true, y_pred)  # .numpy()
 
 
-@tf.function
+#@tf.function
 def forward_pass(model, batch_data, y_true):
     y_pred = model(batch_data)
     loss = compute_loss(y_true, y_pred)
@@ -122,7 +122,7 @@ def forward_pass(model, batch_data, y_true):
 
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
 
-    #@tf.function
+    @tf.function
     def train_iteration(data, y_true, model, opt, global_size):
         with tf.GradientTape() as tape:
             loss = forward_pass(model, data, y_true)
