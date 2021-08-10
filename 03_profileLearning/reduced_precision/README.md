@@ -66,7 +66,7 @@ Here is the Kernel Statistics page again:
 
 ![kernel stats](./images/kernel-stats.png)
 
-We see the same problem there - except this time it's pointing to the wgrad convolution. The TensorFlow Statistics shows similar info:
+We see the same problem there - except this time it's pointing to the wgrad (weight gradient) calculation of the second Conv2D layer. The TensorFlow Statistics shows similar info:
 
 ![tf stats](./images/tf-stats.png)
 
