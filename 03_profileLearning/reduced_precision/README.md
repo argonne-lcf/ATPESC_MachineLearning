@@ -78,4 +78,11 @@ And zoomed:
 
 ![timeline zoom](./images/trace-zoomed.png)
 
-So, reduced precision appears to be slower because of one particular operation in this our code. 
+Compare this to the trace viewer for the `float32` case:
+
+![timelline zoom fp32](./images/trace-zoomed-float32.png)
+
+So, reduced precision appears to be slower because of a marginally larger kernel launch
+time for the `float16` kernels vs. the `float32` versions of the kernels (which are
+**not** using the TensorCores of the A100). This especially affects the backpropagation
+weight gradient calculation of the first Conv2D layer, as seen above.
