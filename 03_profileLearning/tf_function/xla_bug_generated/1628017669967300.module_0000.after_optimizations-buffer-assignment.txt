@@ -1,0 +1,1348 @@
+BufferAssignment:
+allocation 0: 0x7fae1df3f1e0, size 3211264, parameter 1, shape |f32[1024,28,28,1]| at ShapeIndex {}:
+ value: <37 arg1.2 @0> (size=3211264,offset=0): f32[1024,28,28,1]{3,2,1,0}
+allocation 1: 0x7fae1df3f298, size 2359296, maybe-live-out:
+ value: <118 fusion.6{2} @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+allocation 2: 0x7fae1df3f350, size 2359296, maybe-live-out:
+ value: <117 fusion.6{1} @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+allocation 3: 0x7fae1df3f408, size 2359296, maybe-live-out:
+ value: <89 custom-call.17 @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+ value: <116 fusion.6{0} @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+ value: <156 fusion.57{1} @0> (size=40960,offset=0): f32[1024,10]{1,0}
+allocation 4: 0x7fae1df3f4c0, size 2359296, parameter 13, shape |f32[4608,128]| at ShapeIndex {}:
+ value: <49 arg13.14 @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+allocation 5: 0x7fae1df3f578, size 2359296, parameter 20, shape |f32[4608,128]| at ShapeIndex {}:
+ value: <56 arg20.21 @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+allocation 6: 0x7fae1df3f630, size 2359296, parameter 21, shape |f32[4608,128]| at ShapeIndex {}:
+ value: <57 arg21.22 @0> (size=2359296,offset=0): f32[4608,128]{1,0}
+allocation 7: 0x7fae1df3f6e8, size 819200, maybe-live-out:
+ value: <138 fusion.49 @0> (size=40960,offset=0): f32[1024,10]{1,0}
+ value: <148 fusion.55{0} @0> (size=819200,offset=0): f32[5,5,64,128]{3,2,1,0}
+ value: <153 fusion.56{1} @0> (size=524288,offset=0): f32[1024,128]{1,0}
+allocation 8: 0x7fae1df3f7a0, size 819200, maybe-live-out:
+ value: <87 custom-call.15 @0> (size=524288,offset=0): f32[1024,128]{1,0}
+ value: <137 fusion.48 @0> (size=524288,offset=0): f32[1024,128]{1,0}
+ value: <149 fusion.55{1} @0> (size=819200,offset=0): f32[5,5,64,128]{3,2,1,0}
+allocation 9: 0x7fae1df3f858, size 819200, maybe-live-out:
+ value: <75 broadcast.77 @0> (size=524288,offset=0): f32[1024,128]{1,0}
+ value: <85 custom-call.12 @0> (size=524288,offset=0): f32[1024,128]{1,0}
+ value: <150 fusion.55{2} @0> (size=819200,offset=0): f32[5,5,64,128]{3,2,1,0}
+allocation 10: 0x7fae1df3f910, size 819200, parameter 11, shape |f32[5,5,64,128]| at ShapeIndex {}:
+ value: <47 arg11.12 @0> (size=819200,offset=0): f32[5,5,64,128]{3,2,1,0}
+allocation 11: 0x7fae1df3f9c8, size 819200, parameter 24, shape |f32[5,5,64,128]| at ShapeIndex {}:
+ value: <60 arg24.25 @0> (size=819200,offset=0): f32[5,5,64,128]{3,2,1,0}
+allocation 12: 0x7fae1df3fa80, size 819200, parameter 25, shape |f32[5,5,64,128]| at ShapeIndex {}:
+ value: <61 arg25.26 @0> (size=819200,offset=0): f32[5,5,64,128]{3,2,1,0}
+allocation 13: 0x7fae1df3fb38, size 204800, maybe-live-out:
+ value: <127 fusion.25 @0> (size=256,offset=0): f32[64]{0}
+ value: <136 fusion.47 @0> (size=40960,offset=0): f32[1024,10]{1,0}
+ value: <144 fusion.53{0} @0> (size=204800,offset=0): f32[5,5,32,64]{3,2,1,0}
+allocation 14: 0x7fae1df3fbf0, size 204800, maybe-live-out:
+ value: <76 broadcast.84 @0> (size=40960,offset=0): f32[1024,10]{1,0}
+ value: <86 custom-call.14 @0> (size=40960,offset=0): f32[1024,10]{1,0}
+ value: <90 custom-call.18 @0> (size=5120,offset=0): f32[128,10]{1,0}
+ value: <134 fusion.44 @0> (size=40960,offset=0): f32[1024,10]{1,0}
+ value: <145 fusion.53{1} @0> (size=204800,offset=0): f32[5,5,32,64]{3,2,1,0}
+allocation 15: 0x7fae1df3fca8, size 204800, maybe-live-out:
+ value: <82 copy.33 @0> (size=204800,offset=0): f32[5,5,32,64]{1,0,2,3}
+ value: <129 fusion.33 @0> (size=128,offset=0): f32[32]{0}
+ value: <146 fusion.53{2} @0> (size=204800,offset=0): f32[5,5,32,64]{3,2,1,0}
+allocation 16: 0x7fae1df3fd60, size 204800, parameter 9, shape |f32[5,5,32,64]| at ShapeIndex {}:
+ value: <45 arg9.10 @0> (size=204800,offset=0): f32[5,5,32,64]{3,2,1,0}
+allocation 17: 0x7fae1df3fe18, size 204800, parameter 28, shape |f32[5,5,32,64]| at ShapeIndex {}:
+ value: <64 arg28.29 @0> (size=204800,offset=0): f32[5,5,32,64]{3,2,1,0}
+allocation 18: 0x7fae1df3fed0, size 204800, parameter 29, shape |f32[5,5,32,64]| at ShapeIndex {}:
+ value: <65 arg29.30 @0> (size=204800,offset=0): f32[5,5,32,64]{3,2,1,0}
+allocation 19: 0x7fae1df3ff88, size 5120, maybe-live-out:
+ value: <158 fusion.58{0} @0> (size=4096,offset=0): f32[1024]{0}
+ value: <170 fusion.59{9} @0> (size=5120,offset=0): f32[1280]{0}
+allocation 20: 0x7fae1df40040, size 5120, maybe-live-out:
+ value: <159 fusion.58{1} @0> (size=4096,offset=0): f32[1024]{0}
+ value: <171 fusion.59{10} @0> (size=5120,offset=0): f32[1280]{0}
+allocation 21: 0x7fae1df400f8, size 5120, maybe-live-out:
+ value: <77 reduce.129 @0> (size=4096,offset=0): f32[1024]{0}
+ value: <104 custom-call.23{0} @0> (size=3200,offset=0): f32[5,5,1,32]{1,0,2,3}
+ value: <172 fusion.59{11} @0> (size=5120,offset=0): f32[1280]{0}
+allocation 22: 0x7fae1df401b0, size 5120, parameter 15, shape |f32[128,10]| at ShapeIndex {}:
+ value: <51 arg15.16 @0> (size=5120,offset=0): f32[128,10]{1,0}
+allocation 23: 0x7fae1df40268, size 5120, parameter 18, shape |f32[128,10]| at ShapeIndex {}:
+ value: <54 arg18.19 @0> (size=5120,offset=0): f32[128,10]{1,0}
+allocation 24: 0x7fae1df40320, size 5120, parameter 19, shape |f32[128,10]| at ShapeIndex {}:
+ value: <55 arg19.20 @0> (size=5120,offset=0): f32[128,10]{1,0}
+allocation 25: 0x7fae1df403d8, size 4096, maybe-live-out:
+ value: <79 reduce @0> (size=4096,offset=0): f32[1024]{0}
+ value: <80 reduce.1 @0> (size=4096,offset=0): f32[1024]{0}
+ value: <133 fusion.41 @0> (size=4096,offset=0): f32[1024]{0}
+allocation 26: 0x7fae1df40490, size 4096, parameter 0, shape |s32[1024]| at ShapeIndex {}:
+ value: <36 arg0.1 @0> (size=4096,offset=0): s32[1024]{0}
+allocation 27: 0x7fae1df40548, size 3200, maybe-live-out:
+ value: <142 fusion.51{2} @0> (size=3200,offset=0): f32[5,5,1,32]{3,2,1,0}
+allocation 28: 0x7fae1df40600, size 3200, maybe-live-out:
+ value: <141 fusion.51{1} @0> (size=3200,offset=0): f32[5,5,1,32]{3,2,1,0}
+allocation 29: 0x7fae1df406b8, size 3200, maybe-live-out:
+ value: <81 copy.32 @0> (size=3200,offset=0): f32[5,5,1,32]{1,0,2,3}
+ value: <140 fusion.51{0} @0> (size=3200,offset=0): f32[5,5,1,32]{3,2,1,0}
+ value: <152 fusion.56{0} @0> (size=512,offset=0): f32[128]{0}
+allocation 30: 0x7fae1df40770, size 3200, parameter 7, shape |f32[5,5,1,32]| at ShapeIndex {}:
+ value: <43 arg7.8 @0> (size=3200,offset=0): f32[5,5,1,32]{3,2,1,0}
+allocation 31: 0x7fae1df40828, size 3200, parameter 32, shape |f32[5,5,1,32]| at ShapeIndex {}:
+ value: <68 arg32.33 @0> (size=3200,offset=0): f32[5,5,1,32]{3,2,1,0}
+allocation 32: 0x7fae1df408e0, size 3200, parameter 33, shape |f32[5,5,1,32]| at ShapeIndex {}:
+ value: <69 arg33.34 @0> (size=3200,offset=0): f32[5,5,1,32]{3,2,1,0}
+allocation 33: 0x7fae1df40998, size 512, maybe-live-out:
+ value: <125 fusion.15{5} @0> (size=512,offset=0): f32[128]{0}
+allocation 34: 0x7fae1df40a50, size 512, maybe-live-out:
+ value: <124 fusion.15{4} @0> (size=512,offset=0): f32[128]{0}
+allocation 35: 0x7fae1df40b08, size 512, maybe-live-out:
+ value: <123 fusion.15{3} @0> (size=512,offset=0): f32[128]{0}
+allocation 36: 0x7fae1df40bc0, size 512, maybe-live-out:
+ value: <122 fusion.15{2} @0> (size=512,offset=0): f32[128]{0}
+allocation 37: 0x7fae1df40c78, size 512, maybe-live-out:
+ value: <121 fusion.15{1} @0> (size=512,offset=0): f32[128]{0}
+allocation 38: 0x7fae1df40d30, size 512, maybe-live-out:
+ value: <120 fusion.15{0} @0> (size=512,offset=0): f32[128]{0}
+ value: <126 fusion.18 @0> (size=512,offset=0): f32[128]{0}
+allocation 39: 0x7fae1df40de8, size 512, parameter 10, shape |f32[128]| at ShapeIndex {}:
+ value: <46 arg10.11 @0> (size=512,offset=0): f32[128]{0}
+allocation 40: 0x7fae1df40ea0, size 512, parameter 12, shape |f32[128]| at ShapeIndex {}:
+ value: <48 arg12.13 @0> (size=512,offset=0): f32[128]{0}
+allocation 41: 0x7fae1df40f58, size 512, parameter 26, shape |f32[128]| at ShapeIndex {}:
+ value: <62 arg26.27 @0> (size=512,offset=0): f32[128]{0}
+allocation 42: 0x7fae1df41010, size 512, parameter 27, shape |f32[128]| at ShapeIndex {}:
+ value: <63 arg27.28 @0> (size=512,offset=0): f32[128]{0}
+allocation 43: 0x7fae1df410c8, size 512, parameter 23, shape |f32[128]| at ShapeIndex {}:
+ value: <59 arg23.24 @0> (size=512,offset=0): f32[128]{0}
+allocation 44: 0x7fae1df41180, size 512, parameter 22, shape |f32[128]| at ShapeIndex {}:
+ value: <58 arg22.23 @0> (size=512,offset=0): f32[128]{0}
+allocation 45: 0x7fae1df41238, size 256, maybe-live-out:
+ value: <164 fusion.59{3} @0> (size=256,offset=0): f32[64]{0}
+allocation 46: 0x7fae1df412f0, size 256, maybe-live-out:
+ value: <166 fusion.59{5} @0> (size=256,offset=0): f32[64]{0}
+allocation 47: 0x7fae1df413a8, size 256, maybe-live-out:
+ value: <165 fusion.59{4} @0> (size=256,offset=0): f32[64]{0}
+allocation 48: 0x7fae1df41460, size 256, parameter 8, shape |f32[64]| at ShapeIndex {}:
+ value: <44 arg8.9 @0> (size=256,offset=0): f32[64]{0}
+allocation 49: 0x7fae1df41518, size 256, parameter 30, shape |f32[64]| at ShapeIndex {}:
+ value: <66 arg30.31 @0> (size=256,offset=0): f32[64]{0}
+allocation 50: 0x7fae1df415d0, size 256, parameter 31, shape |f32[64]| at ShapeIndex {}:
+ value: <67 arg31.32 @0> (size=256,offset=0): f32[64]{0}
+allocation 51: 0x7fae1df41688, size 248, output shape is |(f32[1024], f32[32], f32[5,5,1,32], f32[64], f32[5,5,32,64], f32[128], f32[5,5,64,128], f32[128], f32[4608,128], f32[10], f32[128,10], f32[10], f32[10], f32[128,10], f32[128,10], f32[4608,128], f32[4608,128], f32[128], f32[128], f32[5,5,64,128], f32[5,5,64,128], f32[128], f32[128], f32[5,5,32,64], f32[5,5,32,64], f32[64], f32[64], f32[5,5,1,32], f32[5,5,1,32], f32[32], f32[32])|, maybe-live-out:
+ value: <84 tuple.1{} @0> (size=248,offset=0): (f32[1024]{0}, f32[32]{0}, f32[5,5,1,32]{3,2,1,0}, f32[64]{0}, f32[5,5,32,64]{3,2,1,0}, f32[128]{0}, f32[5,5,64,128]{3,2,1,0}, f32[128]{0}, f32[4608,128]{1,0}, f32[10]{0}, f32[128,10]{1,0}, f32[10]{0}, f32[10]{0}, f32[128,10]{1,0}, f32[128,10]{1,0}, f32[4608,128]{1,0}, f32[4608,128]{1,0}, f32[128]{0}, f32[128]{0}, f32[5,5,64,128]{3,2,1,0}, f32[5,5,64,128]{3,2,1,0}, f32[128]{0}, f32[128]{0}, f32[5,5,32,64]{3,2,1,0}, f32[5,5,32,64]{3,2,1,0}, f32[64]{0}, f32[64]{0}, f32[5,5,1,32]{3,2,1,0}, f32[5,5,1,32]{3,2,1,0}, f32[32]{0}, f32[32]{0})
+allocation 52: 0x7fae1df41740, size 128, maybe-live-out:
+ value: <163 fusion.59{2} @0> (size=128,offset=0): f32[32]{0}
+allocation 53: 0x7fae1df417f8, size 128, maybe-live-out:
+ value: <162 fusion.59{1} @0> (size=128,offset=0): f32[32]{0}
+allocation 54: 0x7fae1df418b0, size 128, maybe-live-out:
+ value: <161 fusion.59{0} @0> (size=128,offset=0): f32[32]{0}
+allocation 55: 0x7fae1df41968, size 128, parameter 6, shape |f32[32]| at ShapeIndex {}:
+ value: <42 arg6.7 @0> (size=128,offset=0): f32[32]{0}
+allocation 56: 0x7fae1df41a20, size 128, parameter 34, shape |f32[32]| at ShapeIndex {}:
+ value: <70 arg34.35 @0> (size=128,offset=0): f32[32]{0}
+allocation 57: 0x7fae1df41ad8, size 128, parameter 35, shape |f32[32]| at ShapeIndex {}:
+ value: <71 arg35.36 @0> (size=128,offset=0): f32[32]{0}
+allocation 58: 0x7fae1df41b90, size 1, thread-local:
+ value: <26 compare.332 @0> (size=1,offset=0): pred[]
+allocation 59: 0x7fae1df41c48, size 4, thread-local:
+ value: <2 maximum.65 @0> (size=4,offset=0): f32[]
+allocation 60: 0x7fae1df41d00, size 40, maybe-live-out:
+ value: <167 fusion.59{6} @0> (size=40,offset=0): f32[10]{0}
+allocation 61: 0x7fae1df41db8, size 40, maybe-live-out:
+ value: <168 fusion.59{7} @0> (size=40,offset=0): f32[10]{0}
+allocation 62: 0x7fae1df41e70, size 40, maybe-live-out:
+ value: <105 custom-call.23{1} @0> (size=0,offset=0): u8[0]{0}
+ value: <108 custom-call.24{1} @0> (size=0,offset=0): u8[0]{0}
+ value: <169 fusion.59{8} @0> (size=40,offset=0): f32[10]{0}
+allocation 63: 0x7fae1df41f28, size 40, parameter 14, shape |f32[10]| at ShapeIndex {}:
+ value: <50 arg14.15 @0> (size=40,offset=0): f32[10]{0}
+allocation 64: 0x7fae1df41fe0, size 40, parameter 16, shape |f32[10]| at ShapeIndex {}:
+ value: <52 arg16.17 @0> (size=40,offset=0): f32[10]{0}
+allocation 65: 0x7fae1df42098, size 40, parameter 17, shape |f32[10]| at ShapeIndex {}:
+ value: <53 arg17.18 @0> (size=40,offset=0): f32[10]{0}
+allocation 66: 0x7fae1df42150, size 4, thread-local:
+ value: <1 rhs.64 @0> (size=4,offset=0): f32[]
+allocation 67: 0x7fae1df42208, size 4, thread-local:
+ value: <0 lhs.63 @0> (size=4,offset=0): f32[]
+allocation 68: 0x7fae1df422c0, size 4, thread-local:
+ value: <5 maximum.128 @0> (size=4,offset=0): f32[]
+allocation 69: 0x7fae1df42378, size 4, thread-local:
+ value: <4 y.127 @0> (size=4,offset=0): f32[]
+allocation 70: 0x7fae1df42430, size 4, thread-local:
+ value: <3 x.126 @0> (size=4,offset=0): f32[]
+allocation 71: 0x7fae1df424e8, size 4, thread-local:
+ value: <25 rhs.331 @0> (size=4,offset=0): f32[]
+allocation 72: 0x7fae1df425a0, size 4, thread-local:
+ value: <24 lhs.330 @0> (size=4,offset=0): f32[]
+allocation 73: 0x7fae1df42658, size 4, thread-local:
+ value: <29 add.336 @0> (size=4,offset=0): f32[]
+allocation 74: 0x7fae1df42710, size 4, thread-local:
+ value: <28 rhs.335 @0> (size=4,offset=0): f32[]
+allocation 75: 0x7fae1df427c8, size 4, thread-local:
+ value: <27 lhs.334 @0> (size=4,offset=0): f32[]
+allocation 76: 0x7fae1df42880, size 4, thread-local:
+ value: <175 maximum @0> (size=4,offset=0): f32[]
+allocation 77: 0x7fae1df42938, size 4, thread-local:
+ value: <174 scalar_rhs @0> (size=4,offset=0): f32[]
+allocation 78: 0x7fae1df429f0, size 4, thread-local:
+ value: <173 scalar_lhs @0> (size=4,offset=0): f32[]
+allocation 79: 0x7fae1df42aa8, size 4, thread-local:
+ value: <178 add @0> (size=4,offset=0): f32[]
+allocation 80: 0x7fae1df42b60, size 4, thread-local:
+ value: <177 scalar_rhs.1 @0> (size=4,offset=0): f32[]
+allocation 81: 0x7fae1df42c18, size 8, parameter 2, shape |s64[]| at ShapeIndex {}:
+ value: <38 arg2.3 @0> (size=8,offset=0): s64[]
+allocation 82: 0x7fae1df42cd0, size 4, constant:
+ value: <73 constant_61 @0> (size=4,offset=0): f32[]
+allocation 83: 0x7fae1df42d88, size 4, constant:
+ value: <72 constant_41 @0> (size=4,offset=0): f32[]
+allocation 84: 0x7fae1df42e40, size 4, parameter 4, shape |f32[]| at ShapeIndex {}:
+ value: <40 arg4.5 @0> (size=4,offset=0): f32[]
+allocation 85: 0x7fae1df42ef8, size 4, parameter 3, shape |f32[]| at ShapeIndex {}:
+ value: <39 arg3.4 @0> (size=4,offset=0): f32[]
+allocation 86: 0x7fae1df42fb0, size 4, parameter 5, shape |f32[]| at ShapeIndex {}:
+ value: <41 arg5.6 @0> (size=4,offset=0): f32[]
+allocation 87: 0x7fae1df43068, size 4, thread-local:
+ value: <176 scalar_lhs.1 @0> (size=4,offset=0): f32[]
+allocation 88: 0x7fae1df43120, size 4, thread-local:
+ value: <6 x.136 @0> (size=4,offset=0): f32[]
+allocation 89: 0x7fae1df431d8, size 4, thread-local:
+ value: <7 y.137 @0> (size=4,offset=0): f32[]
+allocation 90: 0x7fae1df43290, size 4, thread-local:
+ value: <8 add.138 @0> (size=4,offset=0): f32[]
+allocation 91: 0x7fae1df43348, size 4, thread-local:
+ value: <12 x.171 @0> (size=4,offset=0): f32[]
+allocation 92: 0x7fae1df43400, size 4, thread-local:
+ value: <13 y.172 @0> (size=4,offset=0): f32[]
+allocation 93: 0x7fae1df434b8, size 4, thread-local:
+ value: <14 add.173 @0> (size=4,offset=0): f32[]
+allocation 94: 0x7fae1df43570, size 4, thread-local:
+ value: <15 x.184 @0> (size=4,offset=0): f32[]
+allocation 95: 0x7fae1df43628, size 4, thread-local:
+ value: <16 y.185 @0> (size=4,offset=0): f32[]
+allocation 96: 0x7fae1df436e0, size 4, thread-local:
+ value: <17 add.186 @0> (size=4,offset=0): f32[]
+allocation 97: 0x7fae1df43798, size 4, thread-local:
+ value: <18 x.223 @0> (size=4,offset=0): f32[]
+allocation 98: 0x7fae1df43850, size 4, thread-local:
+ value: <19 y.224 @0> (size=4,offset=0): f32[]
+allocation 99: 0x7fae1df43908, size 4, thread-local:
+ value: <20 add.225 @0> (size=4,offset=0): f32[]
+allocation 100: 0x7fae1df439c0, size 4, thread-local:
+ value: <9 x.149 @0> (size=4,offset=0): f32[]
+allocation 101: 0x7fae1df43a78, size 4, thread-local:
+ value: <10 y.150 @0> (size=4,offset=0): f32[]
+allocation 102: 0x7fae1df43b30, size 4, thread-local:
+ value: <11 add.151 @0> (size=4,offset=0): f32[]
+allocation 103: 0x7fae1df43be8, size 4, thread-local:
+ value: <33 x.410 @0> (size=4,offset=0): f32[]
+allocation 104: 0x7fae1df43ca0, size 4, thread-local:
+ value: <34 y.411 @0> (size=4,offset=0): f32[]
+allocation 105: 0x7fae1df43d58, size 4, thread-local:
+ value: <35 add.412 @0> (size=4,offset=0): f32[]
+allocation 106: 0x7fae1df43e10, size 4, thread-local:
+ value: <30 x.345 @0> (size=4,offset=0): f32[]
+allocation 107: 0x7fae1df43ec8, size 4, thread-local:
+ value: <31 y.346 @0> (size=4,offset=0): f32[]
+allocation 108: 0x7fae1df43f80, size 4, thread-local:
+ value: <32 add.347 @0> (size=4,offset=0): f32[]
+allocation 109: 0x7fae1df44038, size 4, thread-local:
+ value: <21 x.264 @0> (size=4,offset=0): f32[]
+allocation 110: 0x7fae1df440f0, size 4, thread-local:
+ value: <22 y.265 @0> (size=4,offset=0): f32[]
+allocation 111: 0x7fae1df441a8, size 4, thread-local:
+ value: <23 add.266 @0> (size=4,offset=0): f32[]
+allocation 112: 0x7fae1df44260, size 1141056672, preallocated-temp:
+ value: <74 reduce-window.66 @0> (size=26214400,offset=169643328): f32[1024,64,10,10]{3,2,1,0}
+ value: <78 select-and-scatter.337 @0> (size=104857600,offset=960495616): f32[1024,64,20,20]{3,2,1,0}
+ value: <83 copy.34 @0> (size=819200,offset=233606464): f32[5,5,64,128]{1,0,2,3}
+ value: <88 custom-call.16 @0> (size=18874368,offset=104857600): f32[1024,4608]{1,0}
+ value: <91 custom-call.19{} @0> (size=16,offset=1141055552): (f32[5,5,64,128]{1,0,2,3}, u8[62291984]{0})
+ value: <92 custom-call.19{0} @0> (size=819200,offset=167149632): f32[5,5,64,128]{1,0,2,3}
+ value: <93 custom-call.19{1} @0> (size=62291984,offset=104857600): u8[62291984]{0}
+ value: <94 custom-call.20{} @0> (size=16,offset=1141055808): (f32[1024,64,10,10]{3,2,1,0}, u8[45907984]{0})
+ value: <95 custom-call.20{0} @0> (size=26214400,offset=150765632): f32[1024,64,10,10]{3,2,1,0}
+ value: <96 custom-call.20{1} @0> (size=45907984,offset=104857600): u8[45907984]{0}
+ value: <97 custom-call.21{} @0> (size=16,offset=1141055616): (f32[5,5,32,64]{1,0,2,3}, u8[960495616]{0})
+ value: <98 custom-call.21{0} @0> (size=204800,offset=1140850688): f32[5,5,32,64]{1,0,2,3}
+ value: <99 custom-call.21{1} @0> (size=960495616,offset=0): u8[960495616]{0}
+ value: <100 custom-call.22{} @0> (size=16,offset=1141055744): (f32[1024,32,24,24]{3,2,1,0}, u8[588455936]{0})
+ value: <101 custom-call.22{0} @0> (size=75497472,offset=588455936): f32[1024,32,24,24]{3,2,1,0}
+ value: <102 custom-call.22{1} @0> (size=588455936,offset=0): u8[588455936]{0}
+ value: <103 custom-call.23{} @0> (size=16,offset=1141055680): (f32[5,5,1,32]{1,0,2,3}, u8[0]{0})
+ value: <106 custom-call.24{} @0> (size=16,offset=1141056192): (f32[1024,32,24,24]{3,2,1,0}, u8[0]{0})
+ value: <107 custom-call.24{0} @0> (size=75497472,offset=1065353216): f32[1024,32,24,24]{3,2,1,0}
+ value: <109 custom-call.25{} @0> (size=16,offset=1141056128): (f32[1024,64,20,20]{3,2,1,0}, u8[75703312]{0})
+ value: <110 custom-call.25{0} @0> (size=104857600,offset=0): f32[1024,64,20,20]{3,2,1,0}
+ value: <111 custom-call.25{1} @0> (size=75703312,offset=104857600): u8[75703312]{0}
+ value: <112 custom-call.26{} @0> (size=16,offset=1141056064): (f32[1024,128,6,6]{3,2,1,0}, u8[64785696]{0})
+ value: <113 custom-call.26{0} @0> (size=18874368,offset=214732096): f32[1024,128,6,6]{3,2,1,0}
+ value: <114 custom-call.26{1} @0> (size=64785696,offset=104857600): u8[64785696]{0}
+ value: <115 fusion.6{} @0> (size=24,offset=1141056256): (f32[4608,128]{1,0}, f32[4608,128]{1,0}, f32[4608,128]{1,0})
+ value: <119 fusion.15{} @0> (size=48,offset=1141056512): (f32[128]{0}, f32[128]{0}, f32[128]{0}, f32[128]{0}, f32[128]{0}, f32[128]{0})
+ value: <128 fusion.31 @0> (size=4,offset=1141055488): f32[]
+ value: <130 fusion.34 @0> (size=75497472,offset=663953408): f32[1024,32,24,24]{3,2,1,0}
+ value: <131 fusion.35 @0> (size=104857600,offset=960495616): f32[1024,64,20,20]{3,2,1,0}
+ value: <132 fusion.36 @0> (size=18874368,offset=195857728): f32[1024,128,6,6]{3,2,1,0}
+ value: <135 fusion.45 @0> (size=18874368,offset=195857728): f32[1024,4608]{1,0}
+ value: <139 fusion.51{} @0> (size=24,offset=1141056448): (f32[5,5,1,32]{3,2,1,0}, f32[5,5,1,32]{3,2,1,0}, f32[5,5,1,32]{3,2,1,0})
+ value: <143 fusion.53{} @0> (size=24,offset=1141056384): (f32[5,5,32,64]{3,2,1,0}, f32[5,5,32,64]{3,2,1,0}, f32[5,5,32,64]{3,2,1,0})
+ value: <147 fusion.55{} @0> (size=24,offset=1141056320): (f32[5,5,64,128]{3,2,1,0}, f32[5,5,64,128]{3,2,1,0}, f32[5,5,64,128]{3,2,1,0})
+ value: <151 fusion.56{} @0> (size=16,offset=1141055872): (f32[128]{0}, f32[1024,128]{1,0})
+ value: <154 fusion.57{} @0> (size=16,offset=1141055936): (f32[10]{0}, f32[1024,10]{1,0})
+ value: <155 fusion.57{0} @0> (size=40,offset=1140850688): f32[10]{0}
+ value: <157 fusion.58{} @0> (size=16,offset=1141056000): (f32[1024]{0}, f32[1024]{0})
+ value: <160 fusion.59{} @0> (size=96,offset=1141056576): (f32[32]{0}, f32[32]{0}, f32[32]{0}, f32[64]{0}, f32[64]{0}, f32[64]{0}, f32[10]{0}, f32[10]{0}, f32[10]{0}, f32[1280]{0}, f32[1280]{0}, f32[1280]{0})
+
+Total bytes used: 1164634953
+
+Used values:
+<0 lhs.63 @0>
+ positions:
+  lhs.63
+ uses:
+  maximum.65, operand 0
+<1 rhs.64 @0>
+ positions:
+  rhs.64
+ uses:
+  maximum.65, operand 1
+<2 maximum.65 @0>
+ positions:
+  maximum.65
+ uses:
+<3 x.126 @0>
+ positions:
+  x.126
+ uses:
+  maximum.128, operand 0
+<4 y.127 @0>
+ positions:
+  y.127
+ uses:
+  maximum.128, operand 1
+<5 maximum.128 @0>
+ positions:
+  maximum.128
+ uses:
+<6 x.136 @0>
+ positions:
+  x.136
+ uses:
+  add.138, operand 0
+<7 y.137 @0>
+ positions:
+  y.137
+ uses:
+  add.138, operand 1
+<8 add.138 @0>
+ positions:
+  add.138
+ uses:
+<9 x.149 @0>
+ positions:
+  x.149
+ uses:
+  add.151, operand 0
+<10 y.150 @0>
+ positions:
+  y.150
+ uses:
+  add.151, operand 1
+<11 add.151 @0>
+ positions:
+  add.151
+ uses:
+<12 x.171 @0>
+ positions:
+  x.171
+ uses:
+  add.173, operand 0
+<13 y.172 @0>
+ positions:
+  y.172
+ uses:
+  add.173, operand 1
+<14 add.173 @0>
+ positions:
+  add.173
+ uses:
+<15 x.184 @0>
+ positions:
+  x.184
+ uses:
+  add.186, operand 0
+<16 y.185 @0>
+ positions:
+  y.185
+ uses:
+  add.186, operand 1
+<17 add.186 @0>
+ positions:
+  add.186
+ uses:
+<18 x.223 @0>
+ positions:
+  x.223
+ uses:
+  add.225, operand 0
+<19 y.224 @0>
+ positions:
+  y.224
+ uses:
+  add.225, operand 1
+<20 add.225 @0>
+ positions:
+  add.225
+ uses:
+<21 x.264 @0>
+ positions:
+  x.264
+ uses:
+  add.266, operand 0
+<22 y.265 @0>
+ positions:
+  y.265
+ uses:
+  add.266, operand 1
+<23 add.266 @0>
+ positions:
+  add.266
+ uses:
+<24 lhs.330 @0>
+ positions:
+  lhs.330
+ uses:
+  compare.332, operand 0
+<25 rhs.331 @0>
+ positions:
+  rhs.331
+ uses:
+  compare.332, operand 1
+<26 compare.332 @0>
+ positions:
+  compare.332
+ uses:
+<27 lhs.334 @0>
+ positions:
+  lhs.334
+ uses:
+  add.336, operand 0
+<28 rhs.335 @0>
+ positions:
+  rhs.335
+ uses:
+  add.336, operand 1
+<29 add.336 @0>
+ positions:
+  add.336
+ uses:
+<30 x.345 @0>
+ positions:
+  x.345
+ uses:
+  add.347, operand 0
+<31 y.346 @0>
+ positions:
+  y.346
+ uses:
+  add.347, operand 1
+<32 add.347 @0>
+ positions:
+  add.347
+ uses:
+<33 x.410 @0>
+ positions:
+  x.410
+ uses:
+  add.412, operand 0
+<34 y.411 @0>
+ positions:
+  y.411
+ uses:
+  add.412, operand 1
+<35 add.412 @0>
+ positions:
+  add.412
+ uses:
+<36 arg0.1 @0>
+ positions:
+  arg0.1
+ uses:
+  fusion.57, operand 2
+  fusion.41, operand 3
+<37 arg1.2 @0>
+ positions:
+  arg1.2
+  bitcast.6
+ uses:
+  bitcast.6, operand 0
+  custom-call.24, operand 0
+  custom-call.23, operand 0
+<38 arg2.3 @0>
+ positions:
+  arg2.3
+ uses:
+  fusion.31, operand 3
+<39 arg3.4 @0>
+ positions:
+  arg3.4
+ uses:
+  fusion.31, operand 1
+<40 arg4.5 @0>
+ positions:
+  arg4.5
+ uses:
+  fusion.59, operand 3
+  fusion.59, operand 10
+  fusion.59, operand 17
+  fusion.59, operand 24
+  fusion.31, operand 0
+  fusion.15, operand 3
+  fusion.53, operand 0
+  fusion.6, operand 3
+  fusion.51, operand 0
+  fusion.55, operand 0
+<41 arg5.6 @0>
+ positions:
+  arg5.6
+ uses:
+  fusion.59, operand 6
+  fusion.59, operand 13
+  fusion.59, operand 20
+  fusion.59, operand 27
+  fusion.31, operand 2
+  fusion.15, operand 6
+  fusion.53, operand 3
+  fusion.6, operand 6
+  fusion.51, operand 3
+  fusion.55, operand 3
+<42 arg6.7 @0>
+ positions:
+  arg6.7
+ uses:
+  custom-call.24, operand 2
+  fusion.59, operand 0
+<43 arg7.8 @0>
+ positions:
+  arg7.8
+ uses:
+  copy.32, operand 0
+  fusion.51, operand 6
+<44 arg8.9 @0>
+ positions:
+  arg8.9
+ uses:
+  custom-call.25, operand 2
+  fusion.59, operand 7
+<45 arg9.10 @0>
+ positions:
+  arg9.10
+ uses:
+  copy.33, operand 0
+  fusion.53, operand 6
+<46 arg10.11 @0>
+ positions:
+  arg10.11
+ uses:
+  custom-call.26, operand 2
+  fusion.15, operand 0
+<47 arg11.12 @0>
+ positions:
+  arg11.12
+ uses:
+  copy.34, operand 0
+  fusion.55, operand 6
+<48 arg12.13 @0>
+ positions:
+  arg12.13
+ uses:
+  broadcast.77, operand 0
+  fusion.15, operand 7
+<49 arg13.14 @0>
+ positions:
+  arg13.14
+ uses:
+  custom-call.16, operand 1
+  custom-call.12, operand 1
+  fusion.6, operand 0
+<50 arg14.15 @0>
+ positions:
+  arg14.15
+ uses:
+  broadcast.84, operand 0
+  fusion.59, operand 14
+<51 arg15.16 @0>
+ positions:
+  arg15.16
+ uses:
+  custom-call.15, operand 1
+  custom-call.14, operand 1
+  fusion.59, operand 21
+<52 arg16.17 @0>
+ positions:
+  arg16.17
+ uses:
+  fusion.59, operand 16
+<53 arg17.18 @0>
+ positions:
+  arg17.18
+ uses:
+  fusion.59, operand 19
+<54 arg18.19 @0>
+ positions:
+  arg18.19
+ uses:
+  fusion.59, operand 23
+<55 arg19.20 @0>
+ positions:
+  arg19.20
+ uses:
+  fusion.59, operand 26
+<56 arg20.21 @0>
+ positions:
+  arg20.21
+ uses:
+  fusion.6, operand 2
+<57 arg21.22 @0>
+ positions:
+  arg21.22
+ uses:
+  fusion.6, operand 5
+<58 arg22.23 @0>
+ positions:
+  arg22.23
+ uses:
+  fusion.15, operand 10
+<59 arg23.24 @0>
+ positions:
+  arg23.24
+ uses:
+  fusion.15, operand 8
+<60 arg24.25 @0>
+ positions:
+  arg24.25
+ uses:
+  fusion.55, operand 2
+<61 arg25.26 @0>
+ positions:
+  arg25.26
+ uses:
+  fusion.55, operand 4
+<62 arg26.27 @0>
+ positions:
+  arg26.27
+ uses:
+  fusion.15, operand 2
+<63 arg27.28 @0>
+ positions:
+  arg27.28
+ uses:
+  fusion.15, operand 5
+<64 arg28.29 @0>
+ positions:
+  arg28.29
+ uses:
+  fusion.53, operand 2
+<65 arg29.30 @0>
+ positions:
+  arg29.30
+ uses:
+  fusion.53, operand 4
+<66 arg30.31 @0>
+ positions:
+  arg30.31
+ uses:
+  fusion.59, operand 9
+<67 arg31.32 @0>
+ positions:
+  arg31.32
+ uses:
+  fusion.59, operand 12
+<68 arg32.33 @0>
+ positions:
+  arg32.33
+ uses:
+  fusion.51, operand 2
+<69 arg33.34 @0>
+ positions:
+  arg33.34
+ uses:
+  fusion.51, operand 4
+<70 arg34.35 @0>
+ positions:
+  arg34.35
+ uses:
+  fusion.59, operand 2
+<71 arg35.36 @0>
+ positions:
+  arg35.36
+ uses:
+  fusion.59, operand 5
+<72 constant_41 @0>
+ positions:
+  constant_41
+ uses:
+  reduce.1, operand 1
+  select-and-scatter.337, operand 2
+<73 constant_61 @0>
+ positions:
+  constant_61
+ uses:
+  reduce-window.66, operand 1
+  reduce.129, operand 1
+  reduce, operand 1
+<74 reduce-window.66 @0>
+ positions:
+  reduce-window.66
+ uses:
+  custom-call.26, operand 0
+  custom-call.19, operand 0
+<75 broadcast.77 @0>
+ positions:
+  broadcast.77
+ uses:
+  custom-call.12, operand 2
+<76 broadcast.84 @0>
+ positions:
+  broadcast.84
+ uses:
+  custom-call.14, operand 2
+<77 reduce.129 @0>
+ positions:
+  reduce.129
+ uses:
+  fusion.41, operand 2
+  fusion.49, operand 1
+<78 select-and-scatter.337 @0>
+ positions:
+  select-and-scatter.337
+ uses:
+  fusion.35, operand 0
+<79 reduce @0>
+ positions:
+  reduce
+ uses:
+  fusion.44, operand 1
+<80 reduce.1 @0>
+ positions:
+  reduce.1
+ uses:
+  fusion.57, operand 1
+  fusion.47, operand 1
+<81 copy.32 @0>
+ positions:
+  copy.32
+ uses:
+  custom-call.24, operand 1
+<82 copy.33 @0>
+ positions:
+  copy.33
+ uses:
+  custom-call.25, operand 1
+  custom-call.22, operand 1
+<83 copy.34 @0>
+ positions:
+  copy.34
+ uses:
+  custom-call.26, operand 1
+  custom-call.20, operand 1
+<84 tuple.1{} @0>
+ positions:
+  tuple.1 {}
+ uses:
+<85 custom-call.12 @0>
+ positions:
+  custom-call.12
+ uses:
+  fusion.48, operand 0
+  fusion.56, operand 1
+<86 custom-call.14 @0>
+ positions:
+  custom-call.14
+ uses:
+  fusion.44, operand 0
+  reduce, operand 0
+<87 custom-call.15 @0>
+ positions:
+  custom-call.15
+ uses:
+  fusion.56, operand 0
+<88 custom-call.16 @0>
+ positions:
+  custom-call.16
+ uses:
+  fusion.36, operand 0
+<89 custom-call.17 @0>
+ positions:
+  custom-call.17
+ uses:
+  fusion.6, operand 4
+<90 custom-call.18 @0>
+ positions:
+  custom-call.18
+ uses:
+  fusion.59, operand 25
+<91 custom-call.19{} @0>
+ positions:
+  custom-call.19 {}
+ uses:
+  get-tuple-element.73, operand 0 {}
+<92 custom-call.19{0} @0>
+ positions:
+  custom-call.19 {0}
+  get-tuple-element.73
+ uses:
+  fusion.55, operand 1
+<93 custom-call.19{1} @0>
+ positions:
+  custom-call.19 {1}
+ uses:
+<94 custom-call.20{} @0>
+ positions:
+  custom-call.20 {}
+ uses:
+  get-tuple-element.74, operand 0 {}
+<95 custom-call.20{0} @0>
+ positions:
+  custom-call.20 {0}
+  get-tuple-element.74
+ uses:
+  select-and-scatter.337, operand 1
+<96 custom-call.20{1} @0>
+ positions:
+  custom-call.20 {1}
+ uses:
+<97 custom-call.21{} @0>
+ positions:
+  custom-call.21 {}
+ uses:
+  get-tuple-element.75, operand 0 {}
+<98 custom-call.21{0} @0>
+ positions:
+  custom-call.21 {0}
+  get-tuple-element.75
+ uses:
+  fusion.53, operand 1
+<99 custom-call.21{1} @0>
+ positions:
+  custom-call.21 {1}
+ uses:
+<100 custom-call.22{} @0>
+ positions:
+  custom-call.22 {}
+ uses:
+  get-tuple-element.76, operand 0 {}
+<101 custom-call.22{0} @0>
+ positions:
+  custom-call.22 {0}
+  get-tuple-element.76
+ uses:
+  fusion.34, operand 0
+<102 custom-call.22{1} @0>
+ positions:
+  custom-call.22 {1}
+ uses:
+<103 custom-call.23{} @0>
+ positions:
+  custom-call.23 {}
+ uses:
+  get-tuple-element.77, operand 0 {}
+<104 custom-call.23{0} @0>
+ positions:
+  custom-call.23 {0}
+  get-tuple-element.77
+ uses:
+  fusion.51, operand 1
+<105 custom-call.23{1} @0>
+ positions:
+  custom-call.23 {1}
+ uses:
+<106 custom-call.24{} @0>
+ positions:
+  custom-call.24 {}
+ uses:
+  get-tuple-element.78, operand 0 {}
+<107 custom-call.24{0} @0>
+ positions:
+  custom-call.24 {0}
+  get-tuple-element.78
+ uses:
+  fusion.34, operand 1
+  custom-call.25, operand 0
+  custom-call.21, operand 0
+<108 custom-call.24{1} @0>
+ positions:
+  custom-call.24 {1}
+ uses:
+<109 custom-call.25{} @0>
+ positions:
+  custom-call.25 {}
+ uses:
+  get-tuple-element.79, operand 0 {}
+<110 custom-call.25{0} @0>
+ positions:
+  custom-call.25 {0}
+  get-tuple-element.79
+ uses:
+  select-and-scatter.337, operand 0
+  reduce-window.66, operand 0
+  fusion.35, operand 1
+<111 custom-call.25{1} @0>
+ positions:
+  custom-call.25 {1}
+ uses:
+<112 custom-call.26{} @0>
+ positions:
+  custom-call.26 {}
+ uses:
+  get-tuple-element.80, operand 0 {}
+<113 custom-call.26{0} @0>
+ positions:
+  custom-call.26 {0}
+  get-tuple-element.80
+ uses:
+  fusion.36, operand 1
+  fusion.45, operand 0
+<114 custom-call.26{1} @0>
+ positions:
+  custom-call.26 {1}
+ uses:
+<115 fusion.6{} @0>
+ positions:
+  fusion.6 {}
+ uses:
+  get-tuple-element.87, operand 0 {}
+  get-tuple-element.88, operand 0 {}
+  get-tuple-element.89, operand 0 {}
+<116 fusion.6{0} @0>
+ positions:
+  fusion.6 {0}
+  tuple.1 {8}
+  get-tuple-element.87
+ uses:
+  tuple.1, operand 8
+<117 fusion.6{1} @0>
+ positions:
+  fusion.6 {1}
+  tuple.1 {15}
+  get-tuple-element.88
+ uses:
+  tuple.1, operand 15
+<118 fusion.6{2} @0>
+ positions:
+  fusion.6 {2}
+  tuple.1 {16}
+  get-tuple-element.89
+ uses:
+  tuple.1, operand 16
+<119 fusion.15{} @0>
+ positions:
+  fusion.15 {}
+ uses:
+  get-tuple-element.96, operand 0 {}
+  get-tuple-element.97, operand 0 {}
+  get-tuple-element.98, operand 0 {}
+  get-tuple-element.108, operand 0 {}
+  get-tuple-element.109, operand 0 {}
+  get-tuple-element.110, operand 0 {}
+<120 fusion.15{0} @0>
+ positions:
+  fusion.15 {0}
+  tuple.1 {5}
+  get-tuple-element.96
+ uses:
+  tuple.1, operand 5
+<121 fusion.15{1} @0>
+ positions:
+  fusion.15 {1}
+  tuple.1 {21}
+  get-tuple-element.97
+ uses:
+  tuple.1, operand 21
+<122 fusion.15{2} @0>
+ positions:
+  fusion.15 {2}
+  tuple.1 {22}
+  get-tuple-element.98
+ uses:
+  tuple.1, operand 22
+<123 fusion.15{3} @0>
+ positions:
+  fusion.15 {3}
+  tuple.1 {7}
+  get-tuple-element.108
+ uses:
+  tuple.1, operand 7
+<124 fusion.15{4} @0>
+ positions:
+  fusion.15 {4}
+  tuple.1 {17}
+  get-tuple-element.109
+ uses:
+  tuple.1, operand 17
+<125 fusion.15{5} @0>
+ positions:
+  fusion.15 {5}
+  tuple.1 {18}
+  get-tuple-element.110
+ uses:
+  tuple.1, operand 18
+<126 fusion.18 @0>
+ positions:
+  fusion.18
+ uses:
+  fusion.15, operand 4
+<127 fusion.25 @0>
+ positions:
+  fusion.25
+ uses:
+  fusion.59, operand 11
+<128 fusion.31 @0>
+ positions:
+  fusion.31
+ uses:
+  fusion.59, operand 1
+  fusion.59, operand 8
+  fusion.59, operand 15
+  fusion.59, operand 22
+  fusion.51, operand 5
+  fusion.6, operand 1
+  fusion.53, operand 5
+  fusion.15, operand 1
+  fusion.55, operand 5
+<129 fusion.33 @0>
+ positions:
+  fusion.33
+ uses:
+  fusion.59, operand 4
+<130 fusion.34 @0>
+ positions:
+  fusion.34
+ uses:
+  fusion.33, operand 0
+  custom-call.23, operand 1
+<131 fusion.35 @0>
+ positions:
+  fusion.35
+ uses:
+  fusion.25, operand 0
+  custom-call.21, operand 1
+  custom-call.22, operand 0
+<132 fusion.36 @0>
+ positions:
+  fusion.36
+ uses:
+  fusion.18, operand 0
+  custom-call.19, operand 1
+  custom-call.20, operand 0
+<133 fusion.41 @0>
+ positions:
+  fusion.41
+  tuple.1 {0}
+ uses:
+  tuple.1, operand 0
+<134 fusion.44 @0>
+ positions:
+  fusion.44
+ uses:
+  reduce.1, operand 0
+  fusion.57, operand 0
+  fusion.47, operand 0
+<135 fusion.45 @0>
+ positions:
+  fusion.45
+ uses:
+  custom-call.12, operand 0
+  custom-call.17, operand 0
+<136 fusion.47 @0>
+ positions:
+  fusion.47
+ uses:
+  reduce.129, operand 0
+  fusion.41, operand 1
+  fusion.49, operand 0
+<137 fusion.48 @0>
+ positions:
+  fusion.48
+ uses:
+  custom-call.14, operand 0
+  custom-call.18, operand 0
+<138 fusion.49 @0>
+ positions:
+  fusion.49
+ uses:
+  fusion.58, operand 0
+  fusion.57, operand 3
+<139 fusion.51{} @0>
+ positions:
+  fusion.51 {}
+ uses:
+  get-tuple-element.105, operand 0 {}
+  get-tuple-element.106, operand 0 {}
+  get-tuple-element.107, operand 0 {}
+<140 fusion.51{0} @0>
+ positions:
+  fusion.51 {0}
+  tuple.1 {27}
+  get-tuple-element.105
+ uses:
+  tuple.1, operand 27
+<141 fusion.51{1} @0>
+ positions:
+  fusion.51 {1}
+  tuple.1 {2}
+  get-tuple-element.106
+ uses:
+  tuple.1, operand 2
+<142 fusion.51{2} @0>
+ positions:
+  fusion.51 {2}
+  tuple.1 {28}
+  get-tuple-element.107
+ uses:
+  tuple.1, operand 28
+<143 fusion.53{} @0>
+ positions:
+  fusion.53 {}
+ uses:
+  get-tuple-element.99, operand 0 {}
+  get-tuple-element.100, operand 0 {}
+  get-tuple-element.101, operand 0 {}
+<144 fusion.53{0} @0>
+ positions:
+  fusion.53 {0}
+  tuple.1 {23}
+  get-tuple-element.99
+ uses:
+  tuple.1, operand 23
+<145 fusion.53{1} @0>
+ positions:
+  fusion.53 {1}
+  tuple.1 {4}
+  get-tuple-element.100
+ uses:
+  tuple.1, operand 4
+<146 fusion.53{2} @0>
+ positions:
+  fusion.53 {2}
+  tuple.1 {24}
+  get-tuple-element.101
+ uses:
+  tuple.1, operand 24
+<147 fusion.55{} @0>
+ positions:
+  fusion.55 {}
+ uses:
+  get-tuple-element.93, operand 0 {}
+  get-tuple-element.94, operand 0 {}
+  get-tuple-element.95, operand 0 {}
+<148 fusion.55{0} @0>
+ positions:
+  fusion.55 {0}
+  tuple.1 {19}
+  get-tuple-element.93
+ uses:
+  tuple.1, operand 19
+<149 fusion.55{1} @0>
+ positions:
+  fusion.55 {1}
+  tuple.1 {6}
+  get-tuple-element.94
+ uses:
+  tuple.1, operand 6
+<150 fusion.55{2} @0>
+ positions:
+  fusion.55 {2}
+  tuple.1 {20}
+  get-tuple-element.95
+ uses:
+  tuple.1, operand 20
+<151 fusion.56{} @0>
+ positions:
+  fusion.56 {}
+ uses:
+  get-tuple-element.114, operand 0 {}
+  get-tuple-element.115, operand 0 {}
+<152 fusion.56{0} @0>
+ positions:
+  fusion.56 {0}
+  get-tuple-element.114
+ uses:
+  fusion.15, operand 9
+<153 fusion.56{1} @0>
+ positions:
+  fusion.56 {1}
+  get-tuple-element.115
+ uses:
+  custom-call.17, operand 1
+  custom-call.16, operand 0
+<154 fusion.57{} @0>
+ positions:
+  fusion.57 {}
+ uses:
+  get-tuple-element.116, operand 0 {}
+  get-tuple-element.117, operand 0 {}
+<155 fusion.57{0} @0>
+ positions:
+  fusion.57 {0}
+  get-tuple-element.116
+ uses:
+  fusion.59, operand 18
+<156 fusion.57{1} @0>
+ positions:
+  fusion.57 {1}
+  get-tuple-element.117
+ uses:
+  custom-call.18, operand 1
+  custom-call.15, operand 0
+<157 fusion.58{} @0>
+ positions:
+  fusion.58 {}
+ uses:
+  get-tuple-element.118, operand 0 {}
+  get-tuple-element.119, operand 0 {}
+<158 fusion.58{0} @0>
+ positions:
+  fusion.58 {0}
+  get-tuple-element.118
+ uses:
+  fusion.41, operand 0
+<159 fusion.58{1} @0>
+ positions:
+  fusion.58 {1}
+  get-tuple-element.119
+ uses:
+  fusion.57, operand 4
+<160 fusion.59{} @0>
+ positions:
+  fusion.59 {}
+ uses:
+  get-tuple-element.120, operand 0 {}
+  get-tuple-element.121, operand 0 {}
+  get-tuple-element.122, operand 0 {}
+  get-tuple-element.123, operand 0 {}
+  get-tuple-element.124, operand 0 {}
+  get-tuple-element.125, operand 0 {}
+  get-tuple-element.126, operand 0 {}
+  get-tuple-element.127, operand 0 {}
+  get-tuple-element.128, operand 0 {}
+  get-tuple-element.129, operand 0 {}
+  get-tuple-element.130, operand 0 {}
+  get-tuple-element.131, operand 0 {}
+<161 fusion.59{0} @0>
+ positions:
+  fusion.59 {0}
+  tuple.1 {1}
+  get-tuple-element.120
+ uses:
+  tuple.1, operand 1
+<162 fusion.59{1} @0>
+ positions:
+  fusion.59 {1}
+  tuple.1 {29}
+  get-tuple-element.121
+ uses:
+  tuple.1, operand 29
+<163 fusion.59{2} @0>
+ positions:
+  fusion.59 {2}
+  tuple.1 {30}
+  get-tuple-element.122
+ uses:
+  tuple.1, operand 30
+<164 fusion.59{3} @0>
+ positions:
+  fusion.59 {3}
+  tuple.1 {3}
+  get-tuple-element.123
+ uses:
+  tuple.1, operand 3
+<165 fusion.59{4} @0>
+ positions:
+  fusion.59 {4}
+  tuple.1 {25}
+  get-tuple-element.124
+ uses:
+  tuple.1, operand 25
+<166 fusion.59{5} @0>
+ positions:
+  fusion.59 {5}
+  tuple.1 {26}
+  get-tuple-element.125
+ uses:
+  tuple.1, operand 26
+<167 fusion.59{6} @0>
+ positions:
+  fusion.59 {6}
+  tuple.1 {9}
+  get-tuple-element.126
+ uses:
+  tuple.1, operand 9
+<168 fusion.59{7} @0>
+ positions:
+  fusion.59 {7}
+  tuple.1 {11}
+  get-tuple-element.127
+ uses:
+  tuple.1, operand 11
+<169 fusion.59{8} @0>
+ positions:
+  fusion.59 {8}
+  tuple.1 {12}
+  get-tuple-element.128
+ uses:
+  tuple.1, operand 12
+<170 fusion.59{9} @0>
+ positions:
+  fusion.59 {9}
+  tuple.1 {10}
+  get-tuple-element.129
+  bitcast.20
+ uses:
+  bitcast.20, operand 0
+  tuple.1, operand 10
+<171 fusion.59{10} @0>
+ positions:
+  fusion.59 {10}
+  tuple.1 {13}
+  get-tuple-element.130
+  bitcast.21
+ uses:
+  bitcast.21, operand 0
+  tuple.1, operand 13
+<172 fusion.59{11} @0>
+ positions:
+  fusion.59 {11}
+  tuple.1 {14}
+  get-tuple-element.131
+  bitcast.22
+ uses:
+  bitcast.22, operand 0
+  tuple.1, operand 14
+<173 scalar_lhs @0>
+ positions:
+  scalar_lhs
+ uses:
+  maximum, operand 0
+<174 scalar_rhs @0>
+ positions:
+  scalar_rhs
+ uses:
+  maximum, operand 1
+<175 maximum @0>
+ positions:
+  maximum
+ uses:
+<176 scalar_lhs.1 @0>
+ positions:
+  scalar_lhs.1
+ uses:
+  add, operand 0
+<177 scalar_rhs.1 @0>
+ positions:
+  scalar_rhs.1
+ uses:
+  add, operand 1
+<178 add @0>
+ positions:
+  add
+ uses:
