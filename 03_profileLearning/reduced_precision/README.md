@@ -78,5 +78,4 @@ And zoomed:
 
 ![timeline zoom](./images/trace-zoomed.png)
 
-So, reduced precision appears to be slower because of one particular operation.  How to
-fix this?  Well the best solution here is probably to open a bug report.
+So, reduced precision appears to be slower because of one particular operation in this our code. 
