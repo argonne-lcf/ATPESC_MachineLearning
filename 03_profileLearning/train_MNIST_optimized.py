@@ -10,6 +10,21 @@ import numpy
 import horovod.tensorflow as hvd
 
 
+# Read in the mnist data so we have it loaded globally:
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_train = x_train.astype(numpy.float16)
+x_test  = x_test.astype(numpy.float16)
+
+x_train /= 255.
+x_test  /= 255.
+
+y_train = y_train.astype(numpy.int32)
+y_test  = y_test.astype(numpy.int32)
+
+dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+dataset.shuffle(60000)
+
+
 def init_mpi():
     # Using the presence of an env variable to determine if we're using MPI:
     try:
@@ -67,8 +82,10 @@ class MNISTClassifier(tf.keras.models.Model):
         self.drop_4 = tf.keras.layers.Dropout(0.25)
         self.dense_5 = tf.keras.layers.Dense(128, activation='relu')
         self.drop_6 = tf.keras.layers.Dropout(0.5)
-        self.dense_7 = tf.keras.layers.Dense(10, activation='softmax')
+        # softmax MUST be float32. Override global mixed precision policy
+        self.dense_7 = tf.keras.layers.Dense(10, activation='softmax', dtype='float32')
 
+    #@tf.function(experimental_compile=True)
     def call(self, inputs):
         '''
         Reshape at input and output:
@@ -87,6 +104,7 @@ class MNISTClassifier(tf.keras.models.Model):
         return x
 
 
+#@tf.function(experimental_compile=True)
 def compute_loss(y_true, y_pred):
     # if labels are integers, use sparse categorical crossentropy
     # network's final layer is softmax, so from_logtis=False
@@ -96,75 +114,73 @@ def compute_loss(y_true, y_pred):
     return scce(y_true, y_pred)  # .numpy()
 
 
-def get_dataset():
+#@tf.function(experimental_compile=True)
+def forward_pass(model, batch_data, y_true):
+    y_pred = model(batch_data)
+    loss = compute_loss(y_true, y_pred)
+    return loss
 
-    # Read in the mnist data so we have it loaded globally:
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    x_train = x_train.astype(numpy.float32)
-    x_test  = x_test.astype(numpy.float32)
-
-    x_train /= 255.
-    x_test  /= 255.
-
-    y_train = y_train.astype(numpy.int32)
-    y_test  = y_test.astype(numpy.int32)
-
-    return x_train, x_test, y_train, y_test
-
-
-def fetch_batch(_batch_size):
-    x_train, x_test, y_train, y_test = get_dataset()
-
-    indexes = numpy.random.choice(a=x_train.shape[0], size=[_batch_size,])
-
-    images = x_train[indexes].reshape(_batch_size, 28, 28, 1)
-    labels = y_train[indexes].reshape(_batch_size, 1)
-
-    return images, labels
-
-
-# Here is a function that will manage the training loop for us:
 
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
+
+    @tf.function()  # experimental_compile=True)
+    def train_iteration(data, y_true, model, opt, global_size):
+        with tf.GradientTape() as tape:
+            loss = forward_pass(model, data, y_true)
+            scaled_loss = opt.get_scaled_loss(loss)
+
+        if global_size != 1:
+            tape = hvd.DistributedGradientTape(tape)
+
+        trainable_vars = model.trainable_variables
+
+        # Apply the update to the network (one at a time):
+        scaled_grads = tape.gradient(scaled_loss, trainable_vars)
+        grads = opt.get_unscaled_gradients(scaled_grads)
+        #grads = tape.gradient(loss, trainable_vars)
+
+        opt.apply_gradients(zip(grads, trainable_vars))
+        return loss
+
 
     logger = logging.getLogger()
 
     rank = hvd.rank()
+    #    tf.profiler.experimental.start('logdir')
     for i_epoch in range(n_training_epochs):
 
         epoch_steps = int(60000/batch_size)
+        dataset.shuffle(60000) # Shuffle the whole dataset in memory
+        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
 
-        for i_batch in range(epoch_steps):
+        for i_batch, (batch_data, y_true) in enumerate(batches):
+
+            batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
 
             start = time.time()
 
-            with tf.GradientTape() as tape:
-                batch_data, y_true = fetch_batch(batch_size)
-                y_pred = model(batch_data)
-                loss = compute_loss(y_true, y_pred)
-
-            if global_size != 1:
-                tape = hvd.DistributedGradientTape(tape)
-
-            trainable_vars = model.trainable_variables
-
-            # Apply the update to the network (one at a time):
-            grads = tape.gradient(loss, trainable_vars)
-
-            opt.apply_gradients(zip(grads, trainable_vars))
+            loss = train_iteration(batch_data, y_true, model, opt, global_size)
 
             end = time.time()
 
             images = batch_size*global_size
 
-            logger.info(f"({i_epoch}, {i_batch}), Loss: {loss:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
+            logger.info(f"({i_epoch}, {i_batch}), Loss: {loss:.5f}, step_time: {end-start :.5f}, throughput: {images/(end-start):.2e} img/s.")
+    #tf.profiler.experimental.stop()
 
 
 def train_network(_batch_size, _training_iterations, _lr, global_size):
 
+    tf.keras.mixed_precision.set_global_policy("float32")
+
     mnist_model = MNISTClassifier()
 
-    opt = tf.keras.optimizers.Adam(_lr)
+    # Fixed loss scaling (cheap)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(
+        tf.keras.optimizers.Adam(_lr),
+        dynamic=False,
+        initial_scale=1024,
+    )
 
     if global_size != 1:
         hvd.broadcast_variables(mnist_model.variables, root_rank=0)
