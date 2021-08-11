@@ -1,3 +1,3 @@
 # Overview of Statistical Learning Methods
-[Notebook](statistical_learning.ipyb) <br>
+[statistical_learning.ipynb](statistical_learning.ipynb) <br>
 This notebook can be run on [Google's Colab service](https://colab.research.google.com/)
