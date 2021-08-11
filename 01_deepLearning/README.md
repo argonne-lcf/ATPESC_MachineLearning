@@ -6,4 +6,4 @@ This tutorial works through a supervised learning problem, specifically classifi
 
 Imagine you are making a machine for the post office that will automatically sort mail by zip code. The [MNIST dataset](http://yann.lecun.com/exdb/mnist/) contains thousands of examples of handwritten numbers, with each digit labeled 0-9. We will use deep learning to create a function that classifies each image of one number as a digit 0-9. 
 
-![MNIST Task](/images/mnist_task.png)
+![MNIST Task](images/mnist_task.png)
