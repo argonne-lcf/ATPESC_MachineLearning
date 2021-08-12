@@ -28,12 +28,12 @@ The goal for train the model at large scale is to reduce the time-to-solution to
   
   Before the updating of the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective operation. This scheme is relatively simple to implement. MPI_Allreduce is the only commu
 
-![acc](./distributed.png)
+![acc](./figures/distributed.png)
 
 Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
 
 ## II. Horovod Data Parallel Frameworks
-![Horovod](./Horovod.png)
+![Horovod](./figures/Horovod.png)
 Reference: https://horovod.readthedocs.io/en/stable/
 1. Sergeev, A., Del Balso, M. (2017) Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow. Retrieved from https://eng.uber.com/horovod/
 2. Sergeev, A. (2017) Horovod - Distributed TensorFlow Made Easy. Retrieved from https://www.slideshare.net/AlexanderSergeev4/horovod-distributed-tensorflow-made-easy
@@ -203,7 +203,7 @@ mpirun -np 4 python 03_keras_cnn_concise_hvd.py >& concise_4.out
 mpirun -np 8 python 03_keras_cnn_concise_hvd.py >& concise_8.out
 ```
 
-```
+```bash
 concise_1.out:Total time: 13.148040294647217 second
 concise_2.out:Total time: 8.65635347366333 second
 concise_4.out:Total time: 3.7076730728149414 second
@@ -212,13 +212,12 @@ concise_8.out:Total time: 2.2868692874908447 second
 ## IV. MPI Communication
 * MPI profiling -- to see the MPI calls involved
    * running on GPU
-  ```bash
-LD_PRELOAD=/soft/perftools/hpctw/lib/libmpitrace.so mpirun -np 8 python 03_keras_cnn_concise_hvd.py --epochs 10
+```bash
+  LD_PRELOAD=/soft/perftools/hpctw/lib/libmpitrace.so mpirun -np 8 python 03_keras_cnn_concise_hvd.py --epochs 10
 ```
   0.09 second per epoch. 
 
-
-  ```
+```
 Times and statistics from MPI_Init() to MPI_Finalize().
 -----------------------------------------------------------------------
 MPI Routine                        #calls     avg. bytes      time(sec)
@@ -243,7 +242,6 @@ MPI_Allreduce             #calls    avg. bytes      time(sec)
 
   * running on CPU
   
-  ```
 LD_PRELOAD=/soft/perftools/hpctw/lib/libmpitrace.so mpirun -np 8 python 03_keras_cnn_concise_hvd.py --device cpu --epochs 10
 ```
   2.44 second per epoch
@@ -287,12 +285,12 @@ HOROVOD_TIMELINE=gpu.json mpirun -np 8 python 03_keras_cnn_concise_hvd.py
 HOROVOD_TIMELINE=cpu.json mpirun -np 8 python 03_keras_cnn_concise_hvd.py --device cpu 
 ```
   - GPU Horovod timeline
-  	![GPU timeline](./gpu_horovodtimeline.png)
+  	![GPU timeline](./figures/gpu_horovodtimeline.png)
   - CPU Horovod timeline
-	![CPU timeline](./cpu_horovodtimeline.png)
+	![CPU timeline](./figures/cpu_horovodtimeline.png)
 As we can see, that CPU and GPU behaves differently. One GPU, the Allreduce is performed by NCCL backend (Nvidia communication library). 
 
-
+---------------------------
 **To run all the jobs involved in this training all at once**: 
 ```bash
 ssh -CY user@theta.alcf.anl.gov
