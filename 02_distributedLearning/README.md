@@ -40,6 +40,16 @@ Reference: https://horovod.readthedocs.io/en/stable/
 
 3. Sergeev, A., Del Balso, M. (2018) Horovod: fast and easy distributed deep learning in TensorFlow. Retrieved from arXiv:1802.05799
 
+
+There are seven steps you need to do: 
+  1. Initialize Horovod
+  2. Pin GPU to each process
+  3. Scale the learning rate
+  4. Set distributed optimizer / gradient tape
+  5. Broadcast the model & optimizer parameters to other rank
+  6. Checking pointing on rank 0
+  7. Adjusting dataset loading: number of steps (or batches) per epoch, dataset sharding, etc. 
+
 ### TensorFlow with Horovod
 1) **Initialize Horovod**
 ```python
@@ -169,15 +179,6 @@ The total number of steps per epoch is ```nsamples / hvd.size()```.
 
 We provided some examples in: We provided some examples in: 
 * [03_keras_cnn_concise_hvd.py](03_keras_cnn_concise_hvd.py)
-
-### Summary 
-  1. Initialize Horovod
-  2. Pin GPU to each process
-  3. Scale the learning rate
-  4. Set distributed optimizer / gradient tape
-  5. Broadcast the model & optimizer parameters to other rank
-  6. Checking pointing on rank 0
-  7. Adjusting dataset loading: number of steps (or batches) per epoch, dataset sharding, etc. 
 
 
 ## III. Evaluating Performance
