@@ -241,13 +241,13 @@ MPI_Allreduce             #calls    avg. bytes      time(sec)
 
 
   * running on CPU
-  
+```
 LD_PRELOAD=/soft/perftools/hpctw/lib/libmpitrace.so mpirun -np 8 python 03_keras_cnn_concise_hvd.py --device cpu --epochs 10
 ```
-  2.44 second per epoch
+2.44 second per epoch
+  
 
-
-  ```
+```
 Times and statistics from MPI_Init() to MPI_Finalize().
 -----------------------------------------------------------------------
 MPI Routine                        #calls     avg. bytes      time(sec)
