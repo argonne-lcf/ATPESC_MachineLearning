@@ -1,0 +1,54 @@
+I am rank 1 of 2
+I am rank 0 of 2
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0071s vs `on_train_batch_end` time: 0.0387s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0069s vs `on_train_batch_end` time: 0.0388s). Check your callbacks.
+58/58 - 8s - loss: 0.3714 - accuracy: 0.8798
+Epoch 1/20
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0060s vs `on_train_batch_end` time: 0.0178s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0058s vs `on_train_batch_end` time: 0.0180s). Check your callbacks.
+58/58 - 1s - loss: 0.4186 - accuracy: 0.8662
+Epoch 2/20
+58/58 - 0s - loss: 0.0983 - accuracy: 0.9711
+Epoch 3/20
+58/58 - 0s - loss: 0.0706 - accuracy: 0.9788
+
+Epoch 3: finished gradual learning rate warmup to 0.01.
+Epoch 4/20
+58/58 - 0s - loss: 0.0641 - accuracy: 0.9796
+Epoch 5/20
+58/58 - 0s - loss: 0.0584 - accuracy: 0.9826
+Epoch 6/20
+58/58 - 0s - loss: 0.0485 - accuracy: 0.9840
+Epoch 7/20
+58/58 - 0s - loss: 0.0398 - accuracy: 0.9872
+Epoch 8/20
+58/58 - 0s - loss: 0.0426 - accuracy: 0.9869
+Epoch 9/20
+58/58 - 0s - loss: 0.0432 - accuracy: 0.9863
+Epoch 10/20
+58/58 - 0s - loss: 0.0350 - accuracy: 0.9885
+Epoch 11/20
+58/58 - 0s - loss: 0.0322 - accuracy: 0.9898
+Epoch 12/20
+58/58 - 0s - loss: 0.0269 - accuracy: 0.9908
+Epoch 13/20
+58/58 - 0s - loss: 0.0317 - accuracy: 0.9898
+Epoch 14/20
+58/58 - 0s - loss: 0.0285 - accuracy: 0.9905
+Epoch 15/20
+58/58 - 0s - loss: 0.0276 - accuracy: 0.9908
+Epoch 16/20
+58/58 - 0s - loss: 0.0280 - accuracy: 0.9904
+Epoch 17/20
+58/58 - 0s - loss: 0.0247 - accuracy: 0.9921
+Epoch 18/20
+58/58 - 0s - loss: 0.0276 - accuracy: 0.9911
+Epoch 19/20
+58/58 - 0s - loss: 0.0266 - accuracy: 0.9914
+Epoch 20/20
+58/58 - 0s - loss: 0.0234 - accuracy: 0.9922
+Total time: 8.65635347366333 second

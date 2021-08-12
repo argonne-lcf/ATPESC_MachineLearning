@@ -1,0 +1,84 @@
+I am rank 4 of 8
+I am rank 0 of 8
+I am rank 1 of 8
+I am rank 2 of 8
+I am rank 3 of 8
+I am rank 5 of 8
+I am rank 6 of 8
+I am rank 7 of 8
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0060s vs `on_train_batch_end` time: 0.0308s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0059s vs `on_train_batch_end` time: 0.0309s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0059s vs `on_train_batch_end` time: 0.0308s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0062s vs `on_train_batch_end` time: 0.0308s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0061s vs `on_train_batch_end` time: 0.0307s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0061s vs `on_train_batch_end` time: 0.0308s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0060s vs `on_train_batch_end` time: 0.0308s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0061s vs `on_train_batch_end` time: 0.0308s). Check your callbacks.
+14/14 - 11s - loss: 1.0856 - accuracy: 0.6493
+Epoch 1/20
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0057s vs `on_train_batch_end` time: 0.0170s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0056s vs `on_train_batch_end` time: 0.0169s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0057s vs `on_train_batch_end` time: 0.0169s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0056s vs `on_train_batch_end` time: 0.0169s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0057s vs `on_train_batch_end` time: 0.0170s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0057s vs `on_train_batch_end` time: 0.0169s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0057s vs `on_train_batch_end` time: 0.0169s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0057s vs `on_train_batch_end` time: 0.0170s). Check your callbacks.
+14/14 - 1s - loss: 1.1651 - accuracy: 0.6348
+Epoch 2/20
+14/14 - 0s - loss: 0.3157 - accuracy: 0.9061
+Epoch 3/20
+14/14 - 0s - loss: 0.1135 - accuracy: 0.9653
+
+Epoch 3: finished gradual learning rate warmup to 0.01.
+Epoch 4/20
+14/14 - 0s - loss: 0.1007 - accuracy: 0.9700
+Epoch 5/20
+14/14 - 0s - loss: 0.0634 - accuracy: 0.9817
+Epoch 6/20
+14/14 - 0s - loss: 0.0586 - accuracy: 0.9802
+Epoch 7/20
+14/14 - 0s - loss: 0.0530 - accuracy: 0.9859
+Epoch 8/20
+14/14 - 0s - loss: 0.0452 - accuracy: 0.9859
+Epoch 9/20
+14/14 - 0s - loss: 0.0441 - accuracy: 0.9847
+Epoch 10/20
+14/14 - 0s - loss: 0.0330 - accuracy: 0.9891
+Epoch 11/20
+14/14 - 0s - loss: 0.0326 - accuracy: 0.9886
+Epoch 12/20
+14/14 - 0s - loss: 0.0316 - accuracy: 0.9895
+Epoch 13/20
+14/14 - 0s - loss: 0.0284 - accuracy: 0.9914
+Epoch 14/20
+14/14 - 0s - loss: 0.0311 - accuracy: 0.9894
+Epoch 15/20
+14/14 - 0s - loss: 0.0257 - accuracy: 0.9919
+Epoch 16/20
+14/14 - 0s - loss: 0.0306 - accuracy: 0.9901
+Epoch 17/20
+14/14 - 0s - loss: 0.0290 - accuracy: 0.9899
+Epoch 18/20
+14/14 - 0s - loss: 0.0247 - accuracy: 0.9923
+Epoch 19/20
+14/14 - 0s - loss: 0.0271 - accuracy: 0.9914
+Epoch 20/20
+14/14 - 0s - loss: 0.0222 - accuracy: 0.9926
+Total time: 2.2868692874908447 second

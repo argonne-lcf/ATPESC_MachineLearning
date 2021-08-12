@@ -1,0 +1,49 @@
+I am rank 0 of 1
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0036s vs `on_train_batch_end` time: 0.0357s). Check your callbacks.
+117/117 - 7s - loss: 0.3079 - accuracy: 0.9042
+Epoch 1/20
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0036s vs `on_train_batch_end` time: 0.0189s). Check your callbacks.
+117/117 - 1s - loss: 0.2835 - accuracy: 0.9120
+Epoch 2/20
+117/117 - 1s - loss: 0.0888 - accuracy: 0.9743
+Epoch 3/20
+117/117 - 1s - loss: 0.0683 - accuracy: 0.9793
+
+Epoch 3: finished gradual learning rate warmup to 0.01.
+Epoch 4/20
+117/117 - 1s - loss: 0.0656 - accuracy: 0.9799
+Epoch 5/20
+117/117 - 1s - loss: 0.0513 - accuracy: 0.9845
+Epoch 6/20
+117/117 - 1s - loss: 0.0520 - accuracy: 0.9839
+Epoch 7/20
+117/117 - 1s - loss: 0.0477 - accuracy: 0.9848
+Epoch 8/20
+117/117 - 1s - loss: 0.0423 - accuracy: 0.9864
+Epoch 9/20
+117/117 - 1s - loss: 0.0409 - accuracy: 0.9870
+Epoch 10/20
+117/117 - 1s - loss: 0.0389 - accuracy: 0.9879
+Epoch 11/20
+117/117 - 1s - loss: 0.0381 - accuracy: 0.9880
+Epoch 12/20
+117/117 - 1s - loss: 0.0406 - accuracy: 0.9874
+Epoch 13/20
+117/117 - 1s - loss: 0.0416 - accuracy: 0.9872
+Epoch 14/20
+117/117 - 1s - loss: 0.0351 - accuracy: 0.9892
+Epoch 15/20
+117/117 - 1s - loss: 0.0356 - accuracy: 0.9887
+Epoch 16/20
+117/117 - 1s - loss: 0.0398 - accuracy: 0.9875
+Epoch 17/20
+117/117 - 1s - loss: 0.0395 - accuracy: 0.9881
+Epoch 18/20
+117/117 - 1s - loss: 0.0371 - accuracy: 0.9884
+Epoch 19/20
+117/117 - 1s - loss: 0.0361 - accuracy: 0.9888
+Epoch 20/20
+117/117 - 1s - loss: 0.0411 - accuracy: 0.9876
+Total time: 13.148040294647217 second

@@ -1,0 +1,64 @@
+I am rank 0 of 4
+I am rank 1 of 4
+I am rank 2 of 4
+I am rank 3 of 4
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+/lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/lib/python3.8/site-packages/horovod/_keras/callbacks.py:58: UserWarning: Some callbacks may not have access to the averaged metrics, see https://github.com/horovod/horovod/issues/2440
+  warnings.warn(
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0054s vs `on_train_batch_end` time: 0.0286s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0053s vs `on_train_batch_end` time: 0.0286s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0054s vs `on_train_batch_end` time: 0.0285s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0054s vs `on_train_batch_end` time: 0.0285s). Check your callbacks.
+29/29 - 7s - loss: 0.6509 - accuracy: 0.7879
+Epoch 1/20
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0055s vs `on_train_batch_end` time: 0.0151s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0055s vs `on_train_batch_end` time: 0.0151s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0054s vs `on_train_batch_end` time: 0.0151s). Check your callbacks.
+WARNING:tensorflow:Callback method `on_train_batch_end` is slow compared to the batch time (batch time: 0.0055s vs `on_train_batch_end` time: 0.0151s). Check your callbacks.
+29/29 - 1s - loss: 0.6974 - accuracy: 0.7748
+Epoch 2/20
+29/29 - 0s - loss: 0.1578 - accuracy: 0.9548
+Epoch 3/20
+29/29 - 0s - loss: 0.0885 - accuracy: 0.9740
+
+Epoch 3: finished gradual learning rate warmup to 0.01.
+Epoch 4/20
+29/29 - 0s - loss: 0.0667 - accuracy: 0.9806
+Epoch 5/20
+29/29 - 0s - loss: 0.0674 - accuracy: 0.9795
+Epoch 6/20
+29/29 - 0s - loss: 0.0519 - accuracy: 0.9839
+Epoch 7/20
+29/29 - 0s - loss: 0.0482 - accuracy: 0.9857
+Epoch 8/20
+29/29 - 0s - loss: 0.0408 - accuracy: 0.9874
+Epoch 9/20
+29/29 - 0s - loss: 0.0349 - accuracy: 0.9899
+Epoch 10/20
+29/29 - 0s - loss: 0.0336 - accuracy: 0.9883
+Epoch 11/20
+29/29 - 0s - loss: 0.0308 - accuracy: 0.9902
+Epoch 12/20
+29/29 - 0s - loss: 0.0275 - accuracy: 0.9911
+Epoch 13/20
+29/29 - 0s - loss: 0.0234 - accuracy: 0.9927
+Epoch 14/20
+29/29 - 0s - loss: 0.0218 - accuracy: 0.9925
+Epoch 15/20
+29/29 - 0s - loss: 0.0255 - accuracy: 0.9917
+Epoch 16/20
+29/29 - 0s - loss: 0.0284 - accuracy: 0.9906
+Epoch 17/20
+29/29 - 0s - loss: 0.0203 - accuracy: 0.9935
+Epoch 18/20
+29/29 - 0s - loss: 0.0240 - accuracy: 0.9923
+Epoch 19/20
+29/29 - 0s - loss: 0.0189 - accuracy: 0.9935
+Epoch 20/20
+29/29 - 0s - loss: 0.0203 - accuracy: 0.9924
+Total time: 3.7076730728149414 second
