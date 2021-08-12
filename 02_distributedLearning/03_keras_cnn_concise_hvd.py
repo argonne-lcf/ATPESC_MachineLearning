@@ -1,24 +1,29 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
 import tensorflow as tf
-# (1) Importing Horovod
+
+# (1) Initializing Horovod
 import horovod.tensorflow.keras as hvd
+hvd.init()
+print("I am rank %s of %s" %(hvd.rank(), hvd.size()))
+
 import numpy
 import time
 import argparse
-
-parser.add_argument('--device', default='cpu',
+parser = argparse.ArgumentParser(description='Horovod',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--device', default='gpu',
                     help='Wheter this is running on cpu or gpu')
 args = parser.parse_args()
 
-
-# (2) Initialize Horovod
-hvd.init()
-print("I am rank %s of %s" %(hvd.rank(), hvd.size()))
 
 if args.device == 'gpu':
     gpus = tf.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
-# (3) Pin one GPU to specific horovod worker
+        
+# (2) Pin one GPU to specific horovod worker
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
@@ -73,32 +78,40 @@ class MNISTClassifier(tf.keras.models.Model):
 def train_network_concise(_batch_size, _n_training_epochs, _lr):
 
     cnn_model = MNISTClassifier()
-    # (4) scale the learning rate
+    # (3) scale the learning rate
     opt = tf.optimizers.Adam(_lr*hvd.size())
-    # (5) add Horovod Distributed Optimizer
+    # (4) add Horovod Distributed Optimizer
     opt = hvd.DistributedOptimizer(opt)
-    # (6) Specify `experimental_run_tf_function=False`
+    # Specify `experimental_run_tf_function=False`
     cnn_model.compile(loss="sparse_categorical_crossentropy", optimizer=opt, metrics=['accuracy'],
                       experimental_run_tf_function=False)
-    # (7) Define call back
+    # (5) Define call back
     callbacks = [
         # broad cast 
         hvd.callbacks.BroadcastGlobalVariablesCallback(0),
         # Average metric at the end of every epoch
         hvd.callbacks.MetricAverageCallback(),
-        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=3, verbose=1),
+        # Warmup 
+        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=3, verbose=1, initial_lr=_lr),
     ]
-    # (8) save checkpoints only on worker 0
-    if hvd.rank()==0:
-        append(callbacks.append(tf.keras.callbacks.ModelCheckpoint('./checkpoint-{epoch}.h5')))
+    # (6) save checkpoints only on worker 0
+    #if hvd.rank()==0:
+    #    callbacks.append(tf.keras.callbacks.ModelCheckpoint('./checkpoint-{epoch}.h5'))
     verbose=0
     if hvd.rank()==0:
         verbose=1
     x_train_reshaped = numpy.expand_dims(x_train, -1)
-    history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size(), verbose=1)
+    # (7) Adjust the number of steps per epochs
+    history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size()//_batch_size, verbose=verbose)
     return history, cnn_model
 
 batch_size = 512
-epochs = 8
+epochs = 20
 lr = .01
+history, cnn_model = train_network_concise(batch_size, 1, lr)
+
+t0 = time.time()
 history, cnn_model = train_network_concise(batch_size, epochs, lr)
+t1 = time.time()
+if (hvd.rank()==0):
+    print("Total time: %s second" %(t1-t0))

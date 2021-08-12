@@ -1,7 +1,33 @@
+# Horovod example
+
 import tensorflow as tf
 
 import numpy
 import time
+
+import argparse
+parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
+parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
+parser.add_argument('--epochs', type=int, default=4, metavar='N',
+                    help='number of epochs to train (default: 10)')
+parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                    help='learning rate (default: 0.01)')
+parser.add_argument('--device', default='cpu',
+                    help='Wheter this is running on cpu or gpu')
+parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
+parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
+
+args = parser.parse_args()
+if args.device == 'cpu':
+    tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
+    tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
+else:
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if gpus:
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 # MNIST dataset 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -44,18 +70,65 @@ class MNISTClassifier(tf.keras.models.Model):
 
         return x
 
+def compute_loss(y_true, y_pred):
+    # if labels are integers, use sparse categorical crossentropy
+    # network's final layer is softmax, so from_logtis=False
+    scce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
+    # if labels are one-hot encoded, use standard crossentropy
+
+    return scce(y_true, y_pred)
 
 
-def train_network_concise(_batch_size, _n_training_epochs, _lr):
+def forward_pass(model, batch_data, y_true):
+    y_pred = model(batch_data)
+    loss = compute_loss(y_true, y_pred)
+    return loss
 
-    cnn_model = MNISTClassifier()
 
-    cnn_model.compile(loss="sparse_categorical_crossentropy", optimizer="adam", metrics=['accuracy'])
+def train_loop(batch_size, n_training_epochs, model, opt):
     
-    x_train_reshaped = numpy.expand_dims(x_train, -1)
-    history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs)
-    return history, cnn_model
+    @tf.function()
+    def train_iteration(data, y_true, model, opt):
+        with tf.GradientTape() as tape:
+            loss = forward_pass(model, data, y_true)
+
+        trainable_vars = model.trainable_variables
+
+        # Apply the update to the network (one at a time):
+        grads = tape.gradient(loss, trainable_vars)
+
+        opt.apply_gradients(zip(grads, trainable_vars))
+        return loss
+
+    for i_epoch in range(n_training_epochs):
+        print("beginning epoch %d" % i_epoch)
+        start = time.time()
+
+        epoch_steps = int(60000/batch_size)
+        dataset.shuffle(60000) # Shuffle the whole dataset in memory
+        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
+        
+        for i_batch, (batch_data, y_true) in enumerate(batches):
+            batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
+            loss = train_iteration(batch_data, y_true, model, opt)
+            
+        end = time.time()
+        print("took %1.1f seconds for epoch #%d" % (end-start, i_epoch))
+
+
+def train_network(_batch_size, _n_training_epochs, _lr):
+
+    mnist_model = MNISTClassifier()
+
+    opt = tf.keras.optimizers.Adam(_lr)
+
+    train_loop(_batch_size, _n_training_epochs, mnist_model, opt)
+
+
+dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+dataset.shuffle(60000)
+
 batch_size = 512
-epochs = 3
+epochs = 50
 lr = .01
-history, cnn_model = train_network_concise(batch_size, epochs, lr)
+train_network(batch_size, epochs, lr)

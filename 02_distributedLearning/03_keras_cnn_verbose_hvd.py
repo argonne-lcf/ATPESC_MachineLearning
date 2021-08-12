@@ -1,31 +1,28 @@
 # Horovod example
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
 
 import numpy
 import time
 
+# (1) Import horovod
+import horovod.tensorflow as hvd
+hvd.init()
+print("I am rank %d of %d"%(hvd.rank(), hvd.size()))
+
 import argparse
 parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
-parser.add_argument('--batch_size', type=int, default=64, metavar='N',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=4, metavar='N',
-                    help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                    help='learning rate (default: 0.01)')
-parser.add_argument('--device', default='cpu',
+parser.add_argument('--device', default='gpu',
                     help='Wheter this is running on cpu or gpu')
-parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
-parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
 
 args = parser.parse_args()
-if args.device == 'cpu':
-    tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
-    tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
-else:
+if args.device=='gpu':
     gpus = tf.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
+# (2) Pin GPU        
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
@@ -93,34 +90,43 @@ def train_loop(batch_size, n_training_epochs, model, opt):
             loss = forward_pass(model, data, y_true)
 
         trainable_vars = model.trainable_variables
+        # (4) distributed tape
+        tape = hvd.DistributedGradientTape(tape)
 
         # Apply the update to the network (one at a time):
         grads = tape.gradient(loss, trainable_vars)
 
         opt.apply_gradients(zip(grads, trainable_vars))
         return loss
-
+    
     for i_epoch in range(n_training_epochs):
-        print("beginning epoch %d" % i_epoch)
+        if (hvd.rank==0):
+            print("beginning epoch %d" % i_epoch)
         start = time.time()
 
         epoch_steps = int(60000/batch_size)
         dataset.shuffle(60000) # Shuffle the whole dataset in memory
-        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
+        # (6) Adjust the training steps
+        batches = dataset.take(60000//hvd.size()).batch(batch_size=batch_size, drop_remainder=True)
+
         
         for i_batch, (batch_data, y_true) in enumerate(batches):
             batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
             loss = train_iteration(batch_data, y_true, model, opt)
-            
+            # (5) broadcast from 0 (need to be done after first step to ensured that optimizer is initialized)
+            if (i_batch==0 and i_epoch==0):
+                hvd.broadcast_variables(model.variables, root_rank=0)
+                hvd.broadcast_variables(opt.variables(), root_rank=0)
         end = time.time()
-        print("took %1.1f seconds for epoch #%d" % (end-start, i_epoch))
+        if (hvd.rank()==0):
+            print("took %4.4f seconds for epoch #%d" % (end-start, i_epoch))
 
 
 def train_network(_batch_size, _n_training_epochs, _lr):
 
     mnist_model = MNISTClassifier()
-
-    opt = tf.keras.optimizers.Adam(_lr)
+    # (3) scale learning rate
+    opt = tf.keras.optimizers.Adam(_lr*hvd.size())
 
     train_loop(_batch_size, _n_training_epochs, mnist_model, opt)
 
@@ -129,6 +135,6 @@ dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
 dataset.shuffle(60000)
 
 batch_size = 512
-epochs = 3
+epochs = 50
 lr = .01
 train_network(batch_size, epochs, lr)
