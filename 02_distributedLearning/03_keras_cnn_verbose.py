@@ -7,27 +7,20 @@ import time
 
 import argparse
 parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
-parser.add_argument('--batch_size', type=int, default=64, metavar='N',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=4, metavar='N',
+parser.add_argument('--epochs', type=int, default=50, metavar='N',
                     help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                    help='learning rate (default: 0.01)')
-parser.add_argument('--device', default='cpu',
+parser.add_argument('--device', default='gpu',
                     help='Wheter this is running on cpu or gpu')
 parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
 parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
 
 args = parser.parse_args()
-if args.device == 'cpu':
-    tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
-    tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
-else:
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-    if gpus:
-        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
+tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+
 
 # MNIST dataset 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -110,7 +103,11 @@ def train_loop(batch_size, n_training_epochs, model, opt):
         
         for i_batch, (batch_data, y_true) in enumerate(batches):
             batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
-            loss = train_iteration(batch_data, y_true, model, opt)
+            if (args.device=='cpu'):
+                with tf.device("/cpu:0"):
+                    loss = train_iteration(batch_data, y_true, model, opt)
+            else:
+                loss = train_iteration(batch_data, y_true, model, opt)
             
         end = time.time()
         print("took %1.1f seconds for epoch #%d" % (end-start, i_epoch))
@@ -129,6 +126,6 @@ dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
 dataset.shuffle(60000)
 
 batch_size = 512
-epochs = 50
+epochs = args.epochs
 lr = .01
 train_network(batch_size, epochs, lr)

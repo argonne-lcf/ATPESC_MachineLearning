@@ -14,19 +14,26 @@ import argparse
 parser = argparse.ArgumentParser(description='Horovod',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--device', default='gpu',
-                    help='Wheter this is running on cpu or gpu')
+                    help='Whether this is running on cpu or gpu')
+parser.add_argument('--epochs', default=50, type=int, help='Number of epochs to run')
 args = parser.parse_args()
 
+from tensorflow.python.client import device_lib
 
-if args.device == 'gpu':
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-        
-# (2) Pin one GPU to specific horovod worker
+def get_available_devices():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU' or x.device_type == 'CPU']
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+    # (2) Pin one GPU to specific horovod worker
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-
+        
+tf.config.threading.set_intra_op_parallelism_threads(0)
+tf.config.threading.set_inter_op_parallelism_threads(2)
+        
 
 
 # MNIST dataset 
@@ -102,11 +109,15 @@ def train_network_concise(_batch_size, _n_training_epochs, _lr):
         verbose=1
     x_train_reshaped = numpy.expand_dims(x_train, -1)
     # (7) Adjust the number of steps per epochs
-    history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size()//_batch_size, verbose=verbose)
+    if (args.device=='cpu'):
+        with tf.device('/device:CPU:0'):
+            history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size()//_batch_size, verbose=verbose)
+    else:
+        history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size()//_batch_size, verbose=verbose)
     return history, cnn_model
 
 batch_size = 512
-epochs = 20
+epochs = args.epochs
 lr = .01
 history, cnn_model = train_network_concise(batch_size, 1, lr)
 

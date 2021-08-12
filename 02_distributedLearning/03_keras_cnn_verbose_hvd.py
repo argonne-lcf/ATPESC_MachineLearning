@@ -14,17 +14,23 @@ print("I am rank %d of %d"%(hvd.rank(), hvd.size()))
 
 import argparse
 parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
+parser.add_argument('--epochs', default=50,
+                    type=int, help='Number of epochs to run')
+
 parser.add_argument('--device', default='gpu',
                     help='Wheter this is running on cpu or gpu')
+parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
+parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
 
 args = parser.parse_args()
-if args.device=='gpu':
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
+tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
+tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 # (2) Pin GPU        
-    if gpus:
-        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+if gpus:
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 # MNIST dataset 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -112,7 +118,11 @@ def train_loop(batch_size, n_training_epochs, model, opt):
         
         for i_batch, (batch_data, y_true) in enumerate(batches):
             batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
-            loss = train_iteration(batch_data, y_true, model, opt)
+            if (args.device=='cpu'):
+                with tf.device("/cpu:0"):
+                    loss = train_iteration(batch_data, y_true, model, opt)
+            else:
+                loss = train_iteration(batch_data, y_true, model, opt)
             # (5) broadcast from 0 (need to be done after first step to ensured that optimizer is initialized)
             if (i_batch==0 and i_epoch==0):
                 hvd.broadcast_variables(model.variables, root_rank=0)
@@ -135,6 +145,6 @@ dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
 dataset.shuffle(60000)
 
 batch_size = 512
-epochs = 50
+epochs = args.epochs
 lr = .01
 train_network(batch_size, epochs, lr)
