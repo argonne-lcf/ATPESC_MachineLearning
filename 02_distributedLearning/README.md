@@ -194,7 +194,7 @@ qsub -q full-node -I -A ATPESC2021 -t 20 -n 1 --attrs=pubnet
 ```
 Setup the environment
 ```bash
-source /lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/setup.sh
+module load conda/2021-06-26
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 ```
