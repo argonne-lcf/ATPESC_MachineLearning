@@ -1,6 +1,6 @@
 #!/bin/bash
 #COBALT -n 1
-#COBALT -t 0:10:00
+#COBALT -t 0:15:00
 #COBALT -q full-node 
 #COBALT -A ATPESC2021
 
@@ -9,10 +9,10 @@ source /lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/setup.sh
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 
-mpirun -np 1 python 03_keras_cnn_concise_hvd.py >& concise_1.out
-mpirun -np 2 python 03_keras_cnn_concise_hvd.py >& concise_2.out
-mpirun -np 4 python 03_keras_cnn_concise_hvd.py >& concise_4.out
-mpirun -np 8 python 03_keras_cnn_concise_hvd.py >& concise_8.out
+mpirun -np 1 python 03_keras_cnn_concise_hvd.py >& concise_1.out.gpu
+mpirun -np 2 python 03_keras_cnn_concise_hvd.py >& concise_2.out.gpu
+mpirun -np 4 python 03_keras_cnn_concise_hvd.py >& concise_4.out.gpu
+mpirun -np 8 python 03_keras_cnn_concise_hvd.py >& concise_8.out.gpu
 
 
 HOROVOD_TIMELINE=gpu.json LD_PRELOAD=/soft/perftools/hpctw/lib/libmpitrace.so mpirun -np 8 python 03_keras_cnn_concise_hvd.py 

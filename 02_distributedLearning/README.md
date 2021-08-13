@@ -30,16 +30,15 @@ The goal for train the model at large scale is to reduce the time-to-solution to
 
 ![acc](./figures/distributed.png)
 
-Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
-
 ## II. Horovod Data Parallel Frameworks
 ![Horovod](./figures/Horovod.png)
 Reference: https://horovod.readthedocs.io/en/stable/
 1. Sergeev, A., Del Balso, M. (2017) Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow. Retrieved from https://eng.uber.com/horovod/
 2. Sergeev, A. (2017) Horovod - Distributed TensorFlow Made Easy. Retrieved from https://www.slideshare.net/AlexanderSergeev4/horovod-distributed-tensorflow-made-easy
-
 3. Sergeev, A., Del Balso, M. (2018) Horovod: fast and easy distributed deep learning in TensorFlow. Retrieved from arXiv:1802.05799
 
+* Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
+* Other more complete training materials: https://github.com/argonne-lcf/sdl_ai_workshop.git
 
 There are seven steps you need to do: 
   1. Initialize Horovod
@@ -186,8 +185,12 @@ We provided some examples in: We provided some examples in:
 Request a ThetaGPU node
 ```bash
 ssh -CY user@theta.alcf.anl.gov
+# On login node, download the mnist dataset
+wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
+cp mnist.npz $HOME/.keras/datasets/mnist.npz
+
 ssh -CY thetagpusn1
-qsub -q training -I -A ATPESC2021 -t 20 -n 1 --attrs=pubnet
+qsub -q full-node -I -A ATPESC2021 -t 20 -n 1 --attrs=pubnet
 ```
 Setup the environment
 ```bash
@@ -205,11 +208,36 @@ mpirun -np 8 python 03_keras_cnn_concise_hvd.py >& concise_8.out
 ```
 
 ```bash
+grep 'Total time:' *.out
 concise_1.out:Total time: 13.148040294647217 second
 concise_2.out:Total time: 8.65635347366333 second
 concise_4.out:Total time: 3.7076730728149414 second
 concise_8.out:Total time: 2.2868692874908447 second
 ```
+
+### Running on ThetaKNL
+Request 8 ThetaKNL node
+```bash
+# SSH to Theta
+ssh -CY user@theta.alcf.anl.gov
+# On login node, download the mnist dataset
+wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
+cp mnist.npz $HOME/.keras/datasets/mnist.npz
+# requesting ThetaKNL nodes
+qsub -q ATPESC2021 -I -A ATPESC2021 -t 1:00:00 -n 8
+```
+
+Running the scaling test
+```bash
+module load datascience/tensorflow-2.3
+export NPROC_PER_NODE=4
+for n in 1 2 4 8 
+do
+  aprun -n $((n*PROC_PER_NODE)) -N $PROC_PER_NODE -j 2 -d 32 -e OMP_NUM_THREADS=32 -e KMP_BLOCKTIME=0 -cc depth python 03_keras\
+_cnn_concise_hvd.py --device cpu >& concise_$n.out.knl 
+done
+```
+
 ## IV. MPI Communication
 * MPI profiling -- to see the MPI calls involved
    * running on GPU
@@ -292,9 +320,19 @@ HOROVOD_TIMELINE=cpu.json mpirun -np 8 python 03_keras_cnn_concise_hvd.py --devi
 As we can see, that CPU and GPU behaves differently. One GPU, the Allreduce is performed by NCCL backend (Nvidia communication library). 
 
 ---------------------------
-**To run all the jobs involved in this training all at once**: 
+**To run all the jobs involved in this training all at once**:
+
+* For ThetaGPU
 ```bash
 ssh -CY user@theta.alcf.anl.gov
 ssh -CY thetagpusn1
-qsub submission/qsub.sc
+# cd to ATPESC_MachineLearning directory
+qsub submission/qsub_thetagpu.sc
+```
+
+* For ThetaKNL
+```bash
+ssh -CY user@theta.alcf.anl.gov
+# cd to ATPESC_MachineLearning directory
+qsub submission/qsub_thetaknl.sc
 ```
