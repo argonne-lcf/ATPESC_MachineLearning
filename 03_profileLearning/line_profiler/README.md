@@ -19,15 +19,15 @@ The first, and most easily accessible, profiling tool, is the line profiling too
 
 Run the profiling tool using `kernprof` instead of python.  This is only for single-node performance.  For example:
 ```bash
-kernprof -l train_GAN.py --epochs 1
+kernprof -l train_MNIST.py --epochs 1
 ```
 
-(or, `~/.local/bin/kernprof -l train_GAN.py`)
+(or, `~/.local/bin/kernprof -l train_MNIST.py`)
 
-This will dump the output for 3 functions, the biggest compute users, into a file `train_GAN.py.lprof`.  Let's dump out the line by line calls:
+This will dump the output for 3 functions, the biggest compute users, into a file `train_MNIST.py.lprof`.  Let's dump out the line by line calls:
 
 ```bash
-python -m line_profiler train_GAN.py.lprof
+python -m line_profiler train_MNIST.py.lprof
 ```
 
 First, we see that the main training function is 261 seconds, but nearly 99% of the runtime is spent in the training loop.  The initialization overhead is very small.
