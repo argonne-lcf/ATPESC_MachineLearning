@@ -1,0 +1,307 @@
+import sys
+import time
+import argparse
+import logging
+from logging import handlers
+
+import tensorflow as tf
+import numpy
+
+import horovod.tensorflow as hvd
+
+
+# Read in the mnist data so we have it loaded globally:
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_train = x_train.astype(numpy.float16)
+x_test  = x_test.astype(numpy.float16)
+
+x_train /= 255.
+x_test  /= 255.
+
+y_train = y_train.astype(numpy.int32)
+y_test  = y_test.astype(numpy.int32)
+
+dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+dataset.shuffle(60000)
+
+
+def init_mpi():
+    # Using the presence of an env variable to determine if we're using MPI:
+    try:
+        hvd.init()
+        return hvd.rank(), hvd.size()
+    except:
+        if "mpirun" in sys.argv or "mpiexec" in sys.argv:
+            raise Exception("MPI detected in command line but was not able to init!")
+        return 0, 1
+
+
+def configure_logger(rank):
+    '''Configure a global logger
+
+    Adds a stream handler and a file hander, buffers to file (10 lines) but not to stdout.
+
+    Submit the MPI Rank
+
+    '''
+    logger = logging.getLogger()
+
+    # Create a handler for STDOUT, but only on the root rank.
+    # If not distributed, we still get 0 passed in here.
+    if rank == 0:
+        stream_handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        stream_handler.setFormatter(formatter)
+        handler = handlers.MemoryHandler(capacity=0, target=stream_handler)
+        logger.addHandler(handler)
+
+        # Add a file handler too:
+        log_file = "process.log"
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(formatter)
+        file_handler = handlers.MemoryHandler(capacity=10, target=file_handler)
+        logger.addHandler(file_handler)
+
+        logger.setLevel(logging.INFO)
+    else:
+        # in this case, MPI is available but it's not rank 0
+        # create a null handler
+        handler = logging.NullHandler()
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+
+
+class MNISTClassifier(tf.keras.models.Model):
+
+    def __init__(self, activation=tf.nn.tanh):
+        tf.keras.models.Model.__init__(self)
+        # The first step is to take the random image and use a dense layer to
+        #make it the right shape
+
+        self.dense = tf.keras.layers.Dense(
+            units = 7 * 7 * 64  # 63
+        )
+
+        # This will get reshaped into a 7x7 image with 64 filters.
+
+        # We need to upsample twice to get to a full 28x28 resolution image
+
+
+        self.batch_norm_1 = tf.keras.layers.BatchNormalization()
+
+
+        self.generator_layer_1 = tf.keras.layers.Convolution2D(
+            kernel_size = [5, 5],
+            filters     = 64,  # 63
+            padding     = "same",
+            use_bias    = True,
+            activation  = activation,
+        )
+
+        self.unpool_1 = tf.keras.layers.UpSampling2D(
+            size          = 2,
+            interpolation = "nearest",
+        )
+
+        # After that unpooling the shape is [14, 14] with 64 filters
+        self.batch_norm_2 = tf.keras.layers.BatchNormalization()
+
+
+        self.generator_layer_2 = tf.keras.layers.Convolution2D(
+            kernel_size = [5, 5],
+            filters     = 32,  # 31
+            padding     = "same",
+            use_bias    = True,
+            activation  = activation,
+        )
+
+        self.unpool_2 = tf.keras.layers.UpSampling2D(
+            size          = 2,
+            interpolation = "nearest",
+        )
+
+        self.batch_norm_3 = tf.keras.layers.BatchNormalization()
+
+
+        self.generator_layer_3 = tf.keras.layers.Convolution2D(
+            kernel_size = [5, 5],
+            filters     = 8,
+            padding     = "same",
+            use_bias    = True,
+            activation  = activation,
+        )
+
+        # Now it is [28, 28] by 24 filters, use a bottle neck to
+        # compress to a single image:
+        self.batch_norm_4 = tf.keras.layers.BatchNormalization()
+
+
+        self.generator_layer_final = tf.keras.layers.Convolution2D(
+            kernel_size = [5, 5],
+            filters     = 1,
+            padding     = "same",
+            use_bias    = True,
+            activation  = tf.nn.sigmoid,
+        )
+
+        self.generator_layer_final = tf.keras.layers.Dense(
+            units = 10,
+            activation = 'softmax',
+            dtype='float32',
+            )
+        # self.conv_2 = tf.keras.layers.Conv2D(64, [3, 3], activation='relu')
+        # self.pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))
+        # self.drop_4 = tf.keras.layers.Dropout(0.25)
+        # self.dense_5 = tf.keras.layers.Dense(128, activation='relu')
+        # self.drop_6 = tf.keras.layers.Dropout(0.5)
+        # # softmax MUST be float32. Override global mixed precision policy
+        # self.dense_7 = tf.keras.layers.Dense(10, activation='softmax', dtype='float32')
+
+    @tf.function()  # experimental_compile=True)
+    def call(self, inputs):
+        '''
+        Reshape at input and output:
+        '''
+
+        batch_size = inputs.shape[0]
+        inputs = tf.keras.layers.Flatten()(inputs)
+        x = self.dense(inputs)
+
+
+        # First Step is to to un-pool the encoded state into the right shape:
+        x = tf.reshape(x, [batch_size, 7, 7, 64])  # 63
+
+        x = self.batch_norm_1(x)
+        x = self.generator_layer_1(x)
+        x = self.unpool_1(x)
+        x = self.batch_norm_2(x)
+        x = self.generator_layer_2(x)
+        x = self.unpool_2(x)
+        x = self.batch_norm_3(x)
+        x = self.generator_layer_3(x)
+        x = self.batch_norm_4(x)
+        x = tf.keras.layers.Flatten()(x)
+        x = self.generator_layer_final(x)
+
+
+        # x = self.conv_1(inputs)
+        # x = self.conv_2(x)
+        # x = self.pool_3(x)
+        # x = self.drop_4(x)
+        # x = tf.keras.layers.Flatten()(x)
+        # x = self.dense_5(x)
+        # x = self.drop_6(x)
+        # x = self.dense_7(x)
+
+        return x
+
+
+@tf.function()  # experimental_compile=True)
+def compute_loss(y_true, y_pred):
+    # if labels are integers, use sparse categorical crossentropy
+    # network's final layer is softmax, so from_logtis=False
+    scce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
+    # if labels are one-hot encoded, use standard crossentropy
+
+    return scce(y_true, y_pred)  # .numpy()
+
+
+@tf.function()  # experimental_compile=True)
+def forward_pass(model, batch_data, y_true):
+    y_pred = model(batch_data)
+    loss = compute_loss(y_true, y_pred)
+    return loss
+
+
+def train_loop(batch_size, n_training_epochs, model, opt, global_size):
+
+    @tf.function()  # experimental_compile=True)
+    def train_iteration(data, y_true, model, opt, global_size):
+        with tf.GradientTape() as tape:
+            loss = forward_pass(model, data, y_true)
+            scaled_loss = opt.get_scaled_loss(loss)
+
+        if global_size != 1:
+            tape = hvd.DistributedGradientTape(tape)
+
+        trainable_vars = model.trainable_variables
+
+        # Apply the update to the network (one at a time):
+        scaled_grads = tape.gradient(scaled_loss, trainable_vars)
+        grads = opt.get_unscaled_gradients(scaled_grads)
+        #grads = tape.gradient(loss, trainable_vars)
+
+        opt.apply_gradients(zip(grads, trainable_vars))
+        return loss
+
+
+    logger = logging.getLogger()
+
+    rank = hvd.rank()
+    #    tf.profiler.experimental.start('logdir')
+    for i_epoch in range(n_training_epochs):
+
+        epoch_steps = int(60000/batch_size)
+        dataset.shuffle(60000) # Shuffle the whole dataset in memory
+        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
+
+        for i_batch, (batch_data, y_true) in enumerate(batches):
+
+            batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
+
+            start = time.time()
+
+            loss = train_iteration(batch_data, y_true, model, opt, global_size)
+
+            end = time.time()
+
+            images = batch_size*global_size
+
+            logger.info(f"({i_epoch}, {i_batch}), Loss: {loss:.5f}, step_time: {end-start :.5f}, throughput: {images/(end-start):.2e} img/s.")
+    #tf.profiler.experimental.stop()
+
+
+def train_network(_batch_size, _training_iterations, _lr, global_size):
+
+    tf.keras.mixed_precision.set_global_policy("mixed_float16")  # "float32")
+
+    mnist_model = MNISTClassifier()
+
+    # Fixed loss scaling (cheap)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(
+        tf.keras.optimizers.Adam(_lr),
+        dynamic=False,
+        initial_scale=2**15,
+    )
+    # Dynamic loss scaling (more expensive, but more reliable)
+    #opt = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.SGD(_lr))
+
+    if global_size != 1:
+        hvd.broadcast_variables(mnist_model.variables, root_rank=0)
+        hvd.broadcast_variables(opt.variables(), root_rank=0)
+
+    train_loop(_batch_size, _training_iterations, mnist_model, opt, global_size)
+    mnist_model.summary()
+
+if __name__ == '__main__':
+
+    rank, size = init_mpi()
+    configure_logger(rank)
+
+    parser = argparse.ArgumentParser(description='TensorFlow MNIST Example')
+    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+                        help='input batch size for training (default: 64)')
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
+                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                        help='learning rate (default: 0.01)')
+    # parser.add_argument('--device', default='cpu',
+    #                     help='Wheter this is running on cpu or gpu')
+    # parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
+    # parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
+    # parser.add_argument('--warmup_epochs', default=3, help='number of warmup epochs',
+    # type=int)
+
+    args = parser.parse_args()
+    scaled_lr = args.lr * hvd.size()
+    train_network(args.batch_size, args.epochs, scaled_lr, size)
