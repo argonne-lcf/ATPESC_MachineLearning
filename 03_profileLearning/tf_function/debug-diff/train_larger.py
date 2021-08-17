@@ -23,17 +23,26 @@ y_test  = y_test.astype(numpy.int32)
 
 
 orig_img_h = 28 # original height, width
-pad_img_h = 64
+padded_img_h = 32
+padded_c = 3
 
-pad_h = (pad_img_h - 28) // 2
+pad_h = (padded_img_h - 28) // 2
+pad_c = (padded_c -1)//2 # 0
 
-#tf.pad(x_train, [[0, 0], [pad_h,pad_h], [pad_h,pad_h], [0,0]])
-x_train = tf.pad(x_train, [[0, 0], [pad_h,pad_h], [pad_h,pad_h]])
+x_train = tf.reshape(x_train, [-1, orig_img_h, orig_img_h, 1]) # add singleton channel dim
+# x_train = tf.pad(x_train, [[0, 0], [pad_h,pad_h], [pad_h,pad_h], [0,0]])
+x_train = tf.pad(x_train, [[0, 0], [pad_h,pad_h], [pad_h,pad_h], [pad_c,pad_c]]) # fake RGB channels
+#x_train = tf.pad(x_train, [[0, 0], [pad_h,pad_h], [pad_h,pad_h]])
+
+
+stddev = 0.05
+x_train = tf.random.normal((60000, padded_img_h, padded_img_h, padded_c), stddev=stddev)
+
 
 dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
 dataset.shuffle(60000)
 
-print(dataset)
+# print(dataset)
 
 def init_mpi():
     # Using the presence of an env variable to determine if we're using MPI:
@@ -139,7 +148,6 @@ def forward_pass(model, batch_data, y_true):
 
 
 def train_loop(batch_size, n_training_epochs, model, opt, global_size):
-
     @tf.function
     def train_iteration(data, y_true, model, opt, global_size):
         with tf.GradientTape() as tape:
@@ -167,9 +175,9 @@ def train_loop(batch_size, n_training_epochs, model, opt, global_size):
         batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
 
         for i_batch, (batch_data, y_true) in enumerate(batches):
-            print(batch_data.shape)
-            batch_data = tf.reshape(batch_data, [-1, pad_img_h, pad_img_h, 1])
-            print(batch_data.shape)
+            #print(batch_data.shape)
+            batch_data = tf.reshape(batch_data, [-1, padded_img_h, padded_img_h, padded_c])
+            #print(batch_data.shape)
 
             start = time.time()
 
@@ -193,7 +201,7 @@ def train_network(_batch_size, _training_iterations, _lr, global_size):
         hvd.broadcast_variables(opt.variables(), root_rank=0)
 
     train_loop(_batch_size, _training_iterations, mnist_model, opt, global_size)
-
+    mnist_model.summary()
 
 if __name__ == '__main__':
 
