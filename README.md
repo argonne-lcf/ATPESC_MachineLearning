@@ -1,8 +1,8 @@
-# [ATPESC 2021](https://extremecomputingtraining.anl.gov/agenda-2021/)
+# [ATPESC 2022](https://extremecomputingtraining.anl.gov/agenda-2022/)
 
-The first two modules in this tutorial will rely on Jupyter Notebooks which are targeted for running on [Google's Colaboratory Platform](https://colab.research.google.com). This platform gives the user a virtual machine in which to run python codes including machine learning codes. The VM comes with a preinstalled environment that includes most of what is needed for these tutorials.
+The first two modules in this tutorial will rely on Jupyter Notebooks which are targeted for running on [Google's Colaboratory Platform](https://colab.research.google.com) or [ALCF JupyterHub](https://www.alcf.anl.gov/support-center/theta/jupyter-hub). The Colab platform gives the user a virtual machine in which to run Python codes including machine learning codes. The VM comes with a preinstalled environment that includes most of what is needed for these tutorials.
 
-The latter two modules will be performed with simple Python scripts executed on the [ThetaGPU](https://argonne-lcf.github.io/ThetaGPU-Docs/) machine. 
+The latter two modules will be performed with simple Python scripts executed on the [Polaris](https://argonne-lcf.github.io/ThetaGPU-Docs/) and [AI Testbed](https://www.alcf.anl.gov/alcf-ai-testbed) platforms at ALCF. 
 
 # Before You Arrive
 
