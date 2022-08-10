@@ -125,4 +125,4 @@ t0 = time.time()
 history, cnn_model = train_network_concise(batch_size, epochs, lr)
 t1 = time.time()
 if (hvd.rank()==0):
-    print("Total time: %s second" %(t1-t0))
+    print("Hvd Procs %d Total time: %s second" %(hvd.size(),t1-t0))
