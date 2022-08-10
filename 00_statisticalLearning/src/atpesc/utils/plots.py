@@ -13,15 +13,17 @@ from sklearn.cluster import KMeans
 
 log = logging.getLogger(__name__)
 
-COLORS = [
-    '#2196f3',
-    '#f44336',
-    '#43A047',
-    '#5C6BC0',
-    '#EC407A',
-    '#26A69A',
-    '#AB47BC',
-]
+COLORS = {
+    'blue':     '#2196f3',
+    'red':      '#f44336',
+    'green':    '#63ff5b',
+    'orange':   '#FD971F',
+    'purple':   '#AE81FF',
+    'yellow':   '#ffeb3b',
+    'grey':     '#666666',
+    'teal':     '#00CC99',
+    'pink':     '#E91E63',
+}
 
 
 def set_plot_style(**kwargs) -> None:
@@ -46,7 +48,10 @@ def set_plot_style(**kwargs) -> None:
         'figure.facecolor': (1.0, 1.0, 1.0, 0.0),
     })
     from matplotlib.pyplot import cycler
-    plt.rcParams['axes.prop_cycle'] = cycler('color', COLORS)
+    plt.rcParams['axes.prop_cycle'] = cycler(
+        'color',
+        list(COLORS.values())
+    )
     plt.rcParams['axes.labelcolor'] = '#bdbdbd'
     plt.rcParams.update(**kwargs)
 
@@ -133,8 +138,10 @@ def plot_kmeans_points(
         centers: np.ndarray,
         labels: Optional[np.ndarray] = None,
         title: Optional[str] = None,
+        cmap: Optional[str | Any] = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     # set_plot_style()
+    cmap = 'rainbow' if cmap is None else cmap
     fig, ax = plt.subplots(
         tight_layout=True,
         # figsize=(4, 4),
@@ -145,13 +152,14 @@ def plot_kmeans_points(
         x[:, 1],
         c=labels,
         alpha=0.4,
-        edgecolor=None
+        edgecolor=None,
+        cmap=cmap,
     )
     _ = ax.scatter(
         centers[:, 0],
         centers[:, 1],
         marker='*',
-        s=100
+        s=100,
     )
     _ = ax.set_xlabel('x0')
     _ = ax.set_ylabel('x1')
@@ -194,7 +202,7 @@ def plot_hists(
                 va='bottom'
             )
 
-    _ = ax.legend(loc='best')
+    _ = ax.legend(loc='upper left', framealpha=0.2, labelcolor='#9E9E9E')
     autolabel(rects1)
     autolabel(rects2)
     fig.tight_layout()
