@@ -181,6 +181,36 @@ We provided some examples in: We provided some examples in:
 
 
 ## III. Evaluating Performance
+
+### Running on Polaris
+Request a Polaris node
+```bash
+ssh -CY user@polaris.alcf.anl.gov
+cd ATPESC_MachineLearning/02_distributedLearning/
+qsub -l select=16:system=polaris -l walltime=00:30:00 -A ATPESC2022 -q R313446
+```
+Setup the environment
+```bash
+module load conda/2022-07-19; conda activate
+```
+
+Run the example with different number of GPUs
+```bash
+mpiexec -n 1 --ppn 1 -- python 03_keras_cnn_concise_hvd.py 
+mpiexec -n 2 --ppn 2 -- python 03_keras_cnn_concise_hvd.py 
+mpiexec -n 4 --ppn 4 -- python 03_keras_cnn_concise_hvd.py 
+mpiexec -n 8 --ppn 4 -- python 03_keras_cnn_concise_hvd.py 
+```
+
+```bash
+grep -nir "Total*" polaris_output*
+
+118:Hvd Procs 1 Total time: 41.30474138259888 second
+228:Hvd Procs 2 Total time: 16.258670568466187 second
+344:Hvd Procs 4 Total time: 8.781938552856445 second
+468:Hvd Procs 8 Total time: 11.195882081985474 second
+```
+
 ### Running on ThetaGPU
 Request a ThetaGPU node
 ```bash
@@ -321,6 +351,13 @@ As we can see, that CPU and GPU behaves differently. One GPU, the Allreduce is p
 
 ---------------------------
 **To run all the jobs involved in this training all at once**:
+* For Polaris
+```bash
+ssh -CY user@polaris.alcf.anl.gov
+# cd to ATPESC_MachineLearning directory
+qsub submission/qsub_polaris.sc
+```
+
 
 * For ThetaGPU
 ```bash
