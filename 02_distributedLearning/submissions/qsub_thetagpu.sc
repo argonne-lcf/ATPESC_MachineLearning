@@ -1,11 +1,13 @@
-#!/bin/bash
+#!/bin/bash -l
 #COBALT -n 1
 #COBALT -t 0:15:00
-#COBALT -q full-node 
-#COBALT -A ATPESC2021
+#COBALT -q training-gpu 
+#COBALT -A ATPESC2022
 
 
-source /lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/setup.sh
+# source /lus/theta-fs0/software/thetagpu/conda/2021-06-26/mconda3/setup.sh
+
+module load conda/2022-07-01; conda activate
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 
