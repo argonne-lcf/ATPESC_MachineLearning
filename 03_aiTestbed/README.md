@@ -41,7 +41,7 @@ ssh cs2-01-med1
 cp -r /software/cerebras/model_zoo ~/  
 cd modelzoo/transformers/tf/bert  
 ```
-modify data_dir to “/software/cerebras/dataset/bert_large/msl128/” in configs/params_bert_large_msl128.yaml
+modify `data_dir` to `“/software/cerebras/dataset/bert_large/msl128/”` in `configs/params_bert_large_msl128.yaml`
 
 4. Run scripts:  
 ```
