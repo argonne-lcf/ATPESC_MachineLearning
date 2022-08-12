@@ -220,11 +220,11 @@ wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
 cp mnist.npz $HOME/.keras/datasets/mnist.npz
 
 ssh -CY thetagpusn1
-qsub -q full-node -I -A ATPESC2021 -t 20 -n 1 --attrs=pubnet
+qsub -q full-node -I -A ATPESC2022 -t 20 -n 1 --attrs=pubnet
 ```
 Setup the environment
 ```bash
-module load conda/2021-06-26
+module load conda/2022-07-01
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 ```
@@ -253,7 +253,7 @@ ssh -CY user@theta.alcf.anl.gov
 # On login node, download the mnist dataset
 wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
 cp mnist.npz $HOME/.keras/datasets/mnist.npz
-# requesting ThetaKNL nodes
+# requesting ThetaKNL nodes--- no reservation for ThetaKNL for 2022 ML day
 qsub -q ATPESC2021 -I -A ATPESC2021 -t 1:00:00 -n 8
 ```
 
