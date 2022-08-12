@@ -2,7 +2,7 @@
 
 #!/bin/bash -l
 #PBS -l walltime=00:30:00
-#PBS -l select=16:ncpus=64:ngpus=4
+#PBS -l select=4:ncpus=64:ngpus=4
 #PBS -N atpesc_horovod
 #PBS -k doe
 #PBS -j oe
@@ -21,5 +21,4 @@ mpiexec -n 2 --ppn 2 --hostfile $PBS_NODEFILE -- python ./03_keras_cnn_concise_h
 mpiexec -n 4 --ppn 4 --hostfile $PBS_NODEFILE -- python ./03_keras_cnn_concise_hvd.py 
 mpiexec -n 8 --ppn 4 --hostfile $PBS_NODEFILE -- python ./03_keras_cnn_concise_hvd.py 
 mpiexec -n 16 --ppn 4 --hostfile $PBS_NODEFILE -- python ./03_keras_cnn_concise_hvd.py 
-mpiexec -n 32 --ppn 4 --hostfile $PBS_NODEFILE -- python ./03_keras_cnn_concise_hvd.py 
-mpiexec -n 64 --ppn 4 --hostfile $PBS_NODEFILE -- python ./03_keras_cnn_concise_hvd.py 
+
