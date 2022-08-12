@@ -44,7 +44,7 @@ cd model_zoo/modelzoo/transformers/tf/bert
 Ignore any permissions errors during the copy of the subdirectory `modelzoo-R1.3.0_2/`.
 
 
-Next, modify `data_dir` to `“/software/cerebras/dataset/bert_large/msl128/”` in `configs/params_bert_large_msl128.yaml`
+Next, modify `data_dir` to `'/software/cerebras/dataset/bert_large/msl128/'` in `configs/params_bert_large_msl128.yaml`
 
 4. Run scripts:  
 ```
