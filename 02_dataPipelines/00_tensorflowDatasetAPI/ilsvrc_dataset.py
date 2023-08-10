@@ -120,6 +120,11 @@ def build_dataset_from_filelist(config,filelist_filename):
    # convert python list to tensorflow vector object
    filelist = tf.data.Dataset.from_tensor_slices(filelist)
 
+   # add parallelism setting to this dataset
+   options = tf.data.Options()
+   options.threading.private_threadpool_size = int(os.environ['OMP_NUM_THREADS'])
+   filelist = filelist.with_options(options)
+
    # if using horovod (MPI) shard the data based on total ranks (size) and rank
    if config['hvd']:
       filelist = filelist.shard(config['hvd'].size(), config['hvd'].rank())
@@ -130,16 +135,19 @@ def build_dataset_from_filelist(config,filelist_filename):
    # run 'load_image_label_bb' on each input image file, process multiple files in parallel
    # this function opens the JPEG, converts it to a tensorflow vector and gets the truth class label
    ds = filelist.map(load_image_label_bb,
-                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                     num_parallel_calls=int(os.environ['OMP_NUM_THREADS']),
+                     deterministic=False)
                      
    # unbatch called because some JPEGs result in more than 1 image returned
    ds = ds.apply(tf.data.Dataset.unbatch)
 
    # batch the data
-   ds = ds.batch(dc['batch_size'])
+   ds = ds.batch(dc['batch_size'],
+                     num_parallel_calls=int(os.environ['OMP_NUM_THREADS']),
+                     deterministic=False)
 
    # setup a pipeline that pre-fetches images before they are needed (keeps CPU busy)
-   ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)  
+   ds = ds.prefetch(buffer_size=dc['prefetch_buffer_size'])  
 
    return ds
 
@@ -246,12 +254,15 @@ if __name__ == '__main__':
    
    # define some parallel processing sizes
    if args.interop is not None:
+      print('setting interop: ',args.interop)
       tf.config.threading.set_inter_op_parallelism_threads(args.interop)
    if args.intraop is not None:
+      print('setting intraop: ',args.intraop)
       tf.config.threading.set_intra_op_parallelism_threads(args.intraop)
    
    # use the tensorflow profiler here
    if hvd.rank() == 0:
+      print('setting logdir: ',args.logdir)
       tf.profiler.experimental.start(args.logdir)
    # call function to build dataset objects
    # both of the returned objects are tf.dataset.Dataset objects
@@ -273,3 +284,4 @@ if __name__ == '__main__':
    images = config['data']['batch_size'] * args.nsteps
    if hvd.rank() == 0:
       print('imgs/sec = %5.2f' % ((images/duration)*hvd.size()))
+print('done')
