@@ -1,12 +1,22 @@
-# [ATPESC 2022](https://extremecomputingtraining.anl.gov/agenda-2022/)
+# intro_deep_learning
+Atpesc intro to deep learning
+Author: Marieme Ngom (mngom@anl.gov), adapting materials from Bethany Lusch, Prasanna Balaprakash, Taylor Childers, Corey Adams, and Kyle Felker.
 
-The first two modules in this tutorial will rely on Jupyter Notebooks which are targeted for running on [Google's Colaboratory Platform](https://colab.research.google.com) or [ALCF JupyterHub](https://www.alcf.anl.gov/support-center/theta/jupyter-hub). The Colab platform gives the user a virtual machine in which to run Python codes including machine learning codes. The VM comes with a preinstalled environment that includes most of what is needed for these tutorials.
+This is a hands-on introduction to deep learning, a machine learning technique that tends to outperform other techniques when dealing with a large amount of data. 
 
-The latter two modules will be performed with simple Python scripts executed on the [Polaris](https://argonne-lcf.github.io/ThetaGPU-Docs/) and [AI Testbed](https://www.alcf.anl.gov/alcf-ai-testbed) platforms at ALCF. 
+This is a quick overview, but the goals are:
+- to introduce the fundamental concepts of deep learning through hands-on activities
+- to give you the necessary background for the more advanced topics on scaling and performance that we will teach this afternoon.
 
-# Before You Arrive
+Ready for more?
+- Here are some of our longer training materials: https://github.com/argonne-lcf/sdl_ai_workshop
+- Here's a thorough hands-on textbook: [book](https://www.oreilly.com/library/view/hands-on-machine-learning/9781492032632/) with [notebooks](https://github.com/ageron/handson-ml2).
 
-Do the following before you come to the tutorial:
+
+We will work on a classification problem involving the [MNIST dataset](http://yann.lecun.com/exdb/mnist/) that contains thousands of examples of handwritten numbers, with each digit labeled 0-9
+![MNIST Task](images/mnist_task.png)
+
+We are going to use google collab:
 *  You need a Google Account to use Colaboratory
 *  Goto [Google's Colaboratory Platform](https://colab.research.google.com) 
 *  You should see this page
@@ -24,4 +34,5 @@ Do the following before you come to the tutorial:
 *  This will show you a list of the Notebooks available in the repo.
 *  Select the `introduction.ipynb` file to open and work through it.
 *  As each session of the tutorial begins, you will simply select the corresponding notebook from this list and it will create a copy for you in your Colaboratory account (all `*.ipynb` files in the Colaboratory account will be stored in your Google Drive).
-* To use a GPU, in the notbook the select `Runtime` -> `Change Runtime Type` and you have a dropbox list of hardward settings to choose from where the notebook can run.
+
+
