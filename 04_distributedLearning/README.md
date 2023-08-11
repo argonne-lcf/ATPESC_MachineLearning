@@ -96,13 +96,12 @@ if hvd.rank() == 0:
      checkpoint.save(checkpoint_dir)
 ```
 
-7) **Loading data according to rank ID**
+7) **Sharding the dataset**
 
 In data parallelism, we distributed the dataset to different workers. It is important to make sure different workers work on different part of the dataset, and they together can cover the entire dataset at each epoch. 
-
-In general, one has two ways to deal with the data loading. 
-1. Each worker randomly selects one batch of data from the dataset at each step. In such case, each worker can see the entire dataset. It is important to make sure that the different worker have different random seeds so that they will get different data at each step.
-2. Each worker accesses a subset of dataset. One manually partition the entire dataset into different partions, and each rank access one of the partions. 
+```python
+dataset = dataset.shard(hvd.size(), hvd.rank())
+```
 
 8) **Adjusting the number of steps per epoch**
 
@@ -111,7 +110,7 @@ The total number of steps per epoch is ```nsamples / hvd.size()```.
 
 
 We provided some examples in: 
-* [03_keras_cnn_verbose_hvd.py](03_keras_cnn_verbose_hvd.py)
+* [03_keras_cnn_verbose_hvd.py](Horovod/03_keras_cnn_verbose_hvd.py)
 
 
 
@@ -176,18 +175,22 @@ In general, one has two ways to deal with the data loading.
 The total number of steps per epoch is ```nsamples / hvd.size()```.
 
 
-We provided some examples in: We provided some examples in: 
-* [03_keras_cnn_concise_hvd.py](03_keras_cnn_concise_hvd.py)
+We provided some examples in: We provided some examples in: [04_keras_cnn_concise_hvd.py](Horovod/04_keras_cnn_concise_hvd.py)
 
+## III. Other frameworks
+### DDP
+[04_pytorch_cnn_ddp.py](DDP/04_pytorch_cnn_ddp.py)
+### DeepSpeed
+[04_pytorch_cnn_ds.py](DeepSpeed/04_pytorch_cnn_ds.py)
 
 ## III. Evaluating Performance
 
 ### Running on Polaris
-Request a Polaris node
+Request Polaris nodes
 ```bash
 ssh -CY user@polaris.alcf.anl.gov
-cd ATPESC_MachineLearning/02_distributedLearning/
-qsub -l select=16:system=polaris -l walltime=00:30:00 -A ATPESC2022 -q R313446
+cd ATPESC_MachineLearning/04_distributedLearning/
+qsub -l nodes=2:ppn=4 -l walltime=00:30:00 -A ATPESC2023 -q ATPESC -I
 ```
 Setup the environment
 ```bash
@@ -196,10 +199,10 @@ module load conda/2022-07-19; conda activate
 
 Run the example with different number of GPUs
 ```bash
-mpiexec -n 1 --ppn 1 -- python 03_keras_cnn_concise_hvd.py 
-mpiexec -n 2 --ppn 2 -- python 03_keras_cnn_concise_hvd.py 
-mpiexec -n 4 --ppn 4 -- python 03_keras_cnn_concise_hvd.py 
-mpiexec -n 8 --ppn 4 -- python 03_keras_cnn_concise_hvd.py 
+aprun -n 1 -N 1 python Horovod/04_keras_cnn_concise_hvd.py 
+aprun -n 2 -N 2 python Horovod/04_keras_cnn_concise_hvd.py 
+aprun -n 4 -N 4 python Horovod/04_keras_cnn_concise_hvd.py 
+aprun -n 8 -N 4 python Horovod/04_keras_cnn_concise_hvd.py 
 ```
 
 ```bash
@@ -220,7 +223,7 @@ wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
 cp mnist.npz $HOME/.keras/datasets/mnist.npz
 
 ssh -CY thetagpusn1
-qsub -q full-node -I -A ATPESC2022 -t 20 -n 1 --attrs=pubnet
+qsub -q full-node -I -A ATPESC2023 -t 20 -n 1 --attrs=pubnet
 ```
 Setup the environment
 ```bash
@@ -254,17 +257,16 @@ ssh -CY user@theta.alcf.anl.gov
 wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
 cp mnist.npz $HOME/.keras/datasets/mnist.npz
 # requesting ThetaKNL nodes--- no reservation for ThetaKNL for 2022 ML day
-qsub -q ATPESC2021 -I -A ATPESC2021 -t 1:00:00 -n 8
+qsub -q ATPESC2023 -I -A ATPESC2023 -t 1:00:00 -n 8
 ```
 
 Running the scaling test
 ```bash
-module load datascience/tensorflow-2.3
+module load conda
 export NPROC_PER_NODE=4
 for n in 1 2 4 8 
 do
-  aprun -n $((n*PROC_PER_NODE)) -N $PROC_PER_NODE -j 2 -d 32 -e OMP_NUM_THREADS=32 -e KMP_BLOCKTIME=0 -cc depth python 03_keras\
-_cnn_concise_hvd.py --device cpu >& concise_$n.out.knl 
+  aprun -n $((n*PROC_PER_NODE)) -N $PROC_PER_NODE -j 2 -d 32 -e OMP_NUM_THREADS=32 -e KMP_BLOCKTIME=0 -cc depth python 03_keras_cnn_concise_hvd.py --device cpu >& concise_$n.out.knl 
 done
 ```
 

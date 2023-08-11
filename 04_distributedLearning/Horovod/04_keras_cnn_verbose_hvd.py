@@ -1,6 +1,7 @@
 # Horovod example
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['MPICH_GPU_SUPPORT_ENABLED']='0'
 
 import tensorflow as tf
 
@@ -21,7 +22,7 @@ parser.add_argument('--device', default='gpu',
                     help='Wheter this is running on cpu or gpu')
 parser.add_argument('--num_inter', default=2, help='set number inter', type=int)
 parser.add_argument('--num_intra', default=0, help='set number intra', type=int)
-
+parser.add_argument('--batch_size', default=512, type=int)
 args = parser.parse_args()
 tf.config.threading.set_intra_op_parallelism_threads(args.num_intra)
 tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
@@ -44,6 +45,10 @@ x_test  /= 255.
 y_train = y_train.astype(numpy.int32)
 y_test  = y_test.astype(numpy.int32)
 
+dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+dataset = dataset.shard(hvd.size(), hvd.rank())
+dataset = dataset.shuffle(60000)
+batches = dataset.batch(batch_size = args.batch_size, drop_remainder=True)
 
 # Convolutional model
 
@@ -109,13 +114,7 @@ def train_loop(batch_size, n_training_epochs, model, opt):
         if (hvd.rank==0):
             print("beginning epoch %d" % i_epoch)
         start = time.time()
-
-        epoch_steps = int(60000/batch_size)
-        dataset.shuffle(60000) # Shuffle the whole dataset in memory
-        # (6) Adjust the training steps
-        batches = dataset.take(60000//hvd.size()).batch(batch_size=batch_size, drop_remainder=True)
-
-        
+        total_loss = 0.0
         for i_batch, (batch_data, y_true) in enumerate(batches):
             batch_data = tf.reshape(batch_data, [-1, 28, 28, 1])
             if (args.device=='cpu'):
@@ -123,13 +122,15 @@ def train_loop(batch_size, n_training_epochs, model, opt):
                     loss = train_iteration(batch_data, y_true, model, opt)
             else:
                 loss = train_iteration(batch_data, y_true, model, opt)
+            total_loss += loss
             # (5) broadcast from 0 (need to be done after first step to ensured that optimizer is initialized)
             if (i_batch==0 and i_epoch==0):
                 hvd.broadcast_variables(model.variables, root_rank=0)
                 hvd.broadcast_variables(opt.variables(), root_rank=0)
+        total_loss = hvd.allreduce(total_loss, average=False)
         end = time.time()
         if (hvd.rank()==0):
-            print("took %4.4f seconds for epoch #%d" % (end-start, i_epoch))
+            print("took %4.4f seconds for epoch #%d - %s" % (end-start, i_epoch, tf.print("loss: ", total_loss)))
 
 
 def train_network(_batch_size, _n_training_epochs, _lr):
@@ -140,9 +141,6 @@ def train_network(_batch_size, _n_training_epochs, _lr):
 
     train_loop(_batch_size, _n_training_epochs, mnist_model, opt)
 
-
-dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-dataset.shuffle(60000)
 
 batch_size = 512
 epochs = args.epochs

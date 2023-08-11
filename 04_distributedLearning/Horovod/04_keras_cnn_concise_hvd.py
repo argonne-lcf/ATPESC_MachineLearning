@@ -1,6 +1,6 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
+os.environ['MPICH_GPU_SUPPORT_ENABLED']='0'
 import tensorflow as tf
 
 # (1) Initializing Horovod
@@ -16,6 +16,9 @@ parser = argparse.ArgumentParser(description='Horovod',
 parser.add_argument('--device', default='gpu',
                     help='Whether this is running on cpu or gpu')
 parser.add_argument('--epochs', default=50, type=int, help='Number of epochs to run')
+parser.add_argument('--warmup_epochs', default=3, type=int, help='Number of epochs to run')
+parser.add_argument('--learning_rate', '--lr', default=0.01, type=float)
+parser.add_argument('--batch_size', default=512, type=int)
 args = parser.parse_args()
 
 from tensorflow.python.client import device_lib
@@ -99,7 +102,7 @@ def train_network_concise(_batch_size, _n_training_epochs, _lr):
         # Average metric at the end of every epoch
         hvd.callbacks.MetricAverageCallback(),
         # Warmup 
-        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=3, verbose=1, initial_lr=_lr),
+        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=args.warmup_epochs, verbose=1, initial_lr=_lr),
     ]
     # (6) save checkpoints only on worker 0
     #if hvd.rank()==0:
@@ -116,13 +119,13 @@ def train_network_concise(_batch_size, _n_training_epochs, _lr):
         history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size()//_batch_size, verbose=verbose)
     return history, cnn_model
 
-batch_size = 512
+batch_size = args.batch_size
 epochs = args.epochs
-lr = .01
+lr = args.learning_rate
 history, cnn_model = train_network_concise(batch_size, 1, lr)
 
 t0 = time.time()
-history, cnn_model = train_network_concise(batch_size, epochs, lr)
+history, cnn_model = train_network_concise(batch_size, epochs-1, lr)
 t1 = time.time()
 if (hvd.rank()==0):
     print("Hvd Procs %d Total time: %s second" %(hvd.size(),t1-t0))
