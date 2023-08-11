@@ -46,6 +46,7 @@ y_train = y_train.astype(numpy.int32)
 y_test  = y_test.astype(numpy.int32)
 
 dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+#HVD: sharding the dataset
 dataset = dataset.shard(hvd.size(), hvd.rank())
 dataset = dataset.shuffle(60000)
 batches = dataset.batch(batch_size = args.batch_size, drop_remainder=True)
