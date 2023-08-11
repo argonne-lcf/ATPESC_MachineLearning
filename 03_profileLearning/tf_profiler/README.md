@@ -51,14 +51,14 @@ You can view the processes and how they occupy the compute resources in Tensorfl
 
 You can login to Theta using:
 ```bash
-# our proxy port, must be > 1024
+# our proxy port, must be > 1024 and every user needs a different port
 export PORT=10001
 # login to theta with a port forwarding
 ssh -D $PORT user@theta.alcf.anl.gov
 # load any conda environment that has a compatible tensorboard installation
-module load miniconda-3/2021-07-28
+module load conda
 # add CUDA libraries if you are running on ThetaGPU
-export LD_LIBRARY_PATH=/lus/theta-fs0/software/thetagpu/cuda/cuda_11.3.0_465.19.01_linux/lib64:/lus/theta-fs0/software/thetagpu/cuda/cudnn-11.3-linux-x64-v8.2.0.53/lib64
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/lus/theta-fs0/software/thetagpu/cuda/TensorRT-8.5.2.2/lib:/lus/theta-fs0/software/thetagpu/cuda/nccl_2.16.2-1+cuda11.8_x86_64/lib:/lus/theta-fs0/software/thetagpu/cuda/cudnn-linux-x86_64-8.6.0.163_cuda11-archive/lib:/lus/theta-fs0/software/thetagpu/cuda/cuda-11.8.0/extras/CUPTI/lib64:/lus/theta-fs0/software/thetagpu/cuda/cuda-11.8.0/lib64
 # start tensorboard (load_fast==false is a recent setting that seems to be needed until Tensorflow work's out the bugs)
 tensorboard --bind_all --logdir . --load_fast=false
 ```
