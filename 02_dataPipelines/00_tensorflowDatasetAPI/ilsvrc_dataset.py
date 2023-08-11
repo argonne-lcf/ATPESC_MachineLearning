@@ -15,7 +15,7 @@
 #
 # questions? Taylor Childers, jchilders@anl.gov
 
-import os,glob
+import os,glob,sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '3'
 import tensorflow as tf
@@ -285,3 +285,5 @@ if __name__ == '__main__':
    if hvd.rank() == 0:
       print('imgs/sec = %5.2f' % ((images/duration)*hvd.size()))
 print('done')
+os._exit(0)
+print('after')
