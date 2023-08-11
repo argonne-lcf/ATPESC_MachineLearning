@@ -107,10 +107,7 @@ dataset = dataset.shard(hvd.size(), hvd.rank())
 
 The total number of steps per epoch is ```nsamples / hvd.size()```.
 
-
-
-We provided some examples in: 
-* [03_keras_cnn_verbose_hvd.py](Horovod/03_keras_cnn_verbose_hvd.py)
+Example: [03_keras_cnn_verbose_hvd.py](Horovod/03_keras_cnn_verbose_hvd.py)
 
 
 
@@ -177,13 +174,18 @@ The total number of steps per epoch is ```nsamples / hvd.size()```.
 
 We provided some examples in: We provided some examples in: [04_keras_cnn_concise_hvd.py](Horovod/04_keras_cnn_concise_hvd.py)
 
-## III. Other frameworks
-### DDP
+## III. Other frameworks examples
+For Pytorch, one can also use DDP and DeepSpeed to parallelize the code. The instruction on how to parallelize the code using DDP and DeepSpeed can be found here: 
+* DDP: https://github.com/argonne-lcf/sdl_workshop/tree/master/distributedDeepLearning/DDP
+* DeepSpeed: https://github.com/argonne-lcf/sdl_workshop/tree/master/distributedDeepLearning/DeepSpeed
+
+We also provde examples in this GitHub repo
+* DDP: 
 [04_pytorch_cnn_ddp.py](DDP/04_pytorch_cnn_ddp.py)
-### DeepSpeed
+* DeepSpeed: 
 [04_pytorch_cnn_ds.py](DeepSpeed/04_pytorch_cnn_ds.py)
 
-## III. Evaluating Performance
+## IV. Evaluating Performance
 
 ### Running on Polaris
 Request Polaris nodes
@@ -199,19 +201,19 @@ module load conda/2022-07-19; conda activate
 
 Run the example with different number of GPUs
 ```bash
-aprun -n 1 -N 1 python Horovod/04_keras_cnn_concise_hvd.py 
-aprun -n 2 -N 2 python Horovod/04_keras_cnn_concise_hvd.py 
-aprun -n 4 -N 4 python Horovod/04_keras_cnn_concise_hvd.py 
-aprun -n 8 -N 4 python Horovod/04_keras_cnn_concise_hvd.py 
+aprun -n 1 -N 1 python Horovod/04_keras_cnn_concise_hvd.py >& concise_1.out.polaris
+aprun -n 2 -N 2 python Horovod/04_keras_cnn_concise_hvd.py >& concise_2.out.polaris
+aprun -n 4 -N 4 python Horovod/04_keras_cnn_concise_hvd.py >& concise_4.out.polaris
+aprun -n 8 -N 4 python Horovod/04_keras_cnn_concise_hvd.py >& concise_8.out.polaris
 ```
 
 ```bash
-grep -nir "Total*" polaris_output*
+grep -nir "Total*" concise_*.out.polaris
 
-118:Hvd Procs 1 Total time: 41.30474138259888 second
-228:Hvd Procs 2 Total time: 16.258670568466187 second
-344:Hvd Procs 4 Total time: 8.781938552856445 second
-468:Hvd Procs 8 Total time: 11.195882081985474 second
+concise_1.out.polaris:105:Hvd Procs 1 Total time: 41.301602363586426 second
+concise_2.out.polaris:108:Hvd Procs 2 Total time: 15.904807090759277 second
+concise_4.out.polaris:114:Hvd Procs 4 Total time: 8.778051614761353 second
+concise_8.out.polaris:126:Hvd Procs 8 Total time: 10.74051284790039 second
 ```
 
 ### Running on ThetaGPU
@@ -227,50 +229,100 @@ qsub -q full-node -I -A ATPESC2023 -t 20 -n 1 --attrs=pubnet
 ```
 Setup the environment
 ```bash
-module load conda/2022-07-01
+module load conda
+conda activate
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 ```
 
 Run the example with different number of GPUs
 ```bash
-mpirun -np 1 python 03_keras_cnn_concise_hvd.py >& concise_1.out
-mpirun -np 2 python 03_keras_cnn_concise_hvd.py >& concise_2.out
-mpirun -np 4 python 03_keras_cnn_concise_hvd.py >& concise_4.out
-mpirun -np 8 python 03_keras_cnn_concise_hvd.py >& concise_8.out
+mpirun -np 1 python Horovod/04_keras_cnn_concise_hvd.py >& concise_1.out.thetagpu
+mpirun -np 2 python Horovod/04_keras_cnn_concise_hvd.py >& concise_2.out.thetagpu
+mpirun -np 4 python Horovod/04_keras_cnn_concise_hvd.py >& concise_4.out.thetagpu
+mpirun -np 8 python Horovod/04_keras_cnn_concise_hvd.py >& concise_8.out.thetagpu
 ```
 
 ```bash
-grep 'Total time:' *.out
-concise_1.out:Total time: 13.148040294647217 second
-concise_2.out:Total time: 8.65635347366333 second
-concise_4.out:Total time: 3.7076730728149414 second
-concise_8.out:Total time: 2.2868692874908447 second
+grep 'Total time:' *.out.thetagpu
+concise_1.out.thetagpu:Hvd Procs 1 Total time: 28.518505334854126 second
+concise_2.out.thetagpu:Hvd Procs 2 Total time: 19.695040225982666 second
+concise_4.out.thetagpu:Hvd Procs 4 Total time: 7.686097145080566 second
+concise_8.out.thetagpu:Hvd Procs 8 Total time: 4.363291263580322 second
 ```
 
-### Running on ThetaKNL
-Request 8 ThetaKNL node
+## V. Large batch training and learning rate warmup
+* No warmup up 
 ```bash
-# SSH to Theta
-ssh -CY user@theta.alcf.anl.gov
-# On login node, download the mnist dataset
-wget https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
-cp mnist.npz $HOME/.keras/datasets/mnist.npz
-# requesting ThetaKNL nodes--- no reservation for ThetaKNL for 2022 ML day
-qsub -q ATPESC2023 -I -A ATPESC2023 -t 1:00:00 -n 8
+aprun -n 8 -N 4 python Horovod/04_keras_cnn_concise_hvd.py --warmup_epochs=0
 ```
-
-Running the scaling test
 ```bash
-module load conda
-export NPROC_PER_NODE=4
-for n in 1 2 4 8 
-do
-  aprun -n $((n*PROC_PER_NODE)) -N $PROC_PER_NODE -j 2 -d 32 -e OMP_NUM_THREADS=32 -e KMP_BLOCKTIME=0 -cc depth python 03_keras_cnn_concise_hvd.py --device cpu >& concise_$n.out.knl 
-done
+14/14 [==============================] - 8s 15ms/step - loss: 5.2882 - accuracy: 0.1051 - lr: 0.0800
+Epoch 1/49
+14/14 [==============================] - 1s 16ms/step - loss: 9.7685 - accuracy: 0.1137 - lr: 0.0800
+Epoch 2/49
+14/14 [==============================] - 0s 12ms/step - loss: 2.3030 - accuracy: 0.1084 - lr: 0.0800
+Epoch 3/49
+14/14 [==============================] - 0s 20ms/step - loss: 2.3017 - accuracy: 0.1120 - lr: 0.0800
+Epoch 4/49
+14/14 [==============================] - 0s 17ms/step - loss: 2.3016 - accuracy: 0.1118 - lr: 0.0800
+Epoch 5/49
+14/14 [==============================] - 0s 11ms/step - loss: 2.3011 - accuracy: 0.1125 - lr: 0.0800
+Epoch 6/49
+14/14 [==============================] - 0s 18ms/step - loss: 2.3011 - accuracy: 0.1124 - lr: 0.0800
+Epoch 7/49
+14/14 [==============================] - 0s 20ms/step - loss: 2.3016 - accuracy: 0.1136 - lr: 0.0800
+Epoch 8/49
+14/14 [==============================] - 0s 11ms/step - loss: 2.3011 - accuracy: 0.1139 - lr: 0.0800
+Epoch 9/49
+14/14 [==============================] - 0s 28ms/step - loss: 2.3019 - accuracy: 0.1088 - lr: 0.0800
+Epoch 10/49
+14/14 [==============================] - 0s 12ms/step - loss: 2.3017 - accuracy: 0.1107 - lr: 0.0800
+Epoch 11/49
+14/14 [==============================] - 0s 13ms/step - loss: 2.3015 - accuracy: 0.1123 - lr: 0.0800
+Epoch 12/49
+14/14 [==============================] - 0s 11ms/step - loss: 2.3016 - accuracy: 0.1128 - lr: 0.0800
+Epoch 13/49
 ```
 
-## IV. MPI Communication
+* With warmup 
+```bash
+aprun -n 8 -N 4 python Horovod/04_keras_cnn_concise_hvd.py --warmup_epochs=3
+```
+```
+14/14 [==============================] - 8s 21ms/step - loss: 1.3770 - accuracy: 0.5622 - lr: 0.0333
+Epoch 1/49
+14/14 [==============================] - 1s 16ms/step - loss: 1.7582 - accuracy: 0.4185 - lr: 0.0333
+Epoch 2/49
+14/14 [==============================] - 0s 14ms/step - loss: 0.5647 - accuracy: 0.8224 - lr: 0.0567
+Epoch 3/49
+13/14 [==========================>...] - ETA: 0s - loss: 0.3165 - accuracy: 0.9028
+Epoch 3: finished gradual learning rate warmup to 0.08.
+14/14 [==============================] - 0s 16ms/step - loss: 0.3098 - accuracy: 0.9072 - lr: 0.0800
+Epoch 4/49
+14/14 [==============================] - 0s 15ms/step - loss: 0.2391 - accuracy: 0.9269 - lr: 0.0800
+Epoch 5/49
+14/14 [==============================] - 0s 16ms/step - loss: 0.1897 - accuracy: 0.9429 - lr: 0.0800
+Epoch 6/49
+14/14 [==============================] - 0s 18ms/step - loss: 0.1668 - accuracy: 0.9505 - lr: 0.0800
+Epoch 7/49
+14/14 [==============================] - 0s 23ms/step - loss: 0.1520 - accuracy: 0.9546 - lr: 0.0800
+Epoch 8/49
+14/14 [==============================] - 0s 13ms/step - loss: 0.1520 - accuracy: 0.9546 - lr: 0.0800
+Epoch 9/49
+14/14 [==============================] - 0s 30ms/step - loss: 0.1427 - accuracy: 0.9568 - lr: 0.0800
+Epoch 10/49
+14/14 [==============================] - 0s 17ms/step - loss: 0.1417 - accuracy: 0.9565 - lr: 0.0800
+Epoch 11/49
+14/14 [==============================] - 0s 17ms/step - loss: 0.1413 - accuracy: 0.9574 - lr: 0.0800
+Epoch 12/49
+14/14 [==============================] - 0s 11ms/step - loss: 0.1294 - accuracy: 0.9609 - lr: 0.0800
+Epoch 13/49
+14/14 [==============================] - 0s 15ms/step - loss: 0.1218 - accuracy: 0.9633 - lr: 0.0800
+Epoch 14/49
+14/14 [==============================] - 0s 12ms/step - loss: 0.1185 - accuracy: 0.9640 - lr: 0.0800
+```
+## VI. MPI Communication profiling
 * MPI profiling -- to see the MPI calls involved
    * running on GPU
 ```bash
@@ -307,7 +359,6 @@ LD_PRELOAD=/soft/perftools/hpctw/lib/libmpitrace.so mpirun -np 8 python 03_keras
 ```
 2.44 second per epoch
   
-
 ```
 Times and statistics from MPI_Init() to MPI_Finalize().
 -----------------------------------------------------------------------
@@ -342,8 +393,8 @@ MPI_Allreduce             #calls    avg. bytes      time(sec)
 * Horovod Timeline -- to see when MPI communication happens. 
 To get the timeline trace, simply set the environment variable ```HOROVOD_TIMELINE``` to the output file name. Then copy the json file to your local machine, and visualize using Chrome trace (open your chrome and type chrome://tracing/ in the address bar, and then load the json file). 
 ```bash
-HOROVOD_TIMELINE=gpu.json mpirun -np 8 python 03_keras_cnn_concise_hvd.py 
-HOROVOD_TIMELINE=cpu.json mpirun -np 8 python 03_keras_cnn_concise_hvd.py --device cpu 
+HOROVOD_TIMELINE=gpu.json mpirun -np 8 python Horovod/04_keras_cnn_concise_hvd.py 
+HOROVOD_TIMELINE=cpu.json mpirun -np 8 python Horovod/04_keras_cnn_concise_hvd.py --device cpu 
 ```
   - GPU Horovod timeline
   	![GPU timeline](./figures/gpu_horovodtimeline.png)
@@ -360,18 +411,10 @@ ssh -CY user@polaris.alcf.anl.gov
 qsub submission/qsub_polaris.sc
 ```
 
-
 * For ThetaGPU
 ```bash
 ssh -CY user@theta.alcf.anl.gov
 ssh -CY thetagpusn1
 # cd to ATPESC_MachineLearning directory
 qsub submission/qsub_thetagpu.sc
-```
-
-* For ThetaKNL
-```bash
-ssh -CY user@theta.alcf.anl.gov
-# cd to ATPESC_MachineLearning directory
-qsub submission/qsub_thetaknl.sc
 ```

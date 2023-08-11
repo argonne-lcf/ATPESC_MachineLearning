@@ -102,7 +102,7 @@ def train_network_concise(_batch_size, _n_training_epochs, _lr):
         # Average metric at the end of every epoch
         hvd.callbacks.MetricAverageCallback(),
         # Warmup 
-        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=args.warmup_epochs, verbose=1, initial_lr=_lr),
+        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=args.warmup_epochs, verbose=1, initial_lr=_lr*hvd.size()),
     ]
     # (6) save checkpoints only on worker 0
     #if hvd.rank()==0:
