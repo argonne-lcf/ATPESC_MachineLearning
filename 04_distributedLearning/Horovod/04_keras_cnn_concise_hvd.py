@@ -3,7 +3,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['MPICH_GPU_SUPPORT_ENABLED']='0'
 import tensorflow as tf
 
-# (1) Initializing Horovod
+#HVD: (1) Initializing Horovod
 import horovod.tensorflow.keras as hvd
 hvd.init()
 print("I am rank %s of %s" %(hvd.rank(), hvd.size()))
@@ -30,7 +30,7 @@ def get_available_devices():
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
-    # (2) Pin one GPU to specific horovod worker
+    #HVD: (2) Pin one GPU to specific horovod worker
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
         
@@ -88,14 +88,14 @@ class MNISTClassifier(tf.keras.models.Model):
 def train_network_concise(_batch_size, _n_training_epochs, _lr):
 
     cnn_model = MNISTClassifier()
-    # (3) scale the learning rate
+    #HVD: (3) scale the learning rate
     opt = tf.optimizers.Adam(_lr*hvd.size())
-    # (4) add Horovod Distributed Optimizer
+    #HVD: (4) add Horovod Distributed Optimizer
     opt = hvd.DistributedOptimizer(opt)
     # Specify `experimental_run_tf_function=False`
     cnn_model.compile(loss="sparse_categorical_crossentropy", optimizer=opt, metrics=['accuracy'],
                       experimental_run_tf_function=False)
-    # (5) Define call back
+    #HVD: (5) Define call back
     callbacks = [
         # broad cast 
         hvd.callbacks.BroadcastGlobalVariablesCallback(0),
@@ -104,14 +104,14 @@ def train_network_concise(_batch_size, _n_training_epochs, _lr):
         # Warmup 
         hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=args.warmup_epochs, verbose=1, initial_lr=_lr*hvd.size()),
     ]
-    # (6) save checkpoints only on worker 0
-    #if hvd.rank()==0:
-    #    callbacks.append(tf.keras.callbacks.ModelCheckpoint('./checkpoint-{epoch}.h5'))
+    #HVD: (6) save checkpoints only on worker 0
+    if hvd.rank()==0:
+        callbacks.append(tf.keras.callbacks.ModelCheckpoint('./checkpoint-{epoch}.h5'))
     verbose=0
     if hvd.rank()==0:
         verbose=1
     x_train_reshaped = numpy.expand_dims(x_train, -1)
-    # (7) Adjust the number of steps per epochs
+    #HVD: (7) Adjust the number of steps per epochs
     if (args.device=='cpu'):
         with tf.device('/device:CPU:0'):
             history = cnn_model.fit(x_train_reshaped, y_train, batch_size=_batch_size, epochs=_n_training_epochs, callbacks=callbacks, steps_per_epoch=60000//hvd.size()//_batch_size, verbose=verbose)

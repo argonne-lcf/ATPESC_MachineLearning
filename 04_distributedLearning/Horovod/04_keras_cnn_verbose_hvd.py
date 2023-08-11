@@ -8,7 +8,7 @@ import tensorflow as tf
 import numpy
 import time
 
-# (1) Import horovod
+#HVD: (1) Import horovod
 import horovod.tensorflow as hvd
 hvd.init()
 print("I am rank %d of %d"%(hvd.rank(), hvd.size()))
@@ -29,7 +29,7 @@ tf.config.threading.set_inter_op_parallelism_threads(args.num_inter)
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
-# (2) Pin GPU        
+#HVD: (2) Pin GPU        
 if gpus:
     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
@@ -101,7 +101,7 @@ def train_loop(batch_size, n_training_epochs, model, opt):
             loss = forward_pass(model, data, y_true)
 
         trainable_vars = model.trainable_variables
-        # (4) distributed tape
+        #HVD: (4) distributed tape
         tape = hvd.DistributedGradientTape(tape)
 
         # Apply the update to the network (one at a time):
@@ -123,10 +123,11 @@ def train_loop(batch_size, n_training_epochs, model, opt):
             else:
                 loss = train_iteration(batch_data, y_true, model, opt)
             total_loss += loss
-            # (5) broadcast from 0 (need to be done after first step to ensured that optimizer is initialized)
+            #HVD: (5) broadcast from 0 (need to be done after first step to ensured that optimizer is initialized)
             if (i_batch==0 and i_epoch==0):
                 hvd.broadcast_variables(model.variables, root_rank=0)
                 hvd.broadcast_variables(opt.variables(), root_rank=0)
+        #HVD: (6) average metrics
         total_loss = hvd.allreduce(total_loss, average=False)
         end = time.time()
         if (hvd.rank()==0):
@@ -136,7 +137,7 @@ def train_loop(batch_size, n_training_epochs, model, opt):
 def train_network(_batch_size, _n_training_epochs, _lr):
 
     mnist_model = MNISTClassifier()
-    # (3) scale learning rate
+    #HVD: (3) scale learning rate
     opt = tf.keras.optimizers.Adam(_lr*hvd.size())
 
     train_loop(_batch_size, _n_training_epochs, mnist_model, opt)
