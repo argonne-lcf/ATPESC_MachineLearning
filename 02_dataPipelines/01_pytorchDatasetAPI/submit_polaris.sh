@@ -9,7 +9,8 @@
 cd $PBS_O_WORKDIR
 
 echo [$SECONDS] setup conda environment
-module load conda/2022-09-08
+module use /soft/modulefiles
+module load conda
 conda activate
 
 echo [$SECONDS] python = $(which python)
@@ -20,6 +21,11 @@ NODES=`cat $PBS_NODEFILE | wc -l`
 GPUS_PER_NODE=4
 RANKS=$((NODES * GPUS_PER_NODE))
 echo NODES=$NODES  GPUS_PER_NODE=$GPUS_PER_NODE  RANKS=$RANKS
+
+# for PyTorch DDT setup
+export MASTER_ADDR="localhost"
+export MASTER_PORT=12399
+echo [$SECONDS] MASTER_ADDR=$MASTER_ADDR  MASTER_PORT=$MASTER_PORT
 
 export OMP_NUM_THREADS=1
 echo [$SECONDS] run example with $OMP_NUM_THREADS threads
