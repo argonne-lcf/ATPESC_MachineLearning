@@ -7,8 +7,7 @@ DEFAULT_SIZE = int(os.environ.get('PMI_SIZE',1))
 
 print(f'local_rank: {DEFAULT_LOCAL_RANK}, local_size: {DEFAULT_LOCAL_SIZE}, rank: {DEFAULT_RANK}, size: {DEFAULT_SIZE}')
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = str(DEFAULT_LOCAL_RANK)
-
+# custom print function that only print on rank 0
 def myprint(*args):
     if(DEFAULT_RANK==0): 
         print(*args)
@@ -29,6 +28,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchvision import transforms, models
 
 
+# simple class to calculate mean and standard deviation
 class MeanCalc:
     def __init__(self):
         self.sum = 0
@@ -49,6 +49,7 @@ class MeanCalc:
     def __str__(self):
         return f'mean: {self.mean():.2f}, stddev: {self.stddev():.2f}'
 
+# dataset handler for input files
 class ImageNetDataset:
     def __init__(self, base_dir, file_list_path, id_to_index, transform=None, rank=0, world_size=1):
         self.base_dir = base_dir
@@ -72,6 +73,8 @@ class ImageNetDataset:
             img = self.transform(img)
         return img, target
 
+
+# data loader class which spawns multiple threads to load images and a single thread to batch them.
 class ImageNetDataLoader:
     def __init__(self, dataset, batch_size, num_workers, cache_size):
         self.dataset = dataset
@@ -135,6 +138,8 @@ class ImageNetDataLoader:
             thread.join()
         self.batch_thread.join()
 
+# the filenames contain a unique id for each image that corresponds to the object ID
+# create a hash table for labels from string to int
 def build_id_to_index_mapping(file_list_path):
     unique_ids = set()
     with open(file_list_path, 'r') as file:
@@ -143,13 +148,17 @@ def build_id_to_index_mapping(file_list_path):
             unique_ids.add(unique_id)
     return {unique_id: idx for idx, unique_id in enumerate(sorted(unique_ids))}
 
+
+# DDP: initialize library.
 def setup(rank, world_size,backend="nccl"):
     # initialize the process group
     dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
 
+# DDP: cleanup
 def cleanup():
     dist.destroy_process_group()
 
+# transform to resize and convert to tensor
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
@@ -161,16 +170,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-w','--nworkers', type=int, default=1)
     parser.add_argument('-b','--nbatch', type=int, default=64)
-    parser.add_argument('--cache_size', type=int, default=2)
+    parser.add_argument('--cache-size', type=int, default=2)
     parser.add_argument('-s','--nsteps', type=int, default=8)
     parser.add_argument('--profile', action='store_true',default=False)
+    parser.add_argument('--base-dir', type=str, default='/lus/eagle/projects/datasets/ImageNet/ILSVRC')
+    parser.add_argument('--file-list-path', type=str, default='ilsvrc_train_filelist.txt')
+    parser.add_argument('--status-print-interval', type=int, default=2)
 
     args = parser.parse_args()
 
 
     setup(DEFAULT_LOCAL_RANK, DEFAULT_LOCAL_SIZE)
-    base_dir = '/lus/eagle/projects/datasets/ImageNet/ILSVRC'
-    file_list_path = os.path.join(base_dir, 'ilsvrc_train_filelist.txt')
+    base_dir = args.base_dir
+    file_list_path = os.path.join(base_dir, args.file_list_path)
     id_to_index = build_id_to_index_mapping(file_list_path)
 
     dataset = ImageNetDataset(base_dir, file_list_path, id_to_index, transform=transform, rank=DEFAULT_RANK, world_size=DEFAULT_SIZE)
@@ -180,7 +192,7 @@ def main():
     myprint(f'num workers: {num_workers}')
     cache_size = args.cache_size
     total_steps = args.nsteps
-    status_print_interval = 2
+    status_print_interval = args.status_print_interval
     profile = args.profile
 
     data_loader = ImageNetDataLoader(dataset, batch_size, num_workers, cache_size)
@@ -197,7 +209,7 @@ def main():
     model.train()
 
     # set profile path to be ./logdir/profiler/ + date-time
-    log_path = os.path.join('./logdir/profiler', datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
+    log_path = os.path.join('./logdir', datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
 
     # create profiler
     prof = torch.profiler.profile(
