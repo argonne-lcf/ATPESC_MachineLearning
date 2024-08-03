@@ -29,21 +29,27 @@ echo [$SECONDS] MASTER_ADDR=$MASTER_ADDR  MASTER_PORT=$MASTER_PORT
 
 BATCH_SIZE=64
 NSTEPS=20
+PROFILE=--profile
+echo [$SECONDS] using batch size $BATCH_SIZE and $NSTEPS steps
+
+echo [$SECONDS] run serial example
+python imagenet_serial.py -b $BATCH_SIZE -s $NSTEPS $PROFILE
+
 
 NWORKERS=1
-echo [$SECONDS] run example with $OMP_NUM_THREADS threads
-mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python ilsvrc_dataset_v2.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS
+echo [$SECONDS] run parallel with $NWORKERS workers
+mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python imagenet_parallel.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS $PROFILE
 
 NWORKERS=2
-echo [$SECONDS] run example with $OMP_NUM_THREADS threads
-mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python ilsvrc_dataset_v2.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS
+echo [$SECONDS] run parallel with $NWORKERS workers
+mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python imagenet_parallel.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS $PROFILE
 
 NWORKERS=3
-echo [$SECONDS] run example with $OMP_NUM_THREADS threads
-mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python ilsvrc_dataset_v2.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS
+echo [$SECONDS] run parallel with $NWORKERS workers
+mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python imagenet_parallel.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS $PROFILE
 
 NWORKERS=4
-echo [$SECONDS] run example with $OMP_NUM_THREADS threads
-mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python ilsvrc_dataset_v2.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS
+echo [$SECONDS] run parallel with $NWORKERS workers
+mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=16 --cpu-bind depth python imagenet_parallel.py -b $BATCH_SIZE -s $NSTEPS -w $NWORKERS $PROFILE
 
 echo [$SECONDS] done

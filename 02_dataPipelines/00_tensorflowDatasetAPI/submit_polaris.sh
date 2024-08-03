@@ -9,7 +9,8 @@
 cd $PBS_O_WORKDIR
 
 echo [$SECONDS] setup conda environment
-module load conda/2022-09-08
+module use /soft/modulefiles
+module load conda
 conda activate
 
 echo [$SECONDS] python = $(which python)
