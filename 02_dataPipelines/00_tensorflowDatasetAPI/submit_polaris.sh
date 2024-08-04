@@ -26,18 +26,18 @@ export OMP_NUM_THREADS=1
 echo [$SECONDS] run example with $OMP_NUM_THREADS threads
 mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=$OMP_NUM_THREADS --cpu-bind depth --env OMP_NUM_THREADS=$OMP_NUM_THREADS -env OMP_PLACES=threads \
    python ilsvrc_dataset.py -c ilsvrc.json --interop $OMP_NUM_THREADS --intraop $OMP_NUM_THREADS \
-       --logdir logdir/t${OMP_NUM_THREADS}_${PBS_JOBID}
+       --logdir logdir
 
 export OMP_NUM_THREADS=16
 echo [$SECONDS] run example with $OMP_NUM_THREADS threads
 mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=$OMP_NUM_THREADS --cpu-bind depth --env OMP_NUM_THREADS=$OMP_NUM_THREADS -env OMP_PLACES=threads \
    python ilsvrc_dataset.py -c ilsvrc.json --interop $OMP_NUM_THREADS --intraop $OMP_NUM_THREADS \
-       --logdir logdir/t${OMP_NUM_THREADS}_${PBS_JOBID}
+       --logdir logdir
 
 export OMP_NUM_THREADS=64
 echo [$SECONDS] run example with $OMP_NUM_THREADS threads
 mpiexec -n $RANKS --ppn $GPUS_PER_NODE --depth=$OMP_NUM_THREADS --cpu-bind depth --env OMP_NUM_THREADS=$OMP_NUM_THREADS -env OMP_PLACES=threads \
    python ilsvrc_dataset.py -c ilsvrc.json --interop $OMP_NUM_THREADS --intraop $OMP_NUM_THREADS \
-       --logdir logdir/t${OMP_NUM_THREADS}_${PBS_JOBID}
+       --logdir logdir
 
 echo [$SECONDS] done

@@ -23,6 +23,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 import horovod.tensorflow as hvd
 hvd.init()
+print(f"Horovod rank: {hvd.rank()} Horovod size: {hvd.size()}")
 
 # these are initialized in the get_datasets function and used later
 labels_hash = None
@@ -285,5 +286,7 @@ if __name__ == '__main__':
    if hvd.rank() == 0:
       print('imgs/sec = %5.2f' % ((images/duration)*hvd.size()))
 print('done')
+sys.stdout.flush()
+sys.stderr.flush()
 os._exit(0)
 print('after')
