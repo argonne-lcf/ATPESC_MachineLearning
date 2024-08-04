@@ -171,11 +171,11 @@ def main():
     parser.add_argument('-w','--nworkers', type=int, default=1)
     parser.add_argument('-b','--nbatch', type=int, default=64)
     parser.add_argument('--cache-size', type=int, default=2)
-    parser.add_argument('-s','--nsteps', type=int, default=8)
+    parser.add_argument('-s','--nsteps', type=int, default=20)
     parser.add_argument('--profile', action='store_true',default=False)
     parser.add_argument('--base-dir', type=str, default='/lus/eagle/projects/datasets/ImageNet/ILSVRC')
     parser.add_argument('--file-list-path', type=str, default='ilsvrc_train_filelist.txt')
-    parser.add_argument('--status-print-interval', type=int, default=2)
+    parser.add_argument('--status-print-interval', type=int, default=5)
 
     args = parser.parse_args()
 
@@ -213,7 +213,7 @@ def main():
 
     # create profiler
     prof = torch.profiler.profile(
-            schedule=torch.profiler.schedule(wait=5, warmup=1, active=total_steps-7, repeat=1),
+            schedule=torch.profiler.schedule(wait=5, warmup=1, active=10, repeat=1),
             activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
             on_trace_ready=torch.profiler.tensorboard_trace_handler(log_path),
             record_shapes=True,
@@ -244,7 +244,7 @@ def main():
         
         if step % status_print_interval == 0 and DEFAULT_RANK==0:
             step_img_rate = status_print_interval * batch_size / (time.time() - step_time)
-            myprint(f'step_img_rate: {step_img_rate:.2f}')
+            myprint(f'step: {step}; step_img_rate: {step_img_rate:.2f}')
             if step > 5:
                 image_rate.add(step_img_rate)
             step_time = time.time()
