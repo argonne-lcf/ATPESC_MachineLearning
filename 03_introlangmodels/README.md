@@ -1,4 +1,4 @@
-# Introduction to Neural Networks: Part 2
+# Introduction to Language models
 
 Author: Archit Vasan (avasan@anl.gov), including and adapting materials and discussions over time by Varuni Sastri, Carlo Graziani, Taylor Childers, Venkat Vishwanath, Jay Alammar and Kevin Gimpel.
 
