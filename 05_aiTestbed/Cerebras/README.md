@@ -16,14 +16,15 @@ ssh ALCFUserID@cerebras.ai.alcf.anl.gov
 ### PyTorch virtual environment
 Create a PyTorch virtual environment for Cerebras
 ```bash
-mkdir ~/R_2.2.1
-cd ~/R_2.2.1
+mkdir ~/R_2.3.0
+cd ~/R_2.3.0
 # Note: "deactivate" does not actually work in scripts.
 deactivate
+rm -r venv_cerebras_pt
 /software/cerebras/python3.8/bin/python3.8 -m venv venv_cerebras_pt
 source venv_cerebras_pt/bin/activate
 pip install --upgrade pip
-pip install cerebras_pytorch==2.2.1
+pip install cerebras_pytorch==2.3.0
 ```
 ## Clone Cerebras modelzoo
 
@@ -31,12 +32,12 @@ We use example from [Cerebras Modelzoo repository](https://github.com/Cerebras/m
 Clone the modezoo repository.<br>
 
 ```bash
-mkdir ~/R_2.2.1 # Only if directory does not exist.
-cd ~/R_2.2.1
+mkdir ~/R_2.3.0
+cd ~/R_2.3.0
 git clone https://github.com/Cerebras/modelzoo.git
 cd modelzoo
 git tag
-git checkout Release_2.2.1
+git checkout Release_2.3.0
 ```
 
 ## Job Queuing and Submission
