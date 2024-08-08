@@ -28,9 +28,9 @@ export MASTER_PORT=12399
 echo [$SECONDS] MASTER_ADDR=$MASTER_ADDR  MASTER_PORT=$MASTER_PORT
 
 BATCH_SIZE=64
-NSTEPS=200
-# PROFILE=--profile
-PROFILE=
+NSTEPS=100
+PROFILE=--profile
+# PROFILE=
 echo [$SECONDS] using batch size $BATCH_SIZE and $NSTEPS steps
 
 echo [$SECONDS] run serial example

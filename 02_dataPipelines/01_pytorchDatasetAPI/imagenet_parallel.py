@@ -213,9 +213,9 @@ def main():
 
     # create profiler
     prof = torch.profiler.profile(
-            schedule=torch.profiler.schedule(wait=5, warmup=1, active=10, repeat=1),
+            schedule=torch.profiler.schedule(wait=20, warmup=1, active=20, repeat=1),
             activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
-            on_trace_ready=torch.profiler.tensorboard_trace_handler(log_path),
+            # on_trace_ready=torch.profiler.tensorboard_trace_handler(log_path),
             record_shapes=True,
             profile_memory=True,
             with_stack=True
@@ -253,7 +253,9 @@ def main():
         if step > total_steps:
             break
     
-    if profile and DEFAULT_RANK==0: prof.stop()
+    if profile and DEFAULT_RANK==0:
+        prof.stop()
+        prof.export_chrome_trace(f'imagenet_parallel-nw{num_workers}.json')
     if DEFAULT_RANK==0: myprint(f'Average image rate: {str(image_rate)}')
 
     myprint('Stopping data loader')

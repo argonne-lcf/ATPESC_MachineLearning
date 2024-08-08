@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from torchvision import transforms, models
 
+
 # simple class to calculate mean and standard deviation
 class MeanCalc:
    def __init__(self):
@@ -108,9 +109,9 @@ def main():
 
    # create pytorch profiler that outputs TensorBoard logs
    prof = torch.profiler.profile(
-         schedule=torch.profiler.schedule(wait=5, warmup=1, active=10, repeat=1),
+         schedule=torch.profiler.schedule(wait=20, warmup=1, active=20, repeat=1),
          activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
-         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_path),
+         # on_trace_ready=torch.profiler.tensorboard_trace_handler(log_path),
          record_shapes=True,
          profile_memory=True,
          with_stack=True
@@ -158,6 +159,7 @@ def main():
          step_time = time.time()
    
    if profile: prof.stop()
+   if profile: prof.export_chrome_trace("imagenet_serial.json")
    print(f'Average image rate: {str(image_rate)}')
 
    print(f'All Done; total runtime: {time.time() - total_start:.2f}')
