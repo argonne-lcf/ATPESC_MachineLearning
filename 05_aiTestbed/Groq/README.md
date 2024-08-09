@@ -111,9 +111,11 @@ Other flags that can be used
 -l groq_accelerator=1
 ```
 
-Then activate your groqflow environment, and run python scripts with
+Then activate your groqflow environment, clone the repo and run python scripts with
 ```bash
 conda activate groqflow
+cd ~/
+git clone https://github.com/groq/groqflow.git
 cd ~/groqflow/proof_points/natural_language_processing/minilm
 pip install -r requirements.txt
 python minilmv2.py
