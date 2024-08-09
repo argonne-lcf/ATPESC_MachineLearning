@@ -40,7 +40,7 @@ export no_proxy="admin,polaris-adminvm-01,localhost,*.cm.polaris.alcf.anl.gov,po
 
     1. select *Kernel* in the menu bar
     2. select *Change kernel...*
-    3. select *datascience/conda-2023-01-10* from the drop-down menu
+    3. select *datascience/conda-2024-04-29* from the drop-down menu
 
 ## __Exciting example:__
 
