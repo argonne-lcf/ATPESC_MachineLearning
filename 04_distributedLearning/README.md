@@ -192,7 +192,7 @@ Request Polaris nodes
 ```bash
 ssh -CY user@polaris.alcf.anl.gov
 cd ATPESC_MachineLearning/04_distributedLearning/
-qsub -l nodes=2:ppn=4 -l walltime=00:30:00 -A ATPESC2023 -q ATPESC -I
+qsub -l nodes=2:ppn=4 -l walltime=00:30:00 -A ATPESC_2024 -q ATPESC -I
 ```
 Setup the environment
 ```bash
