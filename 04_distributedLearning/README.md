@@ -410,7 +410,7 @@ ssh -CY user@polaris.alcf.anl.gov
 # cd to ATPESC_MachineLearning directory
 qsub submission/qsub_polaris.sc
 ```
-
+<!---
 * For ThetaGPU
 ```bash
 ssh -CY user@theta.alcf.anl.gov
@@ -418,3 +418,4 @@ ssh -CY thetagpusn1
 # cd to ATPESC_MachineLearning directory
 qsub submission/qsub_thetagpu.sc
 ```
+--->
