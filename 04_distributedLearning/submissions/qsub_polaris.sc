@@ -7,7 +7,8 @@
 #PBS -A ATPESC_2024
 
 module use /soft/modulefiles
-module load conda; conda activate
+module load conda
+conda activate
 NODES=$(sort ${PBS_NODEFILE} | uniq -c | sort -n | wc -l)
 GPUS_PER_NODE=4
 RANKS=$((NODES * GPUS_PER_NODE))
