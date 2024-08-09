@@ -215,7 +215,7 @@ concise_2.out.polaris:108:Hvd Procs 2 Total time: 15.904807090759277 second
 concise_4.out.polaris:114:Hvd Procs 4 Total time: 8.778051614761353 second
 concise_8.out.polaris:126:Hvd Procs 8 Total time: 10.74051284790039 second
 ```
-
+<!---
 ### Running on ThetaGPU
 Request a ThetaGPU node
 ```bash
@@ -250,7 +250,7 @@ concise_2.out.thetagpu:Hvd Procs 2 Total time: 19.695040225982666 second
 concise_4.out.thetagpu:Hvd Procs 4 Total time: 7.686097145080566 second
 concise_8.out.thetagpu:Hvd Procs 8 Total time: 4.363291263580322 second
 ```
-
+--->
 ## V. Large batch training and learning rate warmup
 * No warmup up 
 ```bash
