@@ -1,12 +1,14 @@
-# [ATPESC 2024](https://extremecomputingtraining.anl.gov/agenda-2024/)
+# [ATPESC 2025](https://extremecomputingtraining.anl.gov/agenda-2025/)
 
-At the beginning of the day, we will temporarily split into two groups. Attendees can choose between "Introduction to deep learning" (01_deepLearning) and "Building data pipelines" (02_dataPipelines).  
+At the beginning of the day, we will temporarily split into two groups. Attendees can choose between [Introduction to deep learning](01novice_intro_to_deep_learning) and [Profiling deep learning](01advanced_profiling_deep_learning).  
 
 The "Introduction to deep learning" session will rely on Jupyter Notebooks which are targeted for running on [Google's Colaboratory Platform](https://colab.research.google.com) or [ALCF JupyterHub](https://www.alcf.anl.gov/support-center/theta/jupyter-hub). The Colab platform gives the user a virtual machine in which to run Python codes including machine learning codes. The VM comes with a preinstalled environment that includes most of what is needed for these tutorials.
 
-The other sessions involve Python scripts executed on the [Polaris](https://docs.alcf.anl.gov/polaris/getting-started/) and [AI Testbed](https://www.alcf.anl.gov/alcf-ai-testbed) platforms at ALCF. 
+The other sessions involve Python scripts executed on the [Aurora](https://docs.alcf.anl.gov/aurora/getting-started-on-aurora/) and [AI Testbed](https://docs.alcf.anl.gov/ai-testbed/) platforms at ALCF. 
+
 
 ## Using Google Colab
+
 Google Colab involves running Jupyter notebooks, which you have experience with from earlier in the week. 
 
 Do the following before you come to the tutorial:
