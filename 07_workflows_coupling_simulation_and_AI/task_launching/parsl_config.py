@@ -9,9 +9,6 @@ from parsl.executors import HighThroughputExecutor
 # Use the MPI launcher to launch worker processes:
 from parsl.launchers import MpiExecLauncher
 
-# The config will launch workers from this directory
-execute_dir = os.getcwd()+"/parsl_working_dir"
-os.makedirs(execute_dir, exist_ok=True)
 
 # Get the number of nodes:
 node_file = os.getenv("PBS_NODEFILE")
@@ -28,7 +25,6 @@ tile_names = [f'{gid}.{tid}' for gid in range(6) for tid in range(2)]
 aurora_single_tile_config = Config(
     executors=[
         HighThroughputExecutor(
-            working_dir=execute_dir,
             # Ensures one worker per GPU tile on each node
             available_accelerators=tile_names,
             max_workers_per_node=12,
