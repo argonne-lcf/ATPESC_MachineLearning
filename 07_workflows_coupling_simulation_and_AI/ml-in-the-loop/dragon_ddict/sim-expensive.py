@@ -19,7 +19,7 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print(f'Hello from sim-expensive.py rank {rank}/{size}',flush=True)
+    #print(f'Hello from sim-expensive.py rank {rank}/{size}',flush=True)
 
     # Check command line args
     if len(sys.argv) != 5:
@@ -41,7 +41,6 @@ def main():
     # Generate samples and compute the target data locally
     local_samples = generate_samples(num_samples_per_rank, min_sample_range, max_sample_range)
     f_local = np.sin(local_samples)
-    print('local_samples',local_samples.shape,flush=True)
     
     # Gather samples to rank 0
     global_samples = None
@@ -52,11 +51,18 @@ def main():
     comm.Gather(local_samples, global_samples, root=0)
     comm.Gather(f_local, f_global, root=0)
     
-    # If rank 0 write the training data
+    # If rank 0 write the training data and augment current dataset
     if rank == 0:
-        print('global_samples',global_samples.shape,flush=True)
-        dd['train_inputs'] = global_samples
-        dd['train_outputs'] = f_global
+        if 'train_inputs' not in dd.keys():
+            dd['train_inputs'] = global_samples
+            dd['train_outputs'] = f_global
+        else:
+            inputs = dd['train_inputs']
+            inputs = np.hstack((inputs,global_samples))
+            dd['train_inputs'] = inputs
+            outputs = dd['train_outputs']
+            outputs = np.hstack((outputs,f_global))
+            dd['train_outputs'] = outputs
 
     dd.detach()
     comm.Barrier()

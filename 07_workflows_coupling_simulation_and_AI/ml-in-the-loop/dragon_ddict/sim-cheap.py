@@ -1,8 +1,9 @@
-import sys
-import time
-
 import dragon
 from dragon.data.ddict import DDict
+
+import sys
+import time
+import numpy as np
 
 import mpi4py
 mpi4py.rc.initialize = False
@@ -26,7 +27,7 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print(f'Hello from sim-cheap.py rank {rank}/{size}',flush=True)
+    #print(f'Hello from sim-cheap.py rank {rank}/{size}',flush=True)
 
     # Check command line args
     if len(sys.argv) != 2:
@@ -42,7 +43,10 @@ def main():
     
     # Compute Taylor expansion of sin(x)
     x = dd['x']
-    partial_te = taylor_expansion_local(rank, x)
+    num_samples = x.size
+    partial_te = np.zeros_like(x)
+    for i in range(num_samples):
+        partial_te[i] = taylor_expansion_local(rank, x[i])
     full_te = comm.reduce(partial_te, op=MPI.SUM, root=0)
     
     # Write result of the Taylor expansion of sin(x)

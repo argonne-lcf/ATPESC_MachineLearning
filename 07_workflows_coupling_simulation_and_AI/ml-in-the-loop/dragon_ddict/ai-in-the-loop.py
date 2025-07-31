@@ -1,9 +1,10 @@
-import sys
 import dragon
 import multiprocessing as mp
 
+import sys
 import os
 import math
+import numpy as np
 import torch
 from model import Net, infer, train
 
@@ -39,12 +40,15 @@ def generate_data(
     if vendor == 'Intel':
         cpu_bind = [1,8,16,24,32,40,48,53,60,68,76,84,92,100]
         num_ranks_per_node = min(len(cpu_bind), num_ranks_per_node)
+        launcher = PMIBackend.PMIX
     elif vendor == 'Nvidia':
         cpu_bind = [1,8,16,24]
         num_ranks_per_node = min(len(cpu_bind), num_ranks_per_node)
+        launcher = PMIBackend.CRAY
     else:
         cpu_bind = [0]
         num_ranks_per_node = 1
+        launcher = None
 
     # Setup run
     exe = sys.executable
@@ -52,7 +56,7 @@ def generate_data(
     args = [script, dd.serialize(), str(samples_per_rank), str(sample_range[0]), str(sample_range[1])]
     run_dir = os.getcwd()
 
-    grp = ProcessGroup(restart=False, pmi=PMIBackend.PMIX, ignore_error_on_exit=True)
+    grp = ProcessGroup(restart=False, pmi=launcher, ignore_error_on_exit=True)
     for node_num in range(num_nodes):
         node_name = Node(nodelist[node_num]).hostname
         for proc in range(num_ranks_per_node):
@@ -91,12 +95,15 @@ def compute_cheap_approx(dd: DDict, num_ranks_per_node: int) -> None:
     if vendor == 'Intel':
         cpu_bind = [1,8,16,24,32,40,48,53,60,68,76,84,92,100]
         num_ranks_per_node = min(len(cpu_bind), num_ranks_per_node)
+        launcher = PMIBackend.PMIX
     elif vendor == 'Nvidia':
         cpu_bind = [1,8,16,24]
         num_ranks_per_node = min(len(cpu_bind), num_ranks_per_node)
+        launcher = PMIBackend.CRAY
     else:
         cpu_bind = [0]
         num_ranks_per_node = 1
+        launcher = None
 
     # Setup run
     exe = sys.executable
@@ -104,7 +111,7 @@ def compute_cheap_approx(dd: DDict, num_ranks_per_node: int) -> None:
     args = [script, dd.serialize()]
     run_dir = os.getcwd()
 
-    grp = ProcessGroup(restart=False, pmi=PMIBackend.PMIX, ignore_error_on_exit=True)
+    grp = ProcessGroup(restart=False, pmi=launcher, ignore_error_on_exit=True)
     for node_num in range(num_nodes):
         node_name = Node(nodelist[node_num]).hostname
         for proc in range(num_ranks_per_node):
@@ -161,14 +168,15 @@ def infer_and_compare(dd: DDict, model: torch.nn, device: str) -> tuple:
 
     model_pred = dd['prediction']
     approx = dd['approximation']    
-    diff = abs(model_pred.item() - approx.item())
-    return model_pred, diff
+    error = np.mean(np.abs(model_pred - approx))
+    return model_pred, error
 
 
 def main():
     # Set some parameters
     data_interval = [-math.pi, math.pi]
-    samples_per_rank = 64
+    samples_per_rank = 128
+    ranks_per_node = 4
 
     # Get alloocation info
     alloc = System()
@@ -198,51 +206,51 @@ def main():
     dd = DDict(managers_per_node, num_nodes, tot_ddict_mem)
 
     # Initialize model and optimizer
-    model_path = "model_pretrained_poly.pt"
-    checkpoint = torch.load(model_path, weights_only=True)
+    #model_path = "model_pretrained_poly.pt"
+    #checkpoint = torch.load(model_path, weights_only=True)
     model = Net()
-    model.load_state_dict(checkpoint["model_state_dict"])
+    #model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    #optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+    # Train model once before the fine-tune loop
+    print("Training model ...")
+    generate_data(dd, ranks_per_node, samples_per_rank, data_interval)
+    loss = train(dd, model, optimizer, device)
+    print(f'Training loss = {loss}',flush=True)
 
     # Start fine tuning loop
     number_of_times_trained = 0
     successes = 0
     generate_new_x = True
-    while successes < 5 and number_of_times_trained < 5:
+    while successes < 5 and number_of_times_trained < 10:
         # uniformly sample from [-pi, pi) to generate new data
         if generate_new_x:
-            x = torch.rand(1) * (2 * math.pi) - math.pi
+            x = np.random.rand(32) * (2 * math.pi) - math.pi
             dd['x'] = x
 
         # Perform model inference and a checp approximation
-        model_val, diff = infer_and_compare(dd, model, device)
+        model_val, error = infer_and_compare(dd, model, device)
 
         # Perform training if needed
-        if diff > 0.05:
-            print(f"\nML prediction error is {model_val - math.sin(x)}, above tolerance!", flush=True)
+        if error > 0.1:
+            print(f"\nML prediction error is {error}, above tolerance!", flush=True)
             print(f"Launching more training ...", flush=True)
             
             # want to train and then retry same value
             generate_new_x = False
             number_of_times_trained += 1
             
-            # launch mpi job to generate data
-            ranks_per_node = 4
-            generate_data(dd,
-                          ranks_per_node, 
-                          samples_per_rank, 
-                          data_interval)
-            
-            # train model
+            # Fine tune the model
+            generate_data(dd, ranks_per_node, samples_per_rank, data_interval)
             loss = train(dd, model, optimizer, device)
             print(f'Training loss = {loss}',flush=True)
         else:
             successes += 1
             generate_new_x = True
-            print(f"\nML prediction error is {model_val - math.sin(x)}, below tolerance!", flush=True)
+            print(f"\nML prediction error is {error}, below tolerance!", flush=True)
 
 
 if __name__ == "__main__":
