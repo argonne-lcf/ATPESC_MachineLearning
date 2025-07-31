@@ -1,5 +1,5 @@
 # Introduction to deep learning
-ATPESC 2024
+ATPESC 2025
 
 Author: Bethany Lusch (blusch@anl.gov), adapting materials from Marieme Ngom, Prasanna Balaprakash, Taylor Childers, Corey Adams, and Kyle Felker.
 
@@ -19,7 +19,7 @@ Ready for more?
 - Here are some of our longer training materials: https://www.alcf.anl.gov/alcf-ai-science-training-series
 - Here's a thorough hands-on textbook: [book](https://www.oreilly.com/library/view/hands-on-machine-learning/9781492032632/) with [notebooks](https://github.com/ageron/handson-ml2).
 
-We will work on a classification problem involving the [MNIST dataset](http://yann.lecun.com/exdb/mnist/) that contains thousands of examples of handwritten numbers, with each digit labeled 0-9. The model is learning to "classify" images as one of ten classes.
+We will work on a classification problem involving the [MNIST dataset](https://huggingface.co/datasets/ylecun/mnist) that contains thousands of examples of handwritten numbers, with each digit labeled 0-9. The model is learning to "classify" images as one of ten classes.
 ![MNIST Task](images/mnist_task.png)
 
 We are going to run Jupyter notebooks. You can run them in Google Colab (see instructions [here](../README.md)). If that's a problem you can also use your own computer or ALCF's [JupyterHub](https://docs.alcf.anl.gov/services/jupyter-hub/).
