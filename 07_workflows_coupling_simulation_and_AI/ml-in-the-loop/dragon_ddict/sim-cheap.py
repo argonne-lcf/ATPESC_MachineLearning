@@ -1,10 +1,12 @@
 import sys
 import time
-import math
-from mpi4py import MPI
 
 import dragon
 from dragon.data.ddict import DDict
+
+import mpi4py
+mpi4py.rc.initialize = False
+from mpi4py import MPI
 
 def factorial(n):
     """Compute factorial of n"""
@@ -20,8 +22,11 @@ def taylor_expansion_local(rank, x):
 
 def main():
     # Initialize MPI
+    MPI.Init()
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
+    size = comm.Get_size()
+    print(f'Hello from sim-cheap.py rank {rank}/{size}',flush=True)
 
     # Check command line args
     if len(sys.argv) != 2:
@@ -46,6 +51,7 @@ def main():
 
     dd.detach()
     comm.Barrier()
+    MPI.Finalize()
 
 if __name__ == "__main__":
     main() 

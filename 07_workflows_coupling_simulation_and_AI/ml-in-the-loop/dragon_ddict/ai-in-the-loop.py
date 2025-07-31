@@ -1,17 +1,16 @@
+import sys
 import dragon
 import multiprocessing as mp
 
 import os
 import math
 import torch
-from itertools import count
-from model import Net, make_features, infer, train
+from model import Net, infer, train
 
 from dragon.native.process import Process, ProcessTemplate, Popen
 from dragon.data.ddict import DDict
 from dragon.infrastructure.policy import Policy
 from dragon.native.process_group import ProcessGroup
-from dragon.infrastructure.connection import Connection
 from dragon.native.machine import System, Node
 from dragon.infrastructure.facts import PMIBackend
 
@@ -48,7 +47,7 @@ def generate_data(
         num_ranks_per_node = 1
 
     # Setup run
-    exe = "python"
+    exe = sys.executable
     script = os.path.join(os.getcwd(), "sim-expensive.py")
     args = [script, dd.serialize(), str(samples_per_rank), str(sample_range[0]), str(sample_range[1])]
     run_dir = os.getcwd()
@@ -100,7 +99,7 @@ def compute_cheap_approx(dd: DDict, num_ranks_per_node: int) -> None:
         num_ranks_per_node = 1
 
     # Setup run
-    exe = "python"
+    exe = sys.executable
     script = os.path.join(os.getcwd(), "sim-cheap.py")
     args = [script, dd.serialize()]
     run_dir = os.getcwd()
@@ -169,7 +168,7 @@ def infer_and_compare(dd: DDict, model: torch.nn, device: str) -> tuple:
 def main():
     # Set some parameters
     data_interval = [-math.pi, math.pi]
-    samples_per_rank = 32
+    samples_per_rank = 64
 
     # Get alloocation info
     alloc = System()

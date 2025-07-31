@@ -1,12 +1,13 @@
 import sys
 import time
-import random
-import math
 import numpy as np
-from mpi4py import MPI
 
 import dragon
 from dragon.data.ddict import DDict
+
+import mpi4py
+mpi4py.rc.initialize = False
+from mpi4py import MPI
 
 def generate_samples(num_samples, min_range, max_range):
     """Generate uniformly distributed samples in [min_range, max_range)"""
@@ -14,10 +15,11 @@ def generate_samples(num_samples, min_range, max_range):
 
 def main():
     # Initialize MPI
+    MPI.Init()
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print(f'Hello from rank {rank}/{size}',flush=True)
+    print(f'Hello from sim-expensive.py rank {rank}/{size}',flush=True)
 
     # Check command line args
     if len(sys.argv) != 5:
@@ -58,6 +60,7 @@ def main():
 
     dd.detach()
     comm.Barrier()
+    MPI.Finalize()
 
 if __name__ == "__main__":
     main() 
