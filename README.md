@@ -9,7 +9,7 @@ The other sessions involve Python scripts executed on the [Aurora](https://docs.
 
 ## Using Google Colab
 
-Google Colab involves running Jupyter notebooks, which you have experience with from earlier in the week. 
+Google Colab involves running Jupyter notebooks, which you will also be using next week. 
 
 Do the following before you come to the tutorial:
 *  You need a Google Account to use Colaboratory
