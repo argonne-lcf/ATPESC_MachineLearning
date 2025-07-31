@@ -5,31 +5,16 @@ tstamp() {
      date +"%Y-%m-%d-%H%M%S"
 }
 
-## Load modules 2025.1.3 with runtime (UMD) 1099.17
-#
-module restore
-module unload mpich oneapi
-module use /soft/compilers/oneapi/nope/modulefiles
-module use /soft/compilers/oneapi/2025.1.3/modulefiles
-module use /soft/preview/components/graphics-compute-runtime/1099.17/modulefiles
-module add mpich/nope/develop-git.6037a7a
-module add oneapi/public/2025.1.3
-module add graphics-compute-runtime/1099.17
-
-module load cmake
-unset CMAKE_ROOT
-
-source /opt/aurora/24.347.0/spack/unified/0.9.2/install/linux-sles15-x86_64/gcc-13.3.0/miniforge3-24.3.0-0-gfganax/bin/activate
-conda activate /lus/flare/projects/datasets/softwares/envs/vLLM_main_pytorch_2p8_oneapi_2025p1p3_pti_0p10p3_python3p10_julia
-source /lus/flare/projects/datasets/softwares/envs/pytorch_2p8_oneapi_2025p1p3_umd_1099p17_mpi4py/bin/activate
+# Source the PyTorch 2.8 environment
+source /lus/flare/projects/datasets/softwares/training/atpesc_2025_aiml_profiling/ATPESC_MachineLearning/01advanced_profiling_deep_learning/atpesc_2025_pytorch_2p8.env
 
 NNODES=`wc -l < $PBS_NODEFILE`
 NRANKS_PER_NODE=12
 
 let NRANKS=${NNODES}*${NRANKS_PER_NODE}
 
-N=12
-PPN=12
+N=1
+PPN=1
 EPOCHS=10
 
 NODES=1
