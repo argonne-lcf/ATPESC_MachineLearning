@@ -26,13 +26,16 @@
     
     git clone https://github.com/saforem2/wordplay
     cd wordplay
-
+    
 
     # setup environment
     source <(curl -L https://bit.ly/ezpz-utils) && ezpz_setup_env
 
     python3 -m pip install -e "." --require-virtualenv
     python3 -m pip install deepspeed
+
+    python3 -m pip install wandb
+    export WANDB_API_KEY=USE_YOUR_KEY
 
     # test distributed functionality
     ezpz-test
