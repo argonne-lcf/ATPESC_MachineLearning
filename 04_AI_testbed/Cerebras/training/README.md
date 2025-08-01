@@ -72,7 +72,7 @@ Instructions for additional examples to be followed in your own time.
 
 ## Useful Resources 
 
-* [ALCF Cerebras Documentation](https://docs.alcf.anl.gov/ai-testbed/cerebras/system-overview/)
+* [ALCF Cerebras Documentation](https://docs.alcf.anl.gov/ai-testbed/cerebras/)
 * [Cerebras Training Documntation](https://training-docs.cerebras.ai/rel-2.4.0/getting-started/overview)
 * [Cerebras Modelzoo Repo](https://github.com/Cerebras/modelzoo/tree/main/modelzoo)
 
