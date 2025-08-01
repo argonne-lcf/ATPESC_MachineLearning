@@ -29,6 +29,13 @@ conda activate /flare/ATPESC2025/EXAMPLES/track3-workflows/_demo_env
 
 If you would like to build the demo environment at a later date, the included `environment.yml` file can be used.
 
+A detailed explanation of the model and scripts follow below, but to quickly run the demo, run these scripts in order:
+```shell
+python 1_run_simulation.py
+python 2_training_and_inference.py
+python 3_ml_in_the_loop.py
+```
+
 ## Problem Dependencies
 
 This demo is adapted from the ExaWorks [molecular-design-parsl-demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) demo.  It makes use of a module [`chemfunctions`](./chemfunctions/chemfunctions.py) written for that demo and included here in this repo with some updates.
