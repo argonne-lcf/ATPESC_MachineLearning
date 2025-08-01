@@ -13,9 +13,6 @@ cd $PBS_O_WORKDIR
 module load frameworks
 conda activate /flare/ATPESC2025/EXAMPLES/track3-workflows/_demo_env
 
-# Cleanup from previous runs
-rm tasks.*
-
 echo "Running parsl test"
 python ./1_parsl_tasks.py
 
