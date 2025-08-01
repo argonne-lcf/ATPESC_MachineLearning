@@ -52,7 +52,7 @@ if __name__ == '__main__':
     nodelist = alloc.nodes
 
     # Create a ProcessGroup
-    pg = ProcessGroup(pmi_enabled=False) # To run an application with mpi, set pmi_enabled=True
+    pg = ProcessGroup()
 
     # Assign processes to nodes with specific CPU and GPU affinities
     for node in nodelist:

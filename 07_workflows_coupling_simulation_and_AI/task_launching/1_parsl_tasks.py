@@ -30,7 +30,7 @@ with parsl.load(aurora_single_tile_config):
     print(f"Launching {num_tasks} tasks on {num_nodes} nodes.")
 
     # Launch the tasks.
-    futures = [hello_gpu_affinity_py(10) for i in range(num_tasks)]
+    futures = [hello_gpu_affinity_py(1) for i in range(num_tasks)]
     
     # Wait for all tasks to complete and print the results
     # Note that a parsl script must wait on task completion
