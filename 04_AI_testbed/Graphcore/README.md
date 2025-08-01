@@ -80,11 +80,14 @@ e.g. `srun --ipus=1 python mnist_poptorch.py`
 * `squeue` : command provides information about jobs located in the Slurm scheduling queue.
 * `sCancel` : is used to signal or cancel jobs, job arrays, or job steps.
 
-## Run Examples
+## Hands-on Session Example
 
 Refer to respective instrcutions below 
-<!--- * [MNIST](./mnist.md)
-* [Resnet50 using replication factor](./resnet50.md) --->
+* [MNIST](./mnist.md)
+
+## Additional Examples 
+
+* [Resnet50 using replication factor](./resnet50.md)
 * [GPT2](./gpt2.md)
 
 ```bash
