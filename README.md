@@ -54,3 +54,18 @@ Do the following before you come to the tutorial:
 ![open_github](README_imgs/colab_open_github.png)
 *  This will show you a list of the Notebooks available in the repo. When you select a notebook from this list it will create a copy for you in your Colaboratory account (all `*.ipynb` files in the Colaboratory account will be stored in your Google Drive).
 * To use a GPU in the notbook select `Runtime` -> `Change Runtime Type` and select an accelerator.
+
+
+## Cerebras API key
+
+For the [AI Testbed](04_AI_testbed/Cerebras/inference/README.md) hands on you will need a Cerebras Inference API key. 
+Follow these instructions on your computer to setup Cerebras Inference API key.
+- Visit <https://cloud.cerebras.ai> to sign up for an account
+- Create an API key by navigating to "API Keys" on the left nav bar.
+- Set your API key as an environment variable. You can do this by running the following command in your terminal: `export CEREBRAS_API_KEY="your-api-key-here"`
+
+
+## Weights & Biases API key
+
+For the [Training LLMs at Scale](06_training_LLMs_at_scale) session, you will need a Wandb api_key. 
+Visit <https://docs.wandb.ai/quickstart/> to sign-up and get the key.
