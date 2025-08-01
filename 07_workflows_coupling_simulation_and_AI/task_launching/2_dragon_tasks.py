@@ -15,8 +15,13 @@ cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(
 def hello_gpu_affinity(sleep_time):
     import os
     from time import sleep
+    from socket import gethostname
+
     sleep(sleep_time)
-    print(f"Hello from {os.getenv('HOSTNAME')} on tile {os.getenv('ZE_AFFINITY_MASK')}", flush=True) 
+    hostname = gethostname()
+    tile_name = os.getenv('ZE_AFFINITY_MASK')
+    
+    print(f"Hello from {hostname} on tile {tile_name}", flush=True)
 
 if __name__ == '__main__':
     # Set the start method for multiprocessing to 'dragon'
@@ -25,42 +30,43 @@ if __name__ == '__main__':
     set_start_method("dragon")
 
     # Number of processes to run in Pool and ProcessGroup
-    num_procs = 12
+    alloc = System()
+    num_procs_per_node = 12
+    num_nodes = int(alloc.nnodes)
+    num_procs = num_procs_per_node * num_nodes
 
     # Test 1:
     # Distribute tasks across availble cores with a simple pool
     # Unlike standard multiprocessing, Dragon will launch pool processes across multiple nodes
     # This pool does not use any GPU affinity
     print("Launching tasks with a simple Pool, no GPU affinity...", flush=True)
-    sleep_times = np.ones(num_procs) * 1.0  # Sleep for 1 second each
+    sleep_times = np.ones(num_procs) * 10.0  # Sleep for 1 second each
     with Pool(num_procs) as p:
         results = p.map(hello_gpu_affinity, sleep_times)
 
     # Test 2:
     # Now distribute tasks with a Policy and ProcessGroup
     # This will launch processes across nodes with specific CPU and GPU affinities
-    print("Launching tasks with specific CPU and GPU affinities...", flush=True)
-    alloc = System()
-    num_nodes = int(alloc.nnodes)
-    nodelist = alloc.nodes
+    print("\nLaunching tasks with CPU and GPU affinities with a ProcessGroup...", flush=True)
     run_dir = os.getcwd()
+    nodelist = alloc.nodes
 
     # Create a ProcessGroup
     pg = ProcessGroup(pmi_enabled=False) # To run an application with mpi, set pmi_enabled=True
-    
+
     # Assign processes to nodes with specific CPU and GPU affinities
     for node in nodelist:
         node_name = Node(node).hostname
-        for proc in range(num_procs):
+        for proc in range(num_procs_per_node):
             local_policy = Policy(placement=Policy.Placement.HOST_NAME,
                                   host_name=node_name,
                                   cpu_affinity=cpu_affinities[proc],
                                   gpu_affinity=gpu_affinities[proc])
             pg.add_process(nproc=1, 
-                        template=ProcessTemplate(target=hello_gpu_affinity, 
-                                                     args=(1.0,), # sleep time
-                                                     cwd=run_dir,
-                                                     policy=local_policy,))
+                        template=ProcessTemplate(target=hello_gpu_affinity, # to run a compiled appication, set target to the path of compiled executable
+                                                    args=(10.0,), # sleep time
+                                                    cwd=run_dir,
+                                                    policy=local_policy,))
     
     pg.init()
     pg.start()

@@ -18,7 +18,7 @@ This demo is designed to be run interactively on an Aurora node (although more n
 
 Start by getting an interactive compute node:
 ```shell
-qsub -I -A datascience -q debug -l select=1 -l walltime=0:60:0 -l filesystems=home:flare
+qsub -I -A ATPESC2025 -q ATPESC -l select=1 -l walltime=0:60:0 -l filesystems=home:flare
 ```
 
 Once your interactive job has started, activate the demo environment:
