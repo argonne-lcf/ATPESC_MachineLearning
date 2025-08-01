@@ -6,7 +6,7 @@ This directory contains hands-on material for AI Testbeds:
 
 * [Cerebras](./Cerebras/README.md)
 * [Sambanova](./SambaNova/README.md)
-* [Graphchore](./Graphcore/README.md)
+* [Graphcore](./Graphcore/README.md)
 
 
 For upto date information on AI testbeds refer to [online documentation](https://docs.alcf.anl.gov/ai-testbed/getting-started/)
