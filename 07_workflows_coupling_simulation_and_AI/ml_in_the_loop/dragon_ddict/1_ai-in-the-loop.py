@@ -260,6 +260,7 @@ def main():
             generate_new_x = True
             print(f"\nML prediction error is {error:.3f}, below tolerance!", flush=True)
 
+    print(f"\nFinished training loop, plotting results", flush=True)
     # Plot the results
     x = dd['x']
     ml_approximation = dd['approximation']
@@ -267,9 +268,7 @@ def main():
     # Expensive simulation data used for training
     train_x  = dd['train_inputs']
     train_y = dd['train_outputs']
-    for key in dd.keys():
-        print(f"{key} = {dd[key]}", flush=True)
-
+    
     fig, ax = plt.subplots(figsize=(4.5, 3.))
     ax.scatter(train_x, train_y, label='Training Data - Expensive Sim', s=5, color='blue')
     ax.scatter(x, ml_approximation, label='Final ML Approximation', color='orange')

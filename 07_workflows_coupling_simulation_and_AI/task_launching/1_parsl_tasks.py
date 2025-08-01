@@ -36,6 +36,6 @@ with parsl.load(aurora_single_tile_config):
     # Note that a parsl script must wait on task completion
     print("Output from python app tasks:")
     for future in futures:
-        print(future.result())
+        print(future.result(), flush=True)
 
-    print("All tasks completed.")
+    print("All tasks completed.", flush=True)
