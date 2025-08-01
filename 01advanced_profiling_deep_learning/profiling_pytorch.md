@@ -14,6 +14,10 @@ characteristics and bottlenecks. Usually, a profiler informs us about:
 - Memory access patterns
 - Communication (specially in distributed computing)
 
+In this age and time, where we are increasingly becoming more dependent on 
+external codes, and models; perhaps, a profiler can be treated as a useful 
+_learning tool?_
+
 
 There are many profilers available for profiling AI/ML applications, specially
 coming from vendor specific software stack. The PyTorch profiler gives us a
@@ -305,8 +309,36 @@ with open(output_path, "w") as f:
     f.write(prof.key_averages().table(
         sort_by="self_xpu_time_total", row_limit=-1))
 ```
-__Discuss (TO DO)__: Other ways to enable, limitation with full function 
-profiling vs. line profiling style (ours), difficulty with `torch.compile`
+
+### Another way of enabling the profiler
+
+To trace individual functions in a complex code, the profilers `record_function` 
+method can be used as well:
+
+```
+with profilel(activities=[ProfilerActivity.CPU, ProfilerActivity.XPU],
+ record_shapes=True,
+ profile_memory=True,
+ with_stack=True) as prof:
+    with record_function(“data_preprocessing”): #user custom annotation
+        ...
+        # portion of the code you would like to
+    train(model, loader, epochs=args.epochs, steps_per_epoch = args.steps)
+```
+This method works well for non-compiled use cases. If we want to profile a
+compiled model, this method may not work, as indicated by the following warning
+message generated during my attempts:
+
+```
+[rank0]:W0731 15:32:04.367000 92672 site-packages/torch/_logging/_internal.py:1146] 
+[0/0] Profiler function <class 'torch.autograd.profiler.record_function'> will be ignored
+```
+This indicates that the `record_function` annotation will get ignored, quite
+possibly because of kernel fusion during the JIT compilation to produce the
+optimized compute graph. We wanted to profile a compiled model and observe the
+visible effects in timeline traces, so we choose the first method.
+
+
 
 ### Job Scripts and Python scripts
 
@@ -342,8 +374,118 @@ TRACE_DIR_ROOT=./traces/pytorch_2p8
 TRACE_DIR=${TRACE_DIR_ROOT}/xpu_pt_2p8_E${EPOCHS}_N${NODES}_R${PPN}_$(tstamp)
 ```
 
+In each job script, there are two variables
+```
+N ## Number of total ranks
 
+PPN ## Number of ranks per node
+```
+For profiles shown here, I used `N=1, PPN=1`. I have tested the code to run and
+profile up to 12 ranks per node, in 2 nodes. The code is set up to run at any 
+scale, _profiling can be challenging beyond a certain point because of resource 
+limitations_.
 
+## Example Profiles
 
+A typical timeline trace looks like the following:
+
+![Typical Trace](./figures/xpu_1.png)
+
+The first thing to notice is that, we can see `ProfilerStep#2` and 
+`ProfilerStep#3` -- two steps being recorded, as per request with the 
+scheduler initialized with `active=2`. We also skip the first iteration, and 
+do the second as warm-up iterations, and record the subsequent 2 iterations as
+active.
+
+And, the timeline trace from the compiled model looks like:
+![JIT Compiled Trace](./figures/xpu_compile_1.png)
+
+In the compiled trace, two important features are
+
+- The consistency in execution of the two profiler steps. They are very similar
+in time span
+- The data-loading becomes faster in the second step, whereas it takes one more
+step for the non-compiled compute graph to offer similar execution time. This 
+is more likely to be compensated in the first iteration, where the compilation
+is happening. We do not record that step here -- would be interesting to see
+the execution time for the first step, but it is quite common to skip the first
+step when analyzing the execution pattern of an AI/ML application.
+
+One of the useful features of the perfetto viewer is collecting the slices with
+the same name and being able to sort them. If we click on a colored box, and 
+a window with the current selection opens up at the bottom, on the left hand 
+side. Then if we click on the name of the function or the kernel; the option of
+"Slices with the same name" shows up, and that can show interesting things.
+
+For example, if we look at two important functions, the `linear layer` and the 
+`Scaled dot product attention` in that way, we see that compiling affects the 
+`linear layer` more than the `Attention`.
+
+![Attention Eager](./figures/attention_eager.png)
+
+![Attention Compile](./figures/attention_compile.png)
+
+We see that, the highest duration call of `Attention` in the modes are 
+different by ~5 ms, compiled being lower.
+
+Whereas, in the case of the `linear layer`, the highest duration call in the 
+eager mode is ~48 ms vs ~2 ms!! But the subsequent calls are almost ~2x higher 
+in the compiled case (~700 ms vs. ~310 ms). 
+
+![Linear Eager](./figures/linear_eager.png)
+
+![Linear Compile](./figures/linear_compile.png)
+
+Therefore, it is difficult to give a fixed strategy, at least for our "toy" use
+case. But from our experiments, we could see a more consistent execution times
+and patterns from the compiled case. For a real life workload, extensive 
+experimentation will be needed to device the optimal training strategy.
+
+### An Exercise
+
+Binding the available CPU cores to appropriate devices (GPU tiles) is of
+critical importance, as this is a way to leverage the architectural features in
+an optimal way. The following diagrams show the schematics of the connectivity
+of the 6 GPUs (12 tiles) with the 2 CPUs (sockets).
+
+![aff](https://github.com/argonne-lcf/ALCFBeginnersGuide/raw/master/aurora/media/aurora_exascale_compute_blade2.png)
+
+Also, the output of the
+```bash
+## From a compute node
+module load xpu-smi
+xpu-smi topology -m
+```
+shows the affinity of each GPU to a particular socket.
+![XPU Connectivity](./figures/xpu-smi.png)
+In choosing our CPU bindings we should be mindful about the fact that
+cores of CPU 0 should be pinned to GPU 0, 1 and 2, and cores of CPU 1 should be used
+for the other three GPUs.
+
+In our job scripts we do this by setting up the bindings as follows:
+
+```
+## For 12 ranks per node
+#export CPU_AFFINITY="list:4-7:8-11:12-15:16-19:20-23:24-27:56-59:60-63:64-67:68-71:72-75:76-79"
+#export CCL_WORKER_AFFINITY="42,43,44,45,46,47,94,95,96,97,98,99"
+#export ZE_AFFINITY_MASK="0,1,2,3,4,5,6,7,8,9,10,11"
+
+## For 1 rank per node
+export CPU_AFFINITY="list:4-7"
+export CCL_WORKER_AFFINITY="42"
+export ZE_AFFINITY_MASK="0"
+```
+
+Maybe, it is worthwhile trying to play with different bindings and run the 
+application with multiple ranks and nodes and see if we can learn more about 
+the Aurora node architecture? Profile the application with various bindings on
+multiple ranks, and see whether the kernel launch or execution times get 
+affected by them. 
+
+__Caution__: It is possible that sometimes the application might hang, 
+specially in multiple ranks and nodes while profiling. In that case, instead of
+waiting for a long time, I would recommend re-starting the job afresh.
+
+_Special thanks to Filippo Simini for this example_
 
 
