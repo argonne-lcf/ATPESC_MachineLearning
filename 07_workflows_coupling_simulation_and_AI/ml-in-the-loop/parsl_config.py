@@ -12,7 +12,7 @@ with open(pbs_node_file, 'r') as nf:
     nodes = nf.readlines()
     num_nodes = len(nodes)
 
-# For this cpu only config, bind one worker per cpu core
+# For this cpu only config, bind one worker per cpu core, using both threads
 cpu_affinity = "list"
 num_cpus = 2
 num_cores_per_cpu = 51 # first core on each cpu is reserved for system procs and should not be used
@@ -23,6 +23,7 @@ for cpu in range(num_cpus):
 
 # Parsl config for cpu workers
 aurora_config = Config(
+    initialize_logging=True, # Set to False for runs more than 1000 nodes
     executors=[
         HighThroughputExecutor(
             max_workers_per_node=102, # We will use 102 workers, one for each CPU core
@@ -35,6 +36,7 @@ aurora_config = Config(
                 nodes_per_block=num_nodes,
                 init_blocks=1,
                 max_blocks=1,
+                worker_init="cd runinfo", # Including this will make helper files write to runinfo
             ),
         ),
     ]

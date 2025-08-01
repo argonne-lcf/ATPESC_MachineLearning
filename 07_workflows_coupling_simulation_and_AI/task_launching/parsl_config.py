@@ -22,6 +22,7 @@ cpu_affinity = "list:1-8,105-112:9-16,113-120:17-24,121-128:25-32,129-136:33-40,
 
 # This config is suitable for running a workflow contained with a single batch job
 aurora_single_tile_config = Config(
+    initialize_logging=True, # Set to False for runs more than 1000 nodes
     executors=[
         HighThroughputExecutor(
             # Ensures one worker per GPU tile on each node

@@ -171,25 +171,22 @@ class MorganFingerprintTransformer(BaseEstimator, TransformerMixin):
             test_fing.append(f)     
         return np.vstack(test_fing)
 
-
-def train_model(smiles: List[str], properties: List[float]):
+def train_model(train_data):
     """Train a machine learning model using Morgan Fingerprints.
     
     Args:
-        smiles: SMILES strings for each molecule
-        properties: List of a property for each molecule
+        train_data: Dataframe with a 'smiles' and 'ie' column
+            that contains molecule structure and property, respectfully.
     Returns:
         A trained model
     """
-    # Imports for python functions run remotely must be defined inside the function
-
+    
     model = Pipeline([
         ('fingerprint', MorganFingerprintTransformer()),
-        ('knn', KNeighborsRegressor(n_neighbors=4, weights='distance', metric='jaccard', n_jobs=-1))
-        # n_jobs = -1 lets the model run all available processors
+        ('knn', KNeighborsRegressor(n_neighbors=4, weights='distance', metric='jaccard', n_jobs=-1))  # n_jobs = -1 lets the model run all available processors
     ])
-
-    return model.fit(smiles, properties)
+    
+    return model.fit(train_data['smiles'], train_data['ie'])
 
 
 def run_model(model, smiles):

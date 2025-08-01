@@ -1,5 +1,5 @@
 from parsl_config import aurora_config
-from chemfunctions import compute_vertical
+from chemfunctions import compute_vertical, train_model, run_model
 from matplotlib import pyplot as plt
 import parsl
 from parsl.app.app import python_app
@@ -10,46 +10,25 @@ import numpy as np
 from concurrent.futures import as_completed
 from pathlib import Path
 
+# This example will loop through the following steps:
+# 1. Collect training data by running several simulations
+# 2. Train a model using the training data
+# 3. Run the model on a large search space of molecules to predict their properties
+# 4. Loop back to step 1 with the new model to collect more training data
+# 5. Repeat until enough molecules have been simulated
 
+# Define parameters for the workflow
+initial_count: int = 8  # Number of simulations to run for first model training
+search_count: int = 32  # Number of molecules to simulate in total
+batch_size: int = 4  # Number of molecules to simulate in each batch of simulations
+
+# Define Parsl apps for each step in the workflow
+# Simulation app to compute the ionization energy of a molecule
+compute_vertical_app = python_app(compute_vertical)
 # Model training app
-@python_app
-def train_model(train_data):
-    """Train a machine learning model using Morgan Fingerprints.
-    
-    Args:
-        train_data: Dataframe with a 'smiles' and 'ie' column
-            that contains molecule structure and property, respectfully.
-    Returns:
-        A trained model
-    """
-    # Imports for python functions run remotely must be defined inside the function
-    from chemfunctions import MorganFingerprintTransformer
-    from sklearn.neighbors import KNeighborsRegressor
-    from sklearn.pipeline import Pipeline
-    
-    
-    model = Pipeline([
-        ('fingerprint', MorganFingerprintTransformer()),
-        ('knn', KNeighborsRegressor(n_neighbors=4, weights='distance', metric='jaccard', n_jobs=-1))  # n_jobs = -1 lets the model run all available processors
-    ])
-    
-    return model.fit(train_data['smiles'], train_data['ie'])
-
+train_model_app = python_app(train_model)
 # Inference app to run the model on a list of SMILES strings
-@python_app
-def run_model(model, smiles):
-    """Run a model on a list of smiles strings
-    
-    Args:
-        model: Trained model that takes SMILES strings as inputs
-        smiles: List of molecules to evaluate
-    Returns:
-        A dataframe with the molecules and their predicted outputs
-    """
-    import pandas as pd
-    pred_y = model.predict(smiles)
-    return pd.DataFrame({'smiles': smiles, 'ie': pred_y})
-
+inference_app = python_app(run_model)
 # Convenience app to combine multiple inferences into a single DataFrame
 @python_app
 def combine_inferences(inputs=[]):
@@ -62,14 +41,8 @@ def combine_inferences(inputs=[]):
     import pandas as pd
     return pd.concat(inputs, ignore_index=True)
 
-# Simulation app to compute the ionization energy of a molecule
-compute_vertical_app = python_app(compute_vertical)
-
 # Search space of molecules to sample from
 search_space = pd.read_csv('./data/QM9-search.tsv', sep='\s+')  # Our search space of molecules
-initial_count: int = 16  # Number of simulations to run for first model training
-search_count: int = 64   # Number of molecules to simulate in total
-batch_size: int = 8  # Number of molecules to simulate in each batch of simulations
 
 if __name__ == "__main__":
 
@@ -80,6 +53,11 @@ if __name__ == "__main__":
 
         # Mark when we started
         start_time = monotonic()
+
+        print("Create initial training data")
+        print(f"Starting with {initial_count} random molecules")
+        print(f"Will run {search_count} simulations in total")
+        print(f"Will run {batch_size} simulations in each loop iteration")
 
         # Start with some random guesses for simulations to create initial training data
         train_data = []
@@ -116,7 +94,13 @@ if __name__ == "__main__":
 
         # Create the initial training set
         train_data = pd.DataFrame(train_data)
-
+        # Chunk the search space into smaller pieces, so that each inference task can run in parallel
+        # Use the number of nodes and workers per node to determine how many chunks to create
+        num_nodes = aurora_config.executors[0].provider.nodes_per_block  # Get the number of nodes from the config
+        num_workers_pn = aurora_config.executors[0].workers_per_node  # Get the number of workers per node from the config
+        num_chunks = min(num_nodes * num_workers_pn * 2, len(search_space['smiles']))  # Limit the number of chunks by the number of workers
+        chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
+        
         # ML-in-the-loop
         # Run training, inference, and simulation in a loop continuously until we've simulated enough molecules
         # Each successive batch of simulations should predict higher ionization energies
@@ -126,10 +110,9 @@ if __name__ == "__main__":
             print(f"Batch {batch} training on {len(train_data)} simulation results")
             
             # Train and predict as shown in the previous example.
-            train_future = train_model(train_data)
-            chunks = np.array_split(np.array(search_space['smiles']), 102)
-
-            inference_futures = [run_model(train_future, chunk) for chunk in chunks]
+            train_future = train_model_app(train_data)
+            
+            inference_futures = [inference_app(train_future, chunk) for chunk in chunks]
             predictions = combine_inferences(inputs=inference_futures).result()
 
             # Sort inference predictions in descending order, and simulate the top ones
