@@ -2,11 +2,11 @@
 
 For Architectural details please refer to [ALCF AI Accelerators](https://extremecomputingtraining.anl.gov/wp-content/uploads/sites/96/2025/07/ALCF-AITestbed_ATPESC-2025.pdf) Talk by [Murali Emani](https://extremecomputingtraining.anl.gov/speakers/murali-krishna-emani-anl/) from Track 1 — Hardware Architectures. 
 
-This directory contains Hands-On material for AI Testbeds:
+This directory contains hands-on material for AI Testbeds:
 
 * [Cerebras](./Cerebras/README.md)
 * [Sambanova](./SambaNova/README.md)
-* [Grapchore](./Graphcore/README.md)
+* [Graphchore](./Graphcore/README.md)
 
 
 For upto date information on AI testbeds refer to [online documentation](https://docs.alcf.anl.gov/ai-testbed/getting-started/)
