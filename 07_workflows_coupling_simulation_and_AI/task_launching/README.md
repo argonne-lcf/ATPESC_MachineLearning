@@ -6,7 +6,7 @@ We demonstrate how to launch tasks on GPU tiles with both Parsl and Dragon, two 
 
 To run these examples first get an interactive compute node:
 ```shell
-qsub -I -A datascience -q debug -l select=1 -l walltime=0:60:0 -l filesystems=home:flare
+qsub -I -A ATPESC2025 -q ATPESC -l select=1 -l walltime=0:60:0 -l filesystems=home:flare
 ```
 
 Once your interactive job has started, activate the demo environment:
