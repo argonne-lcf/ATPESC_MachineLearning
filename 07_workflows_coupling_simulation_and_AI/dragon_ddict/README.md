@@ -21,13 +21,20 @@ Note that due to some issues with launching multiple MPI jobs on Aurora with Dra
 Additionally, ML training and inference are set to run on the GPU on Aurora and Polaris, however, due to the small size of the model and data, only a single GPU is sufficient on either system. The example can easily be extended to run multiple inference instances or perform distributed training.
 
 The example contains the following files:
-
-* `ai-in-the-loop.py` - This file contains the workflow driver `main` function. It also contains functions for launching both MPI simulations and evaluating the model.
+* `0_activate_env.sh` - A script to activate pre-built environment
+* `1_ai-in-the-loop.py` - This file contains the workflow driver `main` function. It also contains functions for launching both MPI simulations and evaluating the model.
 * `model.py` - This file defines the model and provides some functions for model training and inference. 
 * `sim-expensive.py` - This contains what we are considering the expensive MPI simulaiton. It computes (x, sin(x)) data points that are used to train the model.
 * `sim-cheap.py` - This is the cheap approximation. It computes the Taylor approximation of sin(x). 
 
 ## Installation 
+
+For the workshop, there is an environment pre-built that you can activate with the necessary software for this demo.
+
+```shell
+module load frameworks
+. /flare/ATPESC2025/EXAMPLES/track3-workflows/_dragon_env/bin/activate
+```
 
 DragonHPC can be installed on Polaris and Aurora on top of the default ML frameworks modules.
 
@@ -54,13 +61,15 @@ pip install dragonhpc==0.12
 dragon-config add --ofi-runtime-lib=/opt/cray/libfabric/1.15.2.0/lib64
 ```
 
+The `dragon-config` command run with the installation tells `dragon` how to use the slingshot network and enables `dragon` RDMA transfers.
+
 ## Run Instructions
 
 To run the example on either Polaris or Aurora, first load the default ML frameworks module and source the Python virtual environment as shown in the installation instructions above.
 Then, execute
 
 ```
-python -m dragon ai-in-the-loop.py
+python -m dragon 1_ai-in-the-loop.py
 ```
 
 ## Example Output
