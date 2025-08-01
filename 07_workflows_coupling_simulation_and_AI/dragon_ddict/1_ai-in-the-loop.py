@@ -15,6 +15,8 @@ from dragon.native.process_group import ProcessGroup
 from dragon.native.machine import System, Node
 from dragon.infrastructure.facts import PMIBackend
 
+from matplotlib import pyplot as plt
+
 
 
 def generate_data(
@@ -258,7 +260,27 @@ def main():
             generate_new_x = True
             print(f"\nML prediction error is {error:.3f}, below tolerance!", flush=True)
 
+    # Plot the results
+    x = dd['x']
+    ml_approximation = dd['approximation']
+    cheap_prediction = dd['prediction']
+    # Expensive simulation data used for training
+    train_x  = dd['train_inputs']
+    train_y = dd['train_outputs']
+    for key in dd.keys():
+        print(f"{key} = {dd[key]}", flush=True)
 
+    fig, ax = plt.subplots(figsize=(4.5, 3.))
+    ax.scatter(train_x, train_y, label='Training Data - Expensive Sim', s=5, color='blue')
+    ax.scatter(x, ml_approximation, label='Final ML Approximation', color='orange')
+    ax.scatter(x, cheap_prediction, label='Cheap Approximation', color='green')
+    ax.set_ylabel('y',fontsize=8)
+    ax.set_xlabel('x', fontsize=8)
+    ax.set_title('AI in the Loop - Sin(x) Approximation with Dragon DDict', fontsize=8)
+    ax.legend(loc='upper left', fontsize=8)
+    fig.tight_layout()
+    fig.savefig('ai_in_the_loop_sinx.png', dpi=300)
+    
 if __name__ == "__main__":
     mp.set_start_method("dragon")
     main()
