@@ -10,6 +10,9 @@ export CCL_KVS_MODE=mpi
 export CCL_ALLREDUCE=topo
 export CCL_ALLREDUCE_SCALEOUT=rabenseifner
 
+#Bug fixing env vars for current software stack :shushing_face:
+export CCL_BCAST=topo
+export FI_MR_CACHE_MONITOR=kdreg2
 
 module load frameworks
 
