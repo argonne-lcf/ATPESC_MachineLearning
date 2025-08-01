@@ -8,7 +8,7 @@ compute_vertical_app = python_app(compute_vertical)
 if __name__ == "__main__":
     with parsl.load(aurora_config):
         future = compute_vertical_app('O') #  Run water as a demonstration (O is the SMILES for water)
-        print("The python app returns a future object:", future)
+        print("The python app returns a future object:", future, flush=True)
 
         ie = future.result()
-        print(f"The ionization energy of {future.task_record['args'][0]} is {ie:.2f} eV")
+        print(f"The ionization energy of {future.task_record['args'][0]} is {ie:.2f} eV", flush=True)
