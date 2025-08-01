@@ -1,8 +1,8 @@
 # Task Launching
 
-Here we demonstrate how to use workflow tools to launch an ensemble of tasks using Aurora GPU tiles.  This is a common component of AI/ML workflows.
+Here we demonstrate how to use workflow tools to launch an ensemble of tasks on Aurora GPU tiles.  This is a common component of AI/ML workflows.
 
-We demonstrate how to launch tasks on GPU tiles with both Parsl and Dragon, two tools that have been used at scale on Aurora.
+We demonstrate with both Parsl and Dragon, two tools that have been used at scale on Aurora.
 
 To run these examples first get an interactive compute node:
 ```shell
