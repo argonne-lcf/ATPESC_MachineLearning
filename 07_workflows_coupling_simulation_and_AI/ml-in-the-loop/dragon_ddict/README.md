@@ -2,7 +2,7 @@
 
 ## Introduction
 This is an example of how DragonHPC can be used to execute a workflow which combines ML training, inference, and simulation. 
-This demo was adapted from DragonHPC's documentation, specifically their [AI-in-the-loop exampl](https://dragonhpc.github.io/dragon/doc/_build/html/cbook/ai-in-the-loop.html), however it was modified to run all components in Python and to leverage the Distributed Dictionary (DDict) feature in order to stage and share both training and inference data on the node memory, thus avoiding writing to the parallel file system. 
+This demo was adapted from DragonHPC's documentation, specifically their [AI-in-the-loop example](https://dragonhpc.github.io/dragon/doc/_build/html/cbook/ai-in-the-loop.html), however it was modified to run all components in Python and to leverage the Distributed Dictionary (DDict) feature in order to stage and share both training and inference data on the node memory, thus avoiding writing to the parallel file system. 
 The DDict is a sharded dictionary object which offers key/value store distributed across nodes, with Python and C++ clients for utilization from most AI and simulation workloads.
 More information on the DDict can be found in the [documentation](https://dragonhpc.github.io/dragon/doc/_build/html/ref/data/dragon.data.DDict.html).
 
@@ -30,6 +30,7 @@ The example contains the following files:
 ## Installation 
 
 DragonHPC can be installed on Polaris and Aurora on top of the default ML frameworks modules.
+
 For Aurora, execute
 
 ```
@@ -64,3 +65,40 @@ python -m dragon ai-in-the-loop.py
 
 ## Example Output
 
+The following is an example of the output obtained by running the workflow on Aurora.
+
+```
+DragonHPC running on 1 nodes:
+['x4710c1s7b0n0']
+
+Head node is x4710c1s7b0n0, with:
+    num cpus: 208
+    num gpus: 12
+    device type: xpu
+    memory: 1134.4 GB
+
+Training model ...
+Training loss = 1.956
+
+ML prediction error is 0.370, above tolerance!
+Launching more training ...
+Training loss = 0.036
+
+ML prediction error is 0.147, above tolerance!
+Launching more training ...
+Training loss = 0.012
+
+ML prediction error is 0.109, above tolerance!
+Launching more training ...
+Training loss = 0.005
+
+ML prediction error is 0.036, below tolerance!
+
+ML prediction error is 0.037, below tolerance!
+
+ML prediction error is 0.037, below tolerance!
+
+ML prediction error is 0.047, below tolerance!
+
+ML prediction error is 0.045, below tolerance!
+```
