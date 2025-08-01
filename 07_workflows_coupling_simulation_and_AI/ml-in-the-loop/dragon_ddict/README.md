@@ -1,77 +1,66 @@
-# AI-in-the-loop workflow with Dragon 
+# AI-in-the-loop workflow with DragonHPC
 
 ## Introduction
-This is an example of how Dragon can be used to execute an AI-in-the-loop workflow. Inspiration for this demo comes from the NERSC-10 Workflow Archetypes White Paper. This workflow most closely resembles the workflow scenario given as part of archetype four. In this example we use a small model implemented in PyTorch to compute an approximation to sin(x). In parallel to doing the inference with the model, we launch `sim-cheap` on four ranks. This MPI job computes the taylor approximation to sin(x) and compares this with the output of the model. If the difference is less than 0.05 we consider the model's approximation to be sufficiently accurate and print out the result with the exact result. If the difference is larger than 0.05 we consider this a failure and re-train the model on a new set of data. To generate this data we launch `sim-expensive`. This MPI job is launched on eight ranks-per-node and each rank generates 32 data points of the form (x, sin(x)) where x is sampled uniformly in [-pi, pi). This data is aggregated into a PyTorch tensor and then used to train the model. We then re-evaluate the re-trained model and decide if we need to re-train again or if the estimate is sufficiently accurate. We continue this loop until we've had five successes.
+This is an example of how DragonHPC can be used to execute a workflow which combines ML training, inference, and simulation. 
+This demo was adapted from DragonHPC's documentation, specifically their [AI-in-the-loop exampl](https://dragonhpc.github.io/dragon/doc/_build/html/cbook/ai-in-the-loop.html), however it was modified to run all components in Python and to leverage the Distributed Dictionary (DDict) feature in order to stage and share both training and inference data on the node memory, thus avoiding writing to the parallel file system. 
+The DDict is a sharded dictionary object which offers key/value store distributed across nodes, with Python and C++ clients for utilization from most AI and simulation workloads.
+More information on the DDict can be found in the [documentation](https://dragonhpc.github.io/dragon/doc/_build/html/ref/data/dragon.data.DDict.html).
 
-Below is a diagram of the main computational loop.
-```
-          ⬇
-   Parallel Execution   ⬅   Re-train the AI Model
-    ⬇         ⬇
-   Infer    Calculate 
-value from  comparison               
-  AI Model  using four                ⬆
-           rank MPI job
-    ⬇         ⬇
-   Parallel Execution
-          ⬇
-   Is the inferred     No    Launch expensive MPI process
-     value within      ⮕       to generate new data 
-      tolerance?
-          ⬇ Yes
-```          
+In this example, a small model implemented in PyTorch is used to train a surrogate for the simple sine function (y=sin(x)) in the interval [-pi,pi].
+The workflow uses an "expensive" MPI simulation (`sim-expensive.py`) to compute training data for the sine function and performs initial training on this data.
+This is followed by a fine-tuning loop, in which:
 
+* Inference data is drawn randomly in the interval [-pi,pi]
+* The model's accuracy is evaluated by *concurrently* performing inference and running a "cheap" MPI simulation (`sim-cheap.py`). Inference is run on the GPU if available, while the cheap simulation is run in parallel on the CPU. An error metric is computed from the model predictions and the cheap simulation results. 
+* Based on the error and tolerance set, the workflow either performs fine-tuning by generating more data with the expensive simulation or draws more random data for additional evaluation.
+* The workflow stops after 5 successful model evaluations or 10 fine-tuning attempts.
 
-## Usage
+Thanks to the DDict, all the data produced and shared between training, inference, and the two simulations is stored on the nodes' memory, thus avoiding the file system entirely. 
 
-`ai-in-the-loop.py` - This is the main file. It contains functions for launching both MPI executables and parsing the results as well as imports functions defined in `model.py` and coordinates the model inference and training with the MPI jobs. 
+Note that due to some issues with launching multiple MPI jobs on Aurora with DragonHPC's native ProcessGroup, the exmaple is set to run the MPI simulations on a single rank. On Polaris, the simulations run with 4 MPI processes per node. 
+Additionally, ML training and inference are set to run on the GPU on Aurora and Polaris, however, due to the small size of the model and data, only a single GPU is sufficient on either system. The example can easily be extended to run multiple inference instances or perform distributed training.
 
-`model.py` - This file defines the model and provides some functions for model training and inference. 
+The example contains the following files:
 
-`sim-expensive.c` - This contains what we are considering the expensive MPI job. It computes (x, sin(x)) data points that are used to train the model.
-
-`sim-cheap.c` - This is the cheap approximation. It computes the Taylor approximation of sin(x). 
-
-`Makefile` - Used to build the two MPI applications.
-
-`model_pretrained_poly.pt` - A pre-trained model that we load and use until training is required.
-
-```
-usage: dragon ai-in-the-loop.py
-```
+* `ai-in-the-loop.py` - This file contains the workflow driver `main` function. It also contains functions for launching both MPI simulations and evaluating the model.
+* `model.py` - This file defines the model and provides some functions for model training and inference. 
+* `sim-expensive.py` - This contains what we are considering the expensive MPI simulaiton. It computes (x, sin(x)) data points that are used to train the model.
+* `sim-cheap.py` - This is the cheap approximation. It computes the Taylor approximation of sin(x). 
 
 ## Installation 
 
-After installing dragon, the only other dependency is on PyTorch and SciPy. The PyTorch version and corresponding pip command can be found here (https://pytorch.org/get-started/locally/). 
+DragonHPC can be installed on Polaris and Aurora on top of the default ML frameworks modules.
+For Aurora, execute
 
 ```
-> pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-> pip install scipy
+module load frameworks
+
+python -m venv _dragon_env --system-site-packages
+. _dragon_env/bin/activate
+pip install dragonhpc==0.12
+dragon-config add --ofi-runtime-lib=/opt/cray/libfabric/1.22.0/lib64
 ```
 
-### Description of the system used
+For Polaris, execute
+```
+module use /soft/modulefiles
+module load conda
+conda activate base
 
-For this example, HPE Cray Hotlum nodes were used. Each node has AMD EPYC 7763 64-core CPUs.
+python -m venv _dragon_env --system-site-packages
+. _dragon_env/bin/activate
+pip install dragonhpc==0.12
+dragon-config add --ofi-runtime-lib=/opt/cray/libfabric/1.15.2.0/lib64
+```
 
+## Run Instructions
+
+To run the example on either Polaris or Aurora, first load the default ML frameworks module and source the Python virtual environment as shown in the installation instructions above.
+Then, execute
+
+```
+python -m dragon ai-in-the-loop.py
+```
 
 ## Example Output
 
-### Multi-node
-
-The default parameters are for 16 nodes but this example has been run up to 64 nodes with 8 ranks-per-node. 
-```
-> make
-gcc -g  -pedantic -Wall -I /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/include -L /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/lib   -c -o sim-cheap.o sim-cheap.c
-gcc -g  -pedantic -Wall -I /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/include -L /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/lib  sim-cheap.o -o sim-cheap -lm -L /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/lib -lmpich
-gcc -g  -pedantic -Wall -I /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/include -L /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/lib   -c -o sim-expensive.o 
-gcc -g  -pedantic -Wall -I /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/include -L /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/lib  sim-expensive.o -o sim-expensive -lm -L /opt/cray/pe/mpich/8.1.26/ofi/gnu/9.1/lib -lmpich
-> salloc --nodes=16 --exclusive
-> dragon ai-in-the-loop.py
-training
-approx = 0.1283823400735855, exact = 0.15357911534767393
-training
-approx = -0.41591891646385193, exact = -0.4533079140996079
-approx = -0.9724616408348083, exact = -0.9808886564963794
-approx = -0.38959139585494995, exact = -0.4315753703483373
-approx = 0.8678910732269287, exact = 0.8812041533601648
-```

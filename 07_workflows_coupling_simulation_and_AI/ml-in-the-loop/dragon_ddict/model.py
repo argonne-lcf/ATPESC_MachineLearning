@@ -142,8 +142,8 @@ def train(dd: DDict, model: torch.nn, optimizer: torch.optim, device: str) -> fl
         # Apply gradients
         optimizer.step()
 
-        if batch_idx % 10 == 0:
-            print(f'Batch = {batch_idx}, loss = {loss.item()}',flush=True)
+        #if batch_idx % 10 == 0:
+        #    print(f'Batch = {batch_idx}, loss = {loss.item()}',flush=True)
         total_loss += loss.item()
 
     return total_loss / num_batches

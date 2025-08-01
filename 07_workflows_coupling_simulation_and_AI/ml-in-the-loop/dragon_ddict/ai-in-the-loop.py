@@ -133,13 +133,15 @@ def compute_cheap_approx(dd: DDict, num_ranks_per_node: int) -> None:
     grp.close()
 
 
-def infer_and_compare(dd: DDict, model: torch.nn, device: str) -> tuple:
+def infer_and_compare(dd: DDict, model: torch.nn, num_ranks_per_node: int, device: str) -> tuple:
     """Launch inference and cheap approximation and check the difference between them
 
     :param dd: Distributed Dictionary
     :type dd: DDict
     :param model: PyTorch model that approximates sin(x)
     :type model: torch.nn
+    :param num_ranks_per_node: number of ranks per node to use for the cheap approximation
+    :type num_ranks_per_node: int
     :param device: device on which to run
     :type device: string
     :return: the model's output val and the difference between it and the cheap approximation value
@@ -148,12 +150,18 @@ def infer_and_compare(dd: DDict, model: torch.nn, device: str) -> tuple:
     # Get device for inference based on GPU vendor
     alloc = System()
     nodelist = alloc.nodes
+    if device == 'xpu':
+        device_id = 0
+    elif device == 'cuda':
+        device_id = 3
+    else:
+        device_id = 0
     
     # Define Policy for inference
     infer_policy = Policy(placement=Policy.Placement.HOST_NAME,
                           host_name=Node(nodelist[0]).hostname, 
                           cpu_affinity=[4],
-                          gpu_affinity=[0])
+                          gpu_affinity=[device_id])
 
     # Run inference and cheap approximation concurrently
     inf_proc = Process(target=infer, 
@@ -161,7 +169,6 @@ def infer_and_compare(dd: DDict, model: torch.nn, device: str) -> tuple:
                         policy=infer_policy)
     inf_proc.start()
 
-    num_ranks_per_node = 4
     compute_cheap_approx(dd, num_ranks_per_node)
     
     inf_proc.join()
@@ -175,8 +182,6 @@ def infer_and_compare(dd: DDict, model: torch.nn, device: str) -> tuple:
 def main():
     # Set some parameters
     data_interval = [-math.pi, math.pi]
-    samples_per_rank = 128
-    ranks_per_node = 4
 
     # Get alloocation info
     alloc = System()
@@ -188,15 +193,21 @@ def main():
     vendor = head_node.gpu_vendor
     if vendor == 'Intel':
         device = 'xpu'
+        samples_per_rank = 2048
+        ranks_per_node = 1
     elif vendor == 'Nvidia':
         device = 'cuda'
+        samples_per_rank = 512
+        ranks_per_node = 4
     else:
         device = 'cpu'
+        samples_per_rank = 2048
+        ranks_per_node = 1
     print(f"Head node is {head_node.hostname}, with:")
     print(f"    num cpus: {head_node.num_cpus}")
     print(f"    num gpus: {head_node.num_gpus}")
     print(f"    device type: {device}")
-    print(f"    memory: {head_node.physical_mem/1024/1024/1024} GB")
+    print(f"    memory: {head_node.physical_mem/1024/1024/1024:.1f} GB")
     print("",flush=True)
 
     # Initialize the DDict on all the nodes
@@ -206,20 +217,15 @@ def main():
     dd = DDict(managers_per_node, num_nodes, tot_ddict_mem)
 
     # Initialize model and optimizer
-    #model_path = "model_pretrained_poly.pt"
-    #checkpoint = torch.load(model_path, weights_only=True)
     model = Net()
-    #model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
-
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    #optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
     # Train model once before the fine-tune loop
     print("Training model ...")
     generate_data(dd, ranks_per_node, samples_per_rank, data_interval)
     loss = train(dd, model, optimizer, device)
-    print(f'Training loss = {loss}',flush=True)
+    print(f'Training loss = {loss:.3f}',flush=True)
 
     # Start fine tuning loop
     number_of_times_trained = 0
@@ -232,11 +238,11 @@ def main():
             dd['x'] = x
 
         # Perform model inference and a checp approximation
-        model_val, error = infer_and_compare(dd, model, device)
+        model_val, error = infer_and_compare(dd, model, ranks_per_node, device)
 
         # Perform training if needed
-        if error > 0.1:
-            print(f"\nML prediction error is {error}, above tolerance!", flush=True)
+        if error > 0.05:
+            print(f"\nML prediction error is {error:.3f}, above tolerance!", flush=True)
             print(f"Launching more training ...", flush=True)
             
             # want to train and then retry same value
@@ -246,11 +252,11 @@ def main():
             # Fine tune the model
             generate_data(dd, ranks_per_node, samples_per_rank, data_interval)
             loss = train(dd, model, optimizer, device)
-            print(f'Training loss = {loss}',flush=True)
+            print(f'Training loss = {loss:.3f}',flush=True)
         else:
             successes += 1
             generate_new_x = True
-            print(f"\nML prediction error is {error}, below tolerance!", flush=True)
+            print(f"\nML prediction error is {error:.3f}, below tolerance!", flush=True)
 
 
 if __name__ == "__main__":

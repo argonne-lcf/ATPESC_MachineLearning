@@ -15,10 +15,16 @@ def factorial(n):
         return 1
     return n * factorial(n - 1)
 
-def taylor_expansion_local(rank, x):
+def taylor_expansion_local(x, rank, size):
     """Compute local Taylor expansion term for sin(x)"""
-    coeff = 2 * rank + 1
-    te_f_local = ((-1.0) ** rank) / factorial(coeff) * (x ** coeff)
+    if size > 1:
+        coeff = 2 * rank + 1
+        te_f_local = ((-1.0) ** rank) / factorial(coeff) * (x ** coeff)
+    else:
+        te_f_local = 0.0
+        for i in range(4):
+            coeff = 2 * i + 1
+            te_f_local += ((-1.0) ** i) / factorial(coeff) * (x ** coeff)
     return te_f_local
 
 def main():
@@ -46,7 +52,7 @@ def main():
     num_samples = x.size
     partial_te = np.zeros_like(x)
     for i in range(num_samples):
-        partial_te[i] = taylor_expansion_local(rank, x[i])
+        partial_te[i] = taylor_expansion_local(x[i], rank, size)
     full_te = comm.reduce(partial_te, op=MPI.SUM, root=0)
     
     # Write result of the Taylor expansion of sin(x)
