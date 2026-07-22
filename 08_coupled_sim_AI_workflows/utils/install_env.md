@@ -15,7 +15,7 @@
 
 3. Install the packages related to chemistry problem
     ```bash
-    pip install ase rdkit pandas scikit-learn tqdm
+    pip install ase rdkit pandas scikit-learn tqdm imgcat
     conda install -y -c conda-forge xtb-python
     ```
 

@@ -1,10 +1,7 @@
 from asyncio import new_event_loop
-from parsl_config import polaris_config
-from chemfunctions import compute_vertical, train_model, run_model
-from matplotlib import pyplot as plt
 import parsl
 from parsl.app.app import python_app
-from time import monotonic
+from time import perf_counter
 from random import sample
 import pandas as pd
 import numpy as np
@@ -12,6 +9,10 @@ from concurrent.futures import as_completed
 from pathlib import Path
 import random
 import sys
+
+from utils.parsl_config import aurora_cpu_config
+from chemfunctions import compute_vertical, train_model, run_model
+from utils.utils import plot_best_molecules
 
 # This example will loop through the following steps:
 # 1. Collect training data by running several simulations
@@ -62,10 +63,10 @@ if __name__ == "__main__":
     train_data = []
 
     # Load the Parsl configuration
-    with parsl.load(polaris_config):
+    with parsl.load(aurora_cpu_config):
 
         # Mark when we started
-        start_time = monotonic()
+        start_time = perf_counter()
 
         print(f"Will collect a maximum of {max_training_count} training samples for training.")
         print(f"Will run {batch_size} new simulations in each loop iteration to refine the model.\n")
@@ -79,6 +80,7 @@ if __name__ == "__main__":
         already_ran = set()
 
         # Loop until you finish populating the initial training set of simulation results
+        tic = perf_counter()
         while len(sim_futures) > 0: 
             # First, get the next completed computation from the list
             future = next(as_completed(sim_futures))
@@ -102,16 +104,17 @@ if __name__ == "__main__":
                     'smiles': smiles,
                     'ie': future.result(),
                     'batch': 0,
-                    'time': monotonic() - start_time
+                    'time': perf_counter() - start_time
                 })
-        print("Training data collected!\n")
+        init_sim_time = perf_counter() - tic
+        print(f"Initial training data collected in {init_sim_time:.2} sec!\n", flush=True)
 
         # Create the initial training set
         train_data = pd.DataFrame(train_data)
         # Chunk the search space into smaller pieces, so that each inference task can run in parallel
         # Use the number of nodes and workers per node to determine how many chunks to create
-        num_nodes = polaris_config.executors[0].provider.nodes_per_block  # Get the number of nodes from the config
-        num_workers_pn = polaris_config.executors[0].workers_per_node  # Get the number of workers per node from the config
+        num_nodes = aurora_cpu_config.executors[0].provider.nodes_per_block  # Get the number of nodes from the config
+        num_workers_pn = aurora_cpu_config.executors[0].workers_per_node  # Get the number of workers per node from the config
         num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))  # Limit the number of chunks by the number of workers
         chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
         
@@ -123,7 +126,7 @@ if __name__ == "__main__":
         best_molecules = []
         model_accuracy = []
         while len(train_data) < max_training_count:
-            start_loop_time = monotonic()
+            start_loop_time = perf_counter()
             print(f"Iteration {batch}:")
             print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules")
             
@@ -139,7 +142,7 @@ if __name__ == "__main__":
                         'smiles': predictions['smiles'].iloc[i],
                         'ie': predictions['ie'].iloc[i],
                         'batch': batch,
-                        'time': monotonic() - start_time
+                        'time': perf_counter() - start_time
                 })
             print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha")
 
@@ -160,7 +163,7 @@ if __name__ == "__main__":
                         'smiles': future.task_record['args'][0],
                         'ie': future.result(),
                         'batch': batch, 
-                        'time': monotonic() - start_time
+                        'time': perf_counter() - start_time
                     })
             new_results = pd.DataFrame(new_results)
             print(f'\tPerformed {len(sim_futures)} new simulations')
@@ -181,31 +184,16 @@ if __name__ == "__main__":
             # Update the training data and repeat
             batch += 1
             train_data = pd.concat((train_data, new_results), ignore_index=True)
-            print(f"\tFinished loop iteration in {(monotonic() - start_loop_time):.2f}s\n")
+            print(f"\tFinished loop iteration in {(perf_counter() - start_loop_time):.2f}s\n")
 
-        end_time = monotonic()
+        end_time = perf_counter()
         print(f"Training completed in {(end_time - start_time):.2f} seconds")
     
     print("\nPlotting results...")
     best_molecules = pd.DataFrame(best_molecules)
     model_accuracy = pd.DataFrame(model_accuracy)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3.))
-    ax1.scatter(best_molecules['batch'], best_molecules['ie'])
-    ax1.step(np.array(best_molecules['batch']), np.array(best_molecules['ie'].cummax()), 'k--')
-    ax1.set_xticks(range(1,batch))
-    ax1.set_xlabel('Loop Iteration')
-    ax1.set_ylabel('Ion. Energy (Ha)')
-    ax1.grid(True)
-    ax1.set_title('Best Predicted Molecules over Loop Iterations')
-    ax2.scatter(best_molecules['time'], best_molecules['ie'])
-    ax2.step(np.array(best_molecules['time']), np.array(best_molecules['ie'].cummax()), 'k--')
-    ax2.set_xlim(0, end_time - start_time)
-    ax2.set_xlabel('Time (s)')
-    ax2.set_ylabel('Ion. Energy (Ha)')
-    ax2.grid(True)
-    ax2.set_title('Best Predicted Molecules over Time')
-    fig.tight_layout()
-    fig.savefig('parsl_ml_in_the_loop.png', dpi=300)
+    plot_best_molecules(best_molecules, batch)
+    
 
     # Save results
     train_data.to_csv('training_data.csv', index=False)
