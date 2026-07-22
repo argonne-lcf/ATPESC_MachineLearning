@@ -1,4 +1,4 @@
-# [ATPESC 2025](https://extremecomputingtraining.anl.gov/atpesc-2025/)
+# [ATPESC 2026](https://extremecomputingtraining.anl.gov/atpesc-2026/)
 
 ## [Agenda](https://extremecomputingtraining.anl.gov/agenda-2025/#Track-3)
 
