@@ -22,6 +22,7 @@
 3. Install PyTorch
    ```bash
    pip install torch==2.10.0 torchvision==0.25.0 torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/xpu
+   pip install safetensors transformers
    ```
 
 3. Install Parsl
@@ -39,7 +40,7 @@
     ```bash
     git clone https://github.com/argonne-lcf/ai-science-training-series.git
     cd ai-science-training-series/03-Coupling-Sim-AI/ml-in-the-loop/chemfunctions
-    pip install .
+    pip install -e .
     ```
 
 7. Export important environment variables

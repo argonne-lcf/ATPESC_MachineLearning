@@ -1,4 +1,5 @@
 from asyncio import new_event_loop
+import os
 import parsl
 from parsl.app.app import python_app
 from time import perf_counter
@@ -10,9 +11,17 @@ from pathlib import Path
 import random
 import sys
 
-from utils.parsl_config import aurora_cpu_config
-from chemfunctions import compute_vertical, train_model, run_model
+from utils.parsl_config import aurora_gpu_config
+from chemfunctions import (
+    compute_vertical,
+    train_molformer_model as train_model,
+    run_molformer_model as run_model,
+)
 from utils.utils import plot_best_molecules
+
+# Ensure the MoLFormer model weights are visible
+assert os.environ.get("MOLFORMER_WEIGHTS_DIR"), \
+    "set MOLFORMER_WEIGHTS_DIR to the local MoLFormer snapshot dir"
 
 # This example will loop through the following steps:
 # 1. Collect training data by running several simulations
@@ -27,9 +36,9 @@ np.random.seed(seed)
 random.seed(seed)
 
 # Define parameters for the workflow
-initial_training_count = 8  # Number of trianing samples to collect for first model training
-max_training_count = 24  # Maximum number of training samples to collect for training
-batch_size = 4  # Number of molecules to simulate in each iteration of active learning loop
+initial_training_count = 32  # Number of trianing samples to collect for first model training
+max_training_count = 64  # Maximum number of training samples to collect for training
+batch_size = 16  # Number of molecules to simulate in each iteration of active learning loop
 if initial_training_count >= max_training_count:
     print("Must do at least 1 active trianing iteration.")
     print("Change the values of initial_training_count and/or max_training_count and try again.")
@@ -63,7 +72,7 @@ if __name__ == "__main__":
     train_data = []
 
     # Load the Parsl configuration
-    with parsl.load(aurora_cpu_config):
+    with parsl.load(aurora_gpu_config):
 
         # Mark when we started
         start_time = perf_counter()
@@ -107,14 +116,14 @@ if __name__ == "__main__":
                     'time': perf_counter() - start_time
                 })
         init_sim_time = perf_counter() - tic
-        print(f"Initial training data collected in {init_sim_time:.2} sec!\n", flush=True)
+        print(f"Initial training data collected in {init_sim_time:.2f} sec!\n", flush=True)
 
         # Create the initial training set
         train_data = pd.DataFrame(train_data)
         # Chunk the search space into smaller pieces, so that each inference task can run in parallel
         # Use the number of nodes and workers per node to determine how many chunks to create
-        num_nodes = aurora_cpu_config.executors[0].provider.nodes_per_block  # Get the number of nodes from the config
-        num_workers_pn = aurora_cpu_config.executors[0].workers_per_node  # Get the number of workers per node from the config
+        num_nodes = aurora_gpu_config.executors[0].provider.nodes_per_block  # Get the number of nodes from the config
+        num_workers_pn = aurora_gpu_config.executors[0].workers_per_node  # Get the number of workers per node from the config
         num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))  # Limit the number of chunks by the number of workers
         chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
         
@@ -125,7 +134,7 @@ if __name__ == "__main__":
         batch = 1
         best_molecules = []
         model_accuracy = []
-        while len(train_data) < max_training_count:
+        while len(train_data) <= max_training_count:
             start_loop_time = perf_counter()
             print(f"Iteration {batch}:")
             print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules")
@@ -179,7 +188,7 @@ if __name__ == "__main__":
                 'batch': batch,
                 'error': error,
             })
-            print(f"\tEstimate of KNN Model Mean Relative Error (MRE): {error:.2f} %")
+            print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %")
    
             # Update the training data and repeat
             batch += 1
@@ -188,13 +197,13 @@ if __name__ == "__main__":
 
         end_time = perf_counter()
         print(f"Training completed in {(end_time - start_time):.2f} seconds")
-    
+
+    # Plot results of active learning loop
     print("\nPlotting results...")
     best_molecules = pd.DataFrame(best_molecules)
     model_accuracy = pd.DataFrame(model_accuracy)
     plot_best_molecules(best_molecules, batch)
     
-
     # Save results
     train_data.to_csv('training_data.csv', index=False)
     best_molecules.to_csv('best_molecules.csv', index=False)
