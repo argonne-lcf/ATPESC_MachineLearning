@@ -50,5 +50,5 @@
 
 8. Pack conda env for use on /tmp (optional)
     ```bash
-    conda-pack --prefix /flare/ATPESC2026/usr/balin/_atpesc_simAI/ --output /flare/ATPESC2026/usr/balin/_atpesc_simAI.tar.gz
+    conda-pack --prefix /path/to/_atpesc_simAI/ --output /path/to/_atpesc_simAI.tar.gz
     ```
