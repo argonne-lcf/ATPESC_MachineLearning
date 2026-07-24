@@ -1,13 +1,37 @@
-from asyncio import new_event_loop
+"""Active learning loop for molecule discovery with Parsl. Data is moved via Lustre.
+
+The workflow searches a large library of candidate molecules for high ionization
+energy (IE). Because a first-principles IE calculation is expensive, we couple
+an inexpensive surrogate model with a small batch of real simulations at each
+iteration of an active-learning loop:
+
+    1. Collect training data by running several xtb simulations.
+    2. Fine-tune a linear regression head on top of the frozen MoLFormer-XL
+       SMILES encoder using the (SMILES, IE) pairs gathered so far.
+    3. Run the fine-tuned model over the full search space to predict IE for
+       every candidate.
+    4. Pick the top-k predicted molecules, simulate them for real, and add
+       the results to the training set.
+    5. Repeat 2-4 until we've simulated the target number of molecules.
+
+Parsl orchestrates the loop across a heterogeneous Aurora node: xtb simulations
+run as CPU apps on one HighThroughputExecutor while MoLFormer training and
+inference run as GPU apps on another. Each app returns its result via an
+AppFuture, and downstream apps that take those futures as arguments implicitly
+form a dependency graph -- Parsl only launches a downstream task once its
+inputs have resolved.
+
+Data movement between apps in THIS variant goes through the Lustre filesystem.
+"""
+
 import os
 import parsl
 from parsl.app.app import python_app
 from time import perf_counter
-from random import sample
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from concurrent.futures import as_completed
-from pathlib import Path
 import random
 import sys
 
@@ -15,23 +39,20 @@ from utils.parsl_config import aurora_gpu_config
 from chemfunctions import compute_vertical
 from utils.utils import plot_best_molecules, combine_inferences
 
-# Ensure the MoLFormer model weights are visible
+# ~~~ Resolve the workflow root before any worker cds into runinfo, so model
+# weights written by the training app are readable by inference workers.
+weights_dir = Path.cwd().resolve()
+
+# ~~~ Ensure the MoLFormer model weights are visible
 assert os.environ.get("MOLFORMER_WEIGHTS_DIR"), \
     "set MOLFORMER_WEIGHTS_DIR to the local MoLFormer snapshot dir"
 
-# This example will loop through the following steps:
-# 1. Collect training data by running several simulations
-# 2. Train a model using the training data
-# 3. Run the model on a large search space of molecules to predict their properties
-# 4. Loop back to step 1 with the new model to collect more training data
-# 5. Repeat until enough molecules have been simulated
-
-# Set the random seed for reproducibility on the sample selection
+# ~~~ Set the random seed for reproducibility on the sample selection
 seed = 42
 np.random.seed(seed)
 random.seed(seed)
 
-# Define parameters for the workflow
+# ~~~ Define parameters for the workflow
 initial_training_count = 32  # Number of trianing samples to collect for first model training
 max_training_count = 64  # Maximum number of training samples to collect for training
 batch_size = 16  # Number of molecules to simulate in each iteration of active learning loop
@@ -40,34 +61,58 @@ if initial_training_count >= max_training_count:
     print("Change the values of initial_training_count and/or max_training_count and try again.")
     sys.exit(1)
 
-# Define Parsl apps for each step in the workflow
+# ~~~ Define Parsl apps for each step in the workflow
 # Route each app to the executor that matches the resource needed
 # Simulation app to compute the ionization energy of a molecule (CPU)
 compute_vertical_app = python_app(compute_vertical)
+
 # Model training app (GPU)
 @python_app(executors=["gpu"])
-def train_model_app(train_data):
+def train_model_app(train_data, weights_path):
+    import torch
     from models.molformer import fit_head
-    return fit_head(train_data)
-#train_model_app = python_app(executors=["gpu"])(train_model)
+    model_state = fit_head(train_data)
+    torch.save(
+        {
+            "state_dict": model_state["state_dict"],
+            "y_mean": model_state["y_mean"],
+            "y_std": model_state["y_std"],
+        },
+        weights_path,
+    )
+    # Return the path so downstream apps can depend on this future
+    return weights_path
+
 # Inference app to run the model on a list of SMILES strings (GPU)
 @python_app(executors=["gpu"])
-def inference_app(state, smiles):
+def inference_app(weights_path, smiles):
+    import torch
     from models.molformer import predict_head
-    return predict_head(state, smiles)
-#inference_app = python_app(executors=["gpu"])(run_model)
+    state = torch.load(weights_path, weights_only=True)
+    predictions = predict_head(state, smiles)
+    return predictions
+
 # Convenience app to combine multiple inferences into a single DataFrame (CPU)
 combine_inferences_app = python_app(combine_inferences)
 
-# Search space of molecules to sample from
+# ~~~ Search space of molecules to sample from
 search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')
 search_space_size = len(search_space)
+
+# ~~~ Chunk the search space into smaller pieces, so inference tasks run in parallel on chunked data
+#gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
+gpu_executor = aurora_gpu_config.executors[0]
+num_nodes = gpu_executor.provider.nodes_per_block  # number of nodes 
+num_workers_pn = gpu_executor.max_workers_per_node  # number of workers per node
+num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))
+chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
+
 
 if __name__ == "__main__":
 
     train_data = []
 
-    # Load the Parsl configuration
+    # ~~~ Load the Parsl configuration
     with parsl.load(aurora_gpu_config):
 
         # Mark when we started
@@ -76,7 +121,7 @@ if __name__ == "__main__":
         print(f"Will collect a maximum of {max_training_count} training samples for training.")
         print(f"Will run {batch_size} new simulations in each loop iteration to refine the model.\n")
 
-        # Start with some random guesses for simulations to create initial training data
+        # ~~~ Start with some random guesses for simulations to create initial training data
         print(f"Creating initial training data composed of {initial_training_count}/{search_space_size} random molecules")
         train_data = []
         init_mols = search_space.sample(initial_training_count)['smiles']
@@ -84,7 +129,7 @@ if __name__ == "__main__":
         print(f'Submitted {len(sim_futures)} simulations for initial training ...')
         already_ran = set()
 
-        # Loop until you finish populating the initial training set of simulation results
+        # ~~~ Generate the initial training data
         tic = perf_counter()
         while len(sim_futures) > 0: 
             # First, get the next completed computation from the list
@@ -111,22 +156,11 @@ if __name__ == "__main__":
                     'batch': 0,
                     'time': perf_counter() - start_time
                 })
+        train_data = pd.DataFrame(train_data)
         init_sim_time = perf_counter() - tic
         print(f"Initial training data collected in {init_sim_time:.2f} sec!\n", flush=True)
-
-        # Create the initial training set
-        train_data = pd.DataFrame(train_data)
-
-        # Chunk the search space into smaller pieces, so that each inference task can run in parallel
-        # Use the number of nodes and workers per node to determine how many chunks to create
-        #gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
-        gpu_executor = aurora_gpu_config.executors[0]
-        num_nodes = gpu_executor.provider.nodes_per_block  # Get the number of nodes from the config
-        num_workers_pn = gpu_executor.max_workers_per_node  # Get the number of workers per node from the config
-        num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))  # Limit the number of chunks by the number of workers
-        chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
         
-        # ML-in-the-loop
+        # ~~~ Active Learning Loop
         # Run training, inference, and simulation in a loop continuously until we've simulated enough molecules
         # Each successive batch of simulations should predict higher ionization energies
         print("Starting active learning loop\n", flush=True)
@@ -139,7 +173,10 @@ if __name__ == "__main__":
             print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules", flush=True)
             
             # Train and predict as shown in the previous example.
-            train_future = train_model_app(train_data)
+            # Per-iteration filename avoids the race where iter N+1 training
+            # would overwrite iter N's file while inference workers still read it.
+            weights_path = str(weights_dir / f"MoLFormer_weights_iter{batch}.pt")
+            train_future = train_model_app(train_data, weights_path)
             inference_futures = [inference_app(train_future, chunk) for chunk in chunks]
             predictions = combine_inferences_app(inputs=inference_futures).result()
 
@@ -197,13 +234,13 @@ if __name__ == "__main__":
         end_time = perf_counter()
         print(f"Training completed in {(end_time - start_time):.2f} seconds")
 
-    # Plot results of active learning loop
+    # ~~~ Plot results of active learning loop
     print("\nPlotting results...")
     best_molecules = pd.DataFrame(best_molecules)
     model_accuracy = pd.DataFrame(model_accuracy)
     plot_best_molecules(best_molecules, batch)
     
-    # Save results
+    # ~~~ Save results
     train_data.to_csv('training_data.csv', index=False)
     best_molecules.to_csv('best_molecules.csv', index=False)
     print("All done!", flush=True)
