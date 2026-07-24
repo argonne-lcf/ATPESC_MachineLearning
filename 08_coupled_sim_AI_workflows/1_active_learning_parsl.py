@@ -11,7 +11,7 @@ from pathlib import Path
 import random
 import sys
 
-from utils.parsl_config import aurora_gpu_config
+from utils.parsl_config import aurora_config
 from chemfunctions import (
     compute_vertical,
     train_molformer_model as train_model,
@@ -45,14 +45,15 @@ if initial_training_count >= max_training_count:
     sys.exit(1)
 
 # Define Parsl apps for each step in the workflow
-# Simulation app to compute the ionization energy of a molecule
-compute_vertical_app = python_app(compute_vertical)
-# Model training app
-train_model_app = python_app(train_model)
-# Inference app to run the model on a list of SMILES strings
-inference_app = python_app(run_model)
-# Convenience app to combine multiple inferences into a single DataFrame
-@python_app
+# Route each app to the executor that matches the resource needed
+# Simulation app to compute the ionization energy of a molecule (CPU)
+compute_vertical_app = python_app(executors=["cpu"])(compute_vertical)
+# Model training app (GPU)
+train_model_app = python_app(executors=["gpu"])(train_model)
+# Inference app to run the model on a list of SMILES strings (GPU)
+inference_app = python_app(executors=["gpu"])(run_model)
+# Convenience app to combine multiple inferences into a single DataFrame (CPU)
+@python_app(executors=["cpu"])
 def combine_inferences(inputs=[]):
     """Concatenate a series of inferences into a single DataFrame
     Args:
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     train_data = []
 
     # Load the Parsl configuration
-    with parsl.load(aurora_gpu_config):
+    with parsl.load(aurora_config):
 
         # Mark when we started
         start_time = perf_counter()
@@ -120,10 +121,12 @@ if __name__ == "__main__":
 
         # Create the initial training set
         train_data = pd.DataFrame(train_data)
+
         # Chunk the search space into smaller pieces, so that each inference task can run in parallel
         # Use the number of nodes and workers per node to determine how many chunks to create
-        num_nodes = aurora_gpu_config.executors[0].provider.nodes_per_block  # Get the number of nodes from the config
-        num_workers_pn = aurora_gpu_config.executors[0].workers_per_node  # Get the number of workers per node from the config
+        gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
+        num_nodes = gpu_executor.provider.nodes_per_block  # Get the number of nodes from the config
+        num_workers_pn = gpu_executor.max_workers_per_node  # Get the number of workers per node from the config
         num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))  # Limit the number of chunks by the number of workers
         chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
         

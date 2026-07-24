@@ -9,8 +9,8 @@
 
 2. Create a new conda env (can't install xtb-python via pip, so can't use a Python venv)
     ```bash
-    conda create -y --prefix /flare/ATPESC2026/usr/balin/_atpesc_simAI python=3.12.12 pip
-    conda activate /flare/ATPESC2026/usr/balin/_atpesc_simAI
+    conda create -y --prefix /path/to/_atpesc_simAI python=3.12.12 pip
+    conda activate /path/to/_atpesc_simAI
     ```
 
 3. Install the packages related to chemistry problem
@@ -48,3 +48,7 @@
    export TMPDIR=/tmp
    ```
 
+8. Pack conda env for use on /tmp (optional)
+    ```bash
+    conda-pack --prefix /flare/ATPESC2026/usr/balin/_atpesc_simAI/ --output /flare/ATPESC2026/usr/balin/_atpesc_simAI.tar.gz
+    ```
