@@ -16,6 +16,9 @@ if hostname -f | grep -q "aurora"; then
         source /tmp/_atpesc_simAI/bin/activate
         export TMPDIR=/tmp
         export MOLFORMER_WEIGHTS_DIR=/flare/ATPESC2026/usr/balin/model-weights/MolFormer-XL
+        # Make chemfunctions.py and models/ importable from the workflow root,
+        # even when Parsl workers cd into runinfo at startup.
+        export PYTHONPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd):${PYTHONPATH}"
     fi
 elif hostname -f | grep -q "polaris"; then
     echo "The environment for ALCF Polaris is not tested yet"

@@ -11,13 +11,9 @@ from pathlib import Path
 import random
 import sys
 
-from utils.parsl_config import aurora_config
-from chemfunctions import (
-    compute_vertical,
-    train_molformer_model as train_model,
-    run_molformer_model as run_model,
-)
-from utils.utils import plot_best_molecules
+from utils.parsl_config import aurora_gpu_config
+from chemfunctions import compute_vertical
+from utils.utils import plot_best_molecules, combine_inferences
 
 # Ensure the MoLFormer model weights are visible
 assert os.environ.get("MOLFORMER_WEIGHTS_DIR"), \
@@ -30,7 +26,7 @@ assert os.environ.get("MOLFORMER_WEIGHTS_DIR"), \
 # 4. Loop back to step 1 with the new model to collect more training data
 # 5. Repeat until enough molecules have been simulated
 
-# Set the random seed for reproducibility
+# Set the random seed for reproducibility on the sample selection
 seed = 42
 np.random.seed(seed)
 random.seed(seed)
@@ -47,25 +43,24 @@ if initial_training_count >= max_training_count:
 # Define Parsl apps for each step in the workflow
 # Route each app to the executor that matches the resource needed
 # Simulation app to compute the ionization energy of a molecule (CPU)
-compute_vertical_app = python_app(executors=["cpu"])(compute_vertical)
+compute_vertical_app = python_app(compute_vertical)
 # Model training app (GPU)
-train_model_app = python_app(executors=["gpu"])(train_model)
+@python_app(executors=["gpu"])
+def train_model_app(train_data):
+    from models.molformer import fit_head
+    return fit_head(train_data)
+#train_model_app = python_app(executors=["gpu"])(train_model)
 # Inference app to run the model on a list of SMILES strings (GPU)
-inference_app = python_app(executors=["gpu"])(run_model)
+@python_app(executors=["gpu"])
+def inference_app(state, smiles):
+    from models.molformer import predict_head
+    return predict_head(state, smiles)
+#inference_app = python_app(executors=["gpu"])(run_model)
 # Convenience app to combine multiple inferences into a single DataFrame (CPU)
-@python_app(executors=["cpu"])
-def combine_inferences(inputs=[]):
-    """Concatenate a series of inferences into a single DataFrame
-    Args:
-        inputs: a list of the component DataFrames
-    Returns:
-        A single DataFrame containing the same inferences
-    """
-    import pandas as pd
-    return pd.concat(inputs, ignore_index=True)
+combine_inferences_app = python_app(combine_inferences)
 
 # Search space of molecules to sample from
-search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')  # Our search space of molecules
+search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')
 search_space_size = len(search_space)
 
 if __name__ == "__main__":
@@ -73,7 +68,7 @@ if __name__ == "__main__":
     train_data = []
 
     # Load the Parsl configuration
-    with parsl.load(aurora_config):
+    with parsl.load(aurora_gpu_config):
 
         # Mark when we started
         start_time = perf_counter()
@@ -124,7 +119,8 @@ if __name__ == "__main__":
 
         # Chunk the search space into smaller pieces, so that each inference task can run in parallel
         # Use the number of nodes and workers per node to determine how many chunks to create
-        gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
+        #gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
+        gpu_executor = aurora_gpu_config.executors[0]
         num_nodes = gpu_executor.provider.nodes_per_block  # Get the number of nodes from the config
         num_workers_pn = gpu_executor.max_workers_per_node  # Get the number of workers per node from the config
         num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))  # Limit the number of chunks by the number of workers
@@ -133,19 +129,19 @@ if __name__ == "__main__":
         # ML-in-the-loop
         # Run training, inference, and simulation in a loop continuously until we've simulated enough molecules
         # Each successive batch of simulations should predict higher ionization energies
-        print("Starting active learning loop\n")
+        print("Starting active learning loop\n", flush=True)
         batch = 1
         best_molecules = []
         model_accuracy = []
         while len(train_data) <= max_training_count:
             start_loop_time = perf_counter()
             print(f"Iteration {batch}:")
-            print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules")
+            print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules", flush=True)
             
             # Train and predict as shown in the previous example.
             train_future = train_model_app(train_data)
             inference_futures = [inference_app(train_future, chunk) for chunk in chunks]
-            predictions = combine_inferences(inputs=inference_futures).result()
+            predictions = combine_inferences_app(inputs=inference_futures).result()
 
             # Sort inference predictions and store best molecules
             predictions.sort_values('ie', ascending=False, inplace=True)
@@ -156,7 +152,7 @@ if __name__ == "__main__":
                         'batch': batch,
                         'time': perf_counter() - start_time
                 })
-            print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha")
+            print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha", flush=True)
 
             # Submit new simulations for the top predictions
             sim_futures = []
@@ -178,7 +174,7 @@ if __name__ == "__main__":
                         'time': perf_counter() - start_time
                     })
             new_results = pd.DataFrame(new_results)
-            print(f'\tPerformed {len(sim_futures)} new simulations')
+            print(f"\tPerformed {len(sim_futures)} new simulations", flush=True)
 
             # Compute model error estimate (even if just on new molecules simulated)
             error = 0.
@@ -191,12 +187,12 @@ if __name__ == "__main__":
                 'batch': batch,
                 'error': error,
             })
-            print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %")
+            print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %", flush=True)
    
             # Update the training data and repeat
             batch += 1
             train_data = pd.concat((train_data, new_results), ignore_index=True)
-            print(f"\tFinished loop iteration in {(perf_counter() - start_loop_time):.2f}s\n")
+            print(f"\tFinished loop iteration in {(perf_counter() - start_loop_time):.2f}s\n", flush=True)
 
         end_time = perf_counter()
         print(f"Training completed in {(end_time - start_time):.2f} seconds")
@@ -210,4 +206,4 @@ if __name__ == "__main__":
     # Save results
     train_data.to_csv('training_data.csv', index=False)
     best_molecules.to_csv('best_molecules.csv', index=False)
-    print("All done!")
+    print("All done!", flush=True)

@@ -26,6 +26,7 @@ aurora_cpu_config = Config(
     initialize_logging=True, # Set to False for runs more than 1000 nodes
     executors=[
         HighThroughputExecutor(
+            label="cpu",
             address=address_by_interface('hsn0'),
             max_workers_per_node=102, # We will use 102 workers, one for each core
             cpu_affinity=cpu_affinity,  # Prevents thread contention
@@ -48,6 +49,7 @@ aurora_gpu_config = Config(
     initialize_logging=True, # Set to False for runs more than 1000 nodes
     executors=[
         HighThroughputExecutor(
+            label="gpu",
             address=address_by_interface('hsn0'),
             available_accelerators=12, # 12 PVC tiles per node
             max_workers_per_node=12, # We will use 12 workers, one for each tile
@@ -83,7 +85,7 @@ aurora_config = Config(
         HighThroughputExecutor(
             label="cpu",
             address=address_by_interface('hsn0'),
-            max_workers_per_node=102, # We will use 102 workers, one for each core
+            max_workers_per_node=90, # We will use 102 workers, one for each core
             cpu_affinity=cpu_affinity,  # Prevents thread contention
             prefetch_capacity=0,  # Increase if you have many more tasks than workers
             provider=LocalProvider(

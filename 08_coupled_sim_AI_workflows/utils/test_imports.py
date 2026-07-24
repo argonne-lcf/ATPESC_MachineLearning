@@ -23,9 +23,7 @@ try:
     from sklearn.pipeline import Pipeline
 
     import torch
-
-    # Custom dependencies
-    import chemfunctions
+    import transformers
 
     print("All packages imported successfully!")
 except ImportError as e:
