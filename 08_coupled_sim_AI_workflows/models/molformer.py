@@ -66,7 +66,7 @@ class MoLFormerRegressor(nn.Module):
         return self.head(out.pooler_output).squeeze(-1)
 
 
-def fit_head(train_data):
+def fit_head(train_data, seed = 42):
     """Fine-tune the linear head over MoLFormer embeddings on (SMILES, IE) pairs.
 
     Args:
@@ -74,6 +74,7 @@ def fit_head(train_data):
     Returns:
         Dict with CPU state_dict and target normalization stats.
     """
+    torch.manual_seed(seed)
     tokenizer, base_encoder, hidden = _get_tokenizer_and_encoder()
     device = _get_device()
 

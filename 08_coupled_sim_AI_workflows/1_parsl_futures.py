@@ -57,7 +57,6 @@ if initial_training_count >= max_training_count:
     sys.exit(1)
 
 # ~~~ Define Parsl apps for each step in the workflow
-# Route each app to the executor that matches the resource needed
 # Simulation app to compute the ionization energy of a molecule (CPU)
 compute_vertical_app = python_app(compute_vertical)
 # Model training app (GPU)
@@ -136,7 +135,7 @@ if __name__ == "__main__":
                 })
         train_data = pd.DataFrame(train_data)
         init_sim_time = perf_counter() - tic
-        print(f"Initial training data collected in {init_sim_time:.2f} sec!\n", flush=True)
+        print(f"Initial training data collected in {init_sim_time:.2f} sec\n", flush=True)
         
         # ~~~ Active Learning Loop
         # Run training, inference, and simulation in a loop continuously until we've simulated enough molecules
@@ -150,7 +149,7 @@ if __name__ == "__main__":
             print(f"Iteration {batch}:")
             print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules", flush=True)
             
-            # Train and predict as shown in the previous example.
+            # Train and predict 
             train_future = train_model_app(train_data)
             inference_futures = [inference_app(train_future, chunk) for chunk in chunks]
             predictions = combine_inferences_app(inputs=inference_futures).result()

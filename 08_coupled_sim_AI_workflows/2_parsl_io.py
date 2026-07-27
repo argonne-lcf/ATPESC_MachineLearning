@@ -39,9 +39,8 @@ from utils.parsl_config import aurora_gpu_config
 from chemfunctions import compute_vertical
 from utils.utils import plot_best_molecules, combine_inferences
 
-# ~~~ Resolve the workflow root before any worker cds into runinfo, so model
-# weights written by the training app are readable by inference workers.
-weights_dir = Path.cwd().resolve()
+# ~~~ Workflow run dir for IO
+run_dir = Path.cwd().resolve()
 
 # ~~~ Ensure the MoLFormer model weights are visible
 assert os.environ.get("MOLFORMER_WEIGHTS_DIR"), \
@@ -62,7 +61,6 @@ if initial_training_count >= max_training_count:
     sys.exit(1)
 
 # ~~~ Define Parsl apps for each step in the workflow
-# Route each app to the executor that matches the resource needed
 # Simulation app to compute the ionization energy of a molecule (CPU)
 compute_vertical_app = python_app(compute_vertical)
 
@@ -80,7 +78,6 @@ def train_model_app(train_data, weights_path):
         },
         weights_path,
     )
-    # Return the path so downstream apps can depend on this future
     return weights_path
 
 # Inference app to run the model on a list of SMILES strings (GPU)
@@ -158,7 +155,7 @@ if __name__ == "__main__":
                 })
         train_data = pd.DataFrame(train_data)
         init_sim_time = perf_counter() - tic
-        print(f"Initial training data collected in {init_sim_time:.2f} sec!\n", flush=True)
+        print(f"Initial training data collected in {init_sim_time:.2f} sec\n", flush=True)
         
         # ~~~ Active Learning Loop
         # Run training, inference, and simulation in a loop continuously until we've simulated enough molecules
@@ -172,10 +169,8 @@ if __name__ == "__main__":
             print(f"Iteration {batch}:")
             print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules", flush=True)
             
-            # Train and predict as shown in the previous example.
-            # Per-iteration filename avoids the race where iter N+1 training
-            # would overwrite iter N's file while inference workers still read it.
-            weights_path = str(weights_dir / f"MoLFormer_weights_iter{batch}.pt")
+            # Train and predict
+            weights_path = str(run_dir / f"MoLFormer_weights_iter{batch}.pt")
             train_future = train_model_app(train_data, weights_path)
             inference_futures = [inference_app(train_future, chunk) for chunk in chunks]
             predictions = combine_inferences_app(inputs=inference_futures).result()

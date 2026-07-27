@@ -1,13 +1,13 @@
-# ML-In-The-Loop Workflow for Molecular Design with Parsl
+# Active Learning Workflow for Molecular Design 
 
 This example demonstrates a simple molecular design application combining simulations with machine learning (ML) training and inference. The objective is to efficiently identify molecules with the largest ionization energies from a large dataset of potential candidates. 
 
-The example was adapted from an [ExaWorks demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) developed by Logan Ward, ANL.
+The example was adapted from an [ExaWorks demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) developed by Logan Ward, ANL, and later modified by Christine Simpson, ANL. 
 
 The ionization energy (IE) of a molecule is the amount of energy required to remove one electron from the molecule in its ground state to produce a positively charged ion. 
-IE can be computed using various simulation packages (here we use [xTB](https://xtb-docs.readthedocs.io/en/latest/contents.html)); however, execution of these simulations can be expensive, and thus, given a finite compute budget and a large set of molecules to screen, we must carefully select which molecules to explore by simulation. 
-To help reduce the cost of screening large datasets of potential candidate molecules, we use machine learning, specifically a k-nearest neighbors (KNN) regressor, to predict the IE of molecules based on previously simulated data. 
-We then employ an iterative process often called [active learning](https://pubs.acs.org/doi/abs/10.1021/acs.chemmater.0c00768) to simulate the best identified compounds and retrain the KNN model to improve the accuracy of predictions. 
+IE can be computed using various simulation packages, here we use [xTB](https://xtb-docs.readthedocs.io/en/latest/contents.html); however, execution of these simulations can be expensive, and thus, given a finite compute budget and a large set of molecules to screen, we must carefully select which molecules to explore by simulation. 
+To help reduce the cost of screening large datasets of potential candidate molecules, we use machine learning, specifically the MoLFormer (add model info here), to predict the IE of molecules based on previously simulated data. 
+We then employ an iterative process often called [active learning](https://pubs.acs.org/doi/abs/10.1021/acs.chemmater.0c00768) to simulate the best identified compounds and retrain the MolFormer model to improve the accuracy of predictions. 
 A schematic of the active learning, or ML-in-the-loop, workflow is shown below.
 
 ![workflow](../figures/workflow.svg)
@@ -150,7 +150,7 @@ python 3_ml_in_the_loop.py
 2. Source the environment provided:
 
     ```bash
-    source ../0_activate_env.sh
+    source 0_activate_env.sh
     ```
 
 3. Run the Parsl workflow scripts in order of complexity
