@@ -1,6 +1,6 @@
 """MoLFormer-XL fine-tuning model (frozen encoder + linear regression head).
 
-Exposes pure fit_head / predict_head primitives; the driver script wraps
+Exposes fit_model / predict_model functions; the driver script wraps
 these into Parsl/Dragon apps and decides how model state is passed between them.
 """
 import os
@@ -66,7 +66,7 @@ class MoLFormerRegressor(nn.Module):
         return self.head(out.pooler_output).squeeze(-1)
 
 
-def fit_head(train_data, seed = 42):
+def fit_model(train_data, seed = 42):
     """Fine-tune the linear head over MoLFormer embeddings on (SMILES, IE) pairs.
 
     Args:
@@ -123,11 +123,11 @@ def fit_head(train_data, seed = 42):
     }
 
 
-def predict_head(model_state, smiles):
+def predict_model(model_state, smiles):
     """Run a fine-tuned MoLFormer regressor over a list of SMILES.
 
     Args:
-        model_state: Dict returned by fit_head.
+        model_state: Dict returned by fit_model.
         smiles: List of SMILES strings.
     Returns:
         Dataframe with 'smiles' and 'ie' columns.

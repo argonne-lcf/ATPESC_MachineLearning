@@ -21,7 +21,7 @@ AppFuture, and downstream apps that take those futures as arguments implicitly
 form a dependency graph -- Parsl only launches a downstream task once its
 inputs have resolved.
 
-Data movement between apps in THIS variant  is entirely through those futures.
+Data movement between apps in THIS variant is entirely through AppFutures futures.
 """
 
 import os
@@ -62,13 +62,13 @@ compute_vertical_app = python_app(compute_vertical)
 # Model training app (GPU)
 @python_app(executors=["gpu"])
 def train_model_app(train_data):
-    from models.molformer import fit_head
-    return fit_head(train_data)
+    from models.molformer import fit_model
+    return fit_model(train_data)
 # Inference app to run the model on a list of SMILES strings (GPU)
 @python_app(executors=["gpu"])
 def inference_app(state, smiles):
-    from models.molformer import predict_head
-    return predict_head(state, smiles)
+    from models.molformer import predict_model
+    return predict_model(state, smiles)
 # Convenience app to combine multiple inferences into a single DataFrame (CPU)
 combine_inferences_app = python_app(combine_inferences)
 
@@ -87,8 +87,6 @@ chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
 
 if __name__ == "__main__":
 
-    train_data = []
-
     # ~~~ Load the Parsl configuration
     with parsl.load(aurora_gpu_config):
 
@@ -98,16 +96,18 @@ if __name__ == "__main__":
         print(f"Will collect a maximum of {max_training_count} training samples for training.")
         print(f"Will run {batch_size} new simulations in each loop iteration to refine the model.\n")
 
-        # ~~~ Start with some random guesses for simulations to create initial training data
-        print(f"Creating initial training data composed of {initial_training_count}/{search_space_size} random molecules")
-        train_data = []
+        # ~~~ Start with some random guesses of molecules to create initial training data
         init_mols = search_space.sample(initial_training_count)['smiles']
+        print(f"Sampled {initial_training_count}/{search_space_size} random molecules", flush=True)
+
+        # ~~~ Launch the simulations with Parsl
+        tic = perf_counter()
         sim_futures = [compute_vertical_app(mol) for mol in init_mols]
-        print(f'Submitted {len(sim_futures)} simulations for initial training ...')
-        already_ran = set()
+        print(f'Submitted {len(sim_futures)} simulations ...', flush=True)
 
         # ~~~ Generate the initial training data
-        tic = perf_counter()
+        already_ran = set()
+        train_data = []
         while len(sim_futures) > 0: 
             # First, get the next completed computation from the list
             future = next(as_completed(sim_futures))
@@ -147,12 +147,20 @@ if __name__ == "__main__":
         while len(train_data) <= max_training_count:
             start_loop_time = perf_counter()
             print(f"Iteration {batch}:")
-            print(f"\tTraining on {len(train_data)}/{search_space_size} random molecules", flush=True)
-            
-            # Train and predict 
+
+            # Train on subset of molecules
+            tic = perf_counter()
             train_future = train_model_app(train_data)
-            inference_futures = [inference_app(train_future, chunk) for chunk in chunks]
+            model_state = train_future.result()
+            t_train = perf_counter() - tic
+            print(f"\tTrained on {len(train_data)} molecules in {t_train:.2f} sec", flush=True)
+
+            # Inference on all molecules (divided into chunks)
+            tic = perf_counter()
+            inference_futures = [inference_app(model_state, chunk) for chunk in chunks]
             predictions = combine_inferences_app(inputs=inference_futures).result()
+            t_inf = perf_counter() - tic
+            print(f"\tPredicted {len(predictions)} molecules in {t_inf:.2f} sec", flush=True)
 
             # Sort inference predictions and store best molecules
             predictions.sort_values('ie', ascending=False, inplace=True)
@@ -167,6 +175,7 @@ if __name__ == "__main__":
 
             # Submit new simulations for the top predictions
             sim_futures = []
+            tic = perf_counter()
             for smiles in predictions['smiles']:
                 if smiles not in already_ran:
                     sim_futures.append(compute_vertical_app(smiles))
@@ -184,25 +193,28 @@ if __name__ == "__main__":
                         'batch': batch, 
                         'time': perf_counter() - start_time
                     })
+            t_sim = perf_counter() - tic
             new_results = pd.DataFrame(new_results)
-            print(f"\tPerformed {len(sim_futures)} new simulations", flush=True)
+            print(f"\tSimulated {len(sim_futures)} new molecules in {t_sim:.2f} sec", flush=True)
 
-            # Compute model error estimate (even if just on new molecules simulated)
+            # Update the training data
+            train_data = pd.concat((train_data, new_results), ignore_index=True)
+
+            # Compute model error estimate 
             error = 0.
-            for smiles in new_results['smiles']:
-                true_ie = new_results[new_results['smiles'] == smiles]['ie'].iloc[0]
+            for smiles in train_data['smiles']:
+                true_ie = train_data[train_data['smiles'] == smiles]['ie'].iloc[0]
                 predicted_ie = predictions[predictions['smiles'] == smiles]['ie'].iloc[0]
                 error += abs(true_ie - predicted_ie) / true_ie
-            error /= len(new_results)
+            error /= len(train_data)
             model_accuracy.append({
                 'batch': batch,
                 'error': error,
             })
             print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %", flush=True)
    
-            # Update the training data and repeat
+            # Repeat
             batch += 1
-            train_data = pd.concat((train_data, new_results), ignore_index=True)
             print(f"\tFinished loop iteration in {(perf_counter() - start_loop_time):.2f}s\n", flush=True)
 
         end_time = perf_counter()
