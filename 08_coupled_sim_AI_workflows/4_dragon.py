@@ -33,7 +33,8 @@ import dragon
 import multiprocessing as mp
 from dragon.data.ddict import DDict
 from dragon.native.machine import System, Node
-from dragon.native.pool import Pool as DragonPool
+from dragon.native.pool import Pool
+from dragon.infrastructure.policy import Policy
 
 from utils.parsl_config import aurora_gpu_config
 from chemfunctions import _compute_vertical as compute_vertical
@@ -104,6 +105,22 @@ def setup(dd: DDict):
 search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')
 search_space_size = len(search_space)
 
+# ~~~ Define Dragon pilicies for CPU/GPU binding
+gpu_policy = [
+    Policy(cpu_affinity=[1,2], gpu_affinity=[0]),
+    Policy(cpu_affinity=[9,10], gpu_affinity=[1]),
+    Policy(cpu_affinity=[17,18], gpu_affinity=[2]),
+    Policy(cpu_affinity=[25,16], gpu_affinity=[3]),
+    Policy(cpu_affinity=[33,34], gpu_affinity=[4]),
+    Policy(cpu_affinity=[41,42], gpu_affinity=[5]),
+    Policy(cpu_affinity=[53,53], gpu_affinity=[6]),
+    Policy(cpu_affinity=[61,62], gpu_affinity=[7]),
+    Policy(cpu_affinity=[69,70], gpu_affinity=[8]),
+    Policy(cpu_affinity=[77,78], gpu_affinity=[9]),
+    Policy(cpu_affinity=[85,86], gpu_affinity=[10]),
+    Policy(cpu_affinity=[93,94], gpu_affinity=[11]),
+]
+
 
 if __name__ == "__main__":
     # Mark when we started
@@ -131,7 +148,8 @@ if __name__ == "__main__":
     ddict_mem_per_node = 0.3 * head_node.physical_mem # dedicate 30% of each node's memory to the DDict
     tot_ddict_mem = int(ddict_mem_per_node * num_nodes)
     managers_per_node = 4
-    dd = DDict(managers_per_node, num_nodes, tot_ddict_mem)
+    dd_policy = Policy(cpu_affinity=[50,51,100,101])
+    dd = DDict(managers_per_node, num_nodes, tot_ddict_mem, policy=dd_policy, streams_per_manager=0)
     print(f"Started DDict on {num_nodes} nodes with {tot_ddict_mem/1024/1024/1024:.1f} GB of memory\n",flush=True)
 
     # ~~~ Chunk the search space into smaller pieces and add those to the DDict
@@ -147,7 +165,7 @@ if __name__ == "__main__":
     # ~~~ Launch the simulations with Dragon native Pool
     tic = perf_counter()
     num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
-    pool = DragonPool(num_workers)
+    pool = Pool(num_workers)
     print(f'Submitted {initial_training_count} simulations ...', flush=True)
     results = pool.map_async(compute_vertical_app, init_mols).get()
     pool.close()
@@ -183,7 +201,7 @@ if __name__ == "__main__":
 
         # Train on subset of molecules
         tic = perf_counter()
-        pool = DragonPool(policy=System().gpu_policies(), # launches one process per GPU, binding each process to a single GPU
+        pool = Pool(policy=[gpu_policy[0]],
                       processes_per_policy=1, 
                       initializer=setup, 
                       initargs=(dd,)
@@ -202,7 +220,7 @@ if __name__ == "__main__":
         # Inference on all molecules (divided into chunks)
         tic = perf_counter()
         chunk_id = [i for i in range(num_chunks)]
-        pool = DragonPool(policy=System().gpu_policies(), # launches one process per GPU, binding each process to a single GPU
+        pool = Pool(policy=gpu_policy, # launches one process per GPU, binding each process to a single GPU
                         processes_per_policy=1, 
                         initializer=setup, 
                         initargs=(dd,)
@@ -210,7 +228,6 @@ if __name__ == "__main__":
         model_pred_times = pool.map_async(inference_app, chunk_id).get()
         pool.close()
         pool.join()
-        predictions = pd.concat([dd[f"predictions_{i}"] for i in chunk_id], ignore_index=True)
         t_inf = perf_counter() - tic
         model_pred_time = sum(model_pred_times) / len(model_pred_times)
         print(
@@ -221,6 +238,7 @@ if __name__ == "__main__":
         )
         
         # Sort inference predictions and store best molecules
+        predictions = pd.concat([dd[f"predictions_{i}"] for i in chunk_id], ignore_index=True)
         predictions.sort_values('ie', ascending=False, inplace=True)
         for i in range(5):
             best_molecules.append({
@@ -242,7 +260,7 @@ if __name__ == "__main__":
                 if len(new_sims) >= batch_size:
                     break
         
-        pool = DragonPool(num_workers)
+        pool = Pool(num_workers)
         results = pool.map_async(compute_vertical_app, new_sims).get()
         pool.close()
         pool.join()

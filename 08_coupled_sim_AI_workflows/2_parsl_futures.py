@@ -162,7 +162,6 @@ if __name__ == "__main__":
             tic = perf_counter()
             inference_futures = [inference_app(model_state, chunk) for chunk in chunks]
             inference_results = [f.result() for f in inference_futures]
-            predictions = pd.concat([r["predictions"] for r in inference_results], ignore_index=True)
             t_inf = perf_counter() - tic
             t_pred = sum(r["time"] for r in inference_results) / len(inference_results)
             print(
@@ -173,6 +172,7 @@ if __name__ == "__main__":
             )
 
             # Sort inference predictions and store best molecules
+            predictions = pd.concat([r["predictions"] for r in inference_results], ignore_index=True)
             predictions.sort_values('ie', ascending=False, inplace=True)
             for i in range(5):
                 best_molecules.append({
