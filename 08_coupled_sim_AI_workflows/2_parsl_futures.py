@@ -57,16 +57,16 @@ if initial_training_count >= max_training_count:
     sys.exit(1)
 
 # ~~~ Define Parsl apps for each step in the workflow
-# Simulation app to compute the ionization energy of a molecule (CPU)
+# Simulation app to compute the ionization energy of a molecule 
 compute_vertical_app = python_app(compute_vertical)
 
-# Model training app (GPU)
+# Model training app 
 @python_app(executors=["gpu"])
 def train_model_app(train_data):
     from models.molformer import fit_model
     return fit_model(train_data)
 
-# Inference app to run the model on a list of SMILES strings (GPU)
+# Inference app to run the model on a list of SMILES strings 
 @python_app(executors=["gpu"])
 def inference_app(state, smiles):
     from models.molformer import predict_model

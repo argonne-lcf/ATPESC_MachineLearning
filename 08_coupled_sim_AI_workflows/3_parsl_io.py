@@ -61,10 +61,10 @@ if initial_training_count >= max_training_count:
     sys.exit(1)
 
 # ~~~ Define Parsl apps for each step in the workflow
-# Simulation app to compute the ionization energy of a molecule (CPU)
+# Simulation app to compute the ionization energy of a molecule 
 compute_vertical_app = python_app(compute_vertical)
 
-# Model training app (GPU)
+# Model training app 
 @python_app(executors=["gpu"])
 def train_model_app(train_data, weights_path):
     import torch
@@ -80,12 +80,15 @@ def train_model_app(train_data, weights_path):
     )
     return model_state["time"]
 
-# Inference app to run the model on a list of SMILES strings (GPU)
+# Inference app to run the model on a chunk of SMILES
 @python_app(executors=["gpu"])
-def inference_app(weights_path, smiles):
+def inference_app(weights_path, chunk_path):
     import torch
+    import pandas as pd
     from models.molformer import predict_model
     state = torch.load(weights_path, weights_only=True)
+    # CSV variant: smiles = pd.read_csv(chunk_path)["smiles"].to_list()
+    smiles = pd.read_pickle(chunk_path)["smiles"].to_list()
     return predict_model(state, smiles)
 
 # ~~~ Search space of molecules to sample from
@@ -95,10 +98,22 @@ search_space_size = len(search_space)
 # ~~~ Chunk the search space into smaller pieces, so inference tasks run in parallel on chunked data
 #gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
 gpu_executor = aurora_gpu_config.executors[0]
-num_nodes = gpu_executor.provider.nodes_per_block  # number of nodes 
+num_nodes = gpu_executor.provider.nodes_per_block  # number of nodes
 num_workers_pn = gpu_executor.max_workers_per_node  # number of workers per node
 num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))
 chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
+
+# ~~~ Persist each SMILES chunk to disk 
+chunk_paths = []
+for i, chunk in enumerate(chunks):
+    df = pd.DataFrame({"smiles": chunk})
+    # CSV:
+    # path = str(run_dir / f"smiles_chunk_{i}.csv")
+    # df.to_csv(path, index=False)
+    path = str(run_dir / f"smiles_chunk_{i}.pkl")
+    df.to_pickle(path)
+    # Can use to_parquet(engine="pyarrow") for faster IO
+    chunk_paths.append(path)
 
 
 if __name__ == "__main__":
@@ -178,7 +193,7 @@ if __name__ == "__main__":
 
             # Inference on all molecules (divided into chunks)
             tic = perf_counter()
-            inference_futures = [inference_app(weights_path, chunk) for chunk in chunks]
+            inference_futures = [inference_app(weights_path, cp) for cp in chunk_paths]
             inference_results = [f.result() for f in inference_futures]
             predictions = pd.concat([r["predictions"] for r in inference_results], ignore_index=True)
             t_inf = perf_counter() - tic
