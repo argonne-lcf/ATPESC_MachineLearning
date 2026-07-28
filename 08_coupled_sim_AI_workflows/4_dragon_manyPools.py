@@ -158,27 +158,18 @@ if __name__ == "__main__":
     for i, chunk in enumerate(chunks):
         dd[f"chunk_{i}"] = chunk
 
-    # ~~~ Create a single long-lived pool of GPU-pinned workers for the whole
-    # run. All three workloads (sim, train, inference) use it, mirroring the
-    # Parsl variants which route everything through aurora_gpu_config's single
-    # 12-worker HighThroughputExecutor. Workers stay alive across iterations
-    # so MoLFormer's cached encoder in _get_tokenizer_and_encoder actually pays
-    # off -- iteration 1 is cold, iterations 2..N are warm.
-    pool = Pool(
-        policy=gpu_policy,          # 12 workers, one per PVC tile
-        processes_per_policy=1,
-        initializer=setup,
-        initargs=(dd,),
-    )
-
     # ~~~ Start with some random guesses of molecules to create initial training data
     init_mols = search_space.sample(initial_training_count)['smiles'].to_list()
     print(f"Sampled {initial_training_count}/{search_space_size} random molecules", flush=True)
 
-    # ~~~ Launch the initial simulations with the shared pool
+    # ~~~ Launch the simulations with Dragon native Pool
     tic = perf_counter()
+    num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
+    pool = Pool(num_workers)
     print(f'Submitted {initial_training_count} simulations ...', flush=True)
     results = pool.map_async(compute_vertical_app, init_mols).get()
+    pool.close()
+    pool.join()
 
     # ~~~ Generate the initial training data
     already_ran = set()
@@ -208,9 +199,16 @@ if __name__ == "__main__":
         start_loop_time = perf_counter()
         print(f"Iteration {batch}:")
 
-        # Train on subset of molecules -- reuses the shared GPU pool
+        # Train on subset of molecules
         tic = perf_counter()
+        pool = Pool(policy=[gpu_policy[0]],
+                      processes_per_policy=1, 
+                      initializer=setup, 
+                      initargs=(dd,)
+        )
         model_fit_time = pool.apply_async(train_model_app).get()
+        pool.close()
+        pool.join()
         t_train = perf_counter() - tic
         print(
             f"\tTrained on {len(train_data)} molecules:\n"
@@ -219,10 +217,17 @@ if __name__ == "__main__":
             flush=True
         )
 
-        # Inference on all molecules (divided into chunks) -- reuses the shared GPU pool
+        # Inference on all molecules (divided into chunks)
         tic = perf_counter()
-        chunk_id = list(range(num_chunks))
+        chunk_id = [i for i in range(num_chunks)]
+        pool = Pool(policy=gpu_policy, # launches one process per GPU, binding each process to a single GPU
+                        processes_per_policy=1, 
+                        initializer=setup, 
+                        initargs=(dd,)
+        )
         model_pred_times = pool.map_async(inference_app, chunk_id).get()
+        pool.close()
+        pool.join()
         t_inf = perf_counter() - tic
         model_pred_time = sum(model_pred_times) / len(model_pred_times)
         print(
@@ -244,8 +249,9 @@ if __name__ == "__main__":
             })
         print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha", flush=True)
         
-        # Submit new simulations for the top predictions -- reuses the shared GPU pool
+        # Submit new simulations for the top predictions
         tic = perf_counter()
+        num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
         new_smiles = []
         for smiles in predictions['smiles']:
             if smiles not in already_ran:
@@ -253,8 +259,11 @@ if __name__ == "__main__":
                 already_ran.add(smiles)
                 if len(new_smiles) >= batch_size:
                     break
-
+        
+        pool = Pool(num_workers)
         results = pool.map_async(compute_vertical_app, new_smiles).get()
+        pool.close()
+        pool.join()
 
         new_results = []
         for i, result in enumerate(results):
@@ -292,11 +301,7 @@ if __name__ == "__main__":
         
     end_time = perf_counter()
     print(f"Training completed in {(end_time - start_time):.2f} seconds")
-
-    # ~~~ Shut down the shared pool once all iterations are done
-    pool.close()
-    pool.join()
-
+        
     # ~~~ Plot results of active learning loop
     print("\nPlotting results...")
     best_molecules = pd.DataFrame(best_molecules)

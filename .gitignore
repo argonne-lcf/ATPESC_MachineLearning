@@ -7,7 +7,12 @@ build/
 # Parsl
 runinfo/
 
+# Dragon
+ddict_orc*
+
 # 08_coupled_sim_AI_workflows outputs
 08_coupled_sim_AI_workflows/*.csv
 08_coupled_sim_AI_workflows/*.pt
 08_coupled_sim_AI_workflows/*.png
+08_coupled_sim_AI_workflows/*.pkl
+

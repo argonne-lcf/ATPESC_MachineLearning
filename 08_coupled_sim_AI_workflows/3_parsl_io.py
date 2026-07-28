@@ -196,7 +196,7 @@ if __name__ == "__main__":
             t_inf = perf_counter() - tic
             t_pred = sum(r["time"] for r in inference_results) / len(inference_results)
             print(
-                f"\tPredicted {len(predictions)} molecules:\n",
+                f"\tPredicted {len(inference_results)} molecules:\n",
                 f"\t\ttotal time: {t_inf:.2f} sec\n",
                 f"\t\tpredict_model time: {t_pred:.2f} sec", 
                 flush=True
