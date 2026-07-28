@@ -57,8 +57,10 @@ def build_server(
     ) -> dict:
         """Calculate multiple structure energies concurrently with Parsl.
 
-        Use this tool for two or more ASE-readable structure files. Results
-        preserve input-independent failures and report energies in eV.
+        Use this tool for two or more ASE-readable structure files. Each entry in
+        ``structure_paths`` may be a structure file or a directory that is
+        searched recursively for structure files. Results preserve
+        input-independent failures and report energies in eV.
         """
 
         return run_mace_ensemble_core(

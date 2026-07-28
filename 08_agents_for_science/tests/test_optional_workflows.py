@@ -6,12 +6,56 @@ from typing import TypedDict
 import pytest
 
 from atpesc_agentic.run_mace_ensemble_core import (
+    _expand_structure_paths,
     run_mace_ensemble_core,
     shutdown_parsl,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 STRUCTURES = ROOT / "data" / "structures"
+
+
+def test_expand_structure_paths_directory_and_dedup(tmp_path: Path) -> None:
+    expected = sorted(
+        (path.resolve() for path in STRUCTURES.glob("*.xyz")),
+        key=str,
+    )
+
+    # A directory expands to its structure files.
+    assert _expand_structure_paths([str(STRUCTURES)]) == expected
+
+    # Mixing a directory with an explicit file de-duplicates.
+    mixed = _expand_structure_paths(
+        [str(STRUCTURES / "water.xyz"), str(STRUCTURES)]
+    )
+    assert mixed == expected
+
+    # Non-structure files inside a directory are ignored.
+    (tmp_path / "README.txt").write_text("not a structure")
+    (tmp_path / "note.md").write_text("also not a structure")
+    assert _expand_structure_paths([str(tmp_path)]) == []
+
+
+def test_run_mace_ensemble_accepts_directory(tmp_path: Path) -> None:
+    pytest.importorskip("parsl")
+
+    try:
+        result = run_mace_ensemble_core(
+            [str(STRUCTURES)],
+            backend="emt",
+            execution_target="local",
+            run_dir=str(tmp_path / "parsl"),
+            max_workers=2,
+        )
+    finally:
+        shutdown_parsl()
+
+    assert result.status == "success"
+    assert result.total == 3
+    assert result.succeeded == 3
+    assert [item.structure_path for item in result.results] == sorted(
+        str(path.resolve()) for path in STRUCTURES.glob("*.xyz")
+    )
 
 
 def test_local_parsl_ensemble_and_partial_failure(tmp_path: Path) -> None:

@@ -12,6 +12,47 @@ from pydantic import BaseModel, Field
 from atpesc_agentic.parsl_config import ExecutionTarget, build_parsl_config
 from atpesc_agentic.run_mace_core import Backend, Device, MaceResult
 
+# Common ASE-readable structure file extensions used when a directory is given.
+STRUCTURE_EXTENSIONS = frozenset(
+    {
+        ".xyz",
+        ".extxyz",
+        ".cif",
+        ".pdb",
+        ".poscar",
+        ".vasp",
+        ".cml",
+        ".sdf",
+        ".mol",
+        ".gen",
+        ".traj",
+    }
+)
+
+
+def _expand_structure_paths(structure_paths: list[str]) -> list[Path]:
+    """Expand each entry into concrete files, recursing into any directories.
+
+    A directory entry is searched recursively for files whose suffix is a
+    recognized structure extension. File entries are kept as-is (even if they do
+    not exist) so the per-structure error path still reports them. The combined
+    result is de-duplicated and sorted for deterministic ordering.
+    """
+
+    collected: list[Path] = []
+    for raw in structure_paths:
+        path = Path(raw).expanduser().resolve()
+        if path.is_dir():
+            collected.extend(
+                candidate
+                for candidate in path.rglob("*")
+                if candidate.is_file()
+                and candidate.suffix.lower() in STRUCTURE_EXTENSIONS
+            )
+        else:
+            collected.append(path)
+    return sorted(set(collected), key=str)
+
 
 class EnsembleResult(BaseModel):
     """Structured result returned by a Parsl ensemble."""
@@ -103,13 +144,15 @@ def run_mace_ensemble_core(
     run_dir: str = "runs/parsl",
     max_workers: int | None = None,
 ) -> EnsembleResult:
-    """Run one shared-core energy calculation per structure using Parsl."""
+    """Run one shared-core energy calculation per structure using Parsl.
+
+    Each entry in ``structure_paths`` may be an ASE-readable structure file or a
+    directory. Directories are searched recursively for files with a recognized
+    structure extension (see :data:`STRUCTURE_EXTENSIONS`).
+    """
 
     started = time.perf_counter()
-    paths = sorted(
-        (Path(path).expanduser().resolve() for path in structure_paths),
-        key=lambda path: str(path),
-    )
+    paths = _expand_structure_paths(structure_paths)
     if not paths:
         return EnsembleResult(
             status="error",
