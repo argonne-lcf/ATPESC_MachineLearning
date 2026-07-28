@@ -20,8 +20,6 @@ inference run as GPU apps on another. Each app returns its result via an
 AppFuture, and downstream apps that take those futures as arguments implicitly
 form a dependency graph -- Parsl only launches a downstream task once its
 inputs have resolved.
-
-Data movement between apps in THIS variant goes through the Lustre filesystem.
 """
 
 import os
