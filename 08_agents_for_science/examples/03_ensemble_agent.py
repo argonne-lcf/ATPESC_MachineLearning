@@ -39,10 +39,10 @@ async def run_agent(args: argparse.Namespace) -> None:
 
     print("Discovered MCP tools:", ", ".join(tool.name for tool in tools))
     prompt = args.prompt or (
-        f"Use run_mace_ensemble for these structures: {structures}. "
+        f"Calculate the energies for these molecules: {structures}. "
         f"Use model={args.mace_model}, device={args.device}, and "
         f"backend={args.backend}. Summarize successes and failures in a table, "
-        "with energies in eV."
+        "with energies in eV and wall time in seconds."
     )
     await run_agent_once(
         tools=tools,
