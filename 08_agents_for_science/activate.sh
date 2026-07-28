@@ -26,3 +26,12 @@ source "${_ATPESC_ROOT}/.venv/bin/activate"
 
 export MACE_CACHE_DIR="${MACE_CACHE_DIR:-${_ATPESC_ROOT}/mace_models}"
 export XDG_CACHE_HOME="${MACE_CACHE_DIR}"
+
+# For using ALCF inference service from compute node
+export http_proxy="proxy.alcf.anl.gov:3128"
+export https_proxy="proxy.alcf.anl.gov:3128"
+
+# For using MCP
+export NO_PROXY=127.0.0.1,localhost,::1
+export no_proxy=127.0.0.1,localhost,::1
+
