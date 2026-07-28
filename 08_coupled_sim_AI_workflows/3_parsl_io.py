@@ -37,7 +37,7 @@ import sys
 
 from utils.parsl_config import aurora_gpu_config
 from chemfunctions import compute_vertical
-from utils.utils import plot_best_molecules, combine_inferences
+from utils.utils import plot_best_molecules
 
 # ~~~ Workflow run dir for IO
 run_dir = Path.cwd().resolve()
@@ -86,11 +86,7 @@ def inference_app(weights_path, smiles):
     import torch
     from models.molformer import predict_model
     state = torch.load(weights_path, weights_only=True)
-    predictions = predict_model(state, smiles)
-    return predictions
-
-# Convenience app to combine multiple inferences into a single DataFrame (CPU)
-combine_inferences_app = python_app(combine_inferences)
+    return predict_model(state, smiles)
 
 # ~~~ Search space of molecules to sample from
 search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')
@@ -183,12 +179,14 @@ if __name__ == "__main__":
             # Inference on all molecules (divided into chunks)
             tic = perf_counter()
             inference_futures = [inference_app(weights_path, chunk) for chunk in chunks]
-            predictions = combine_inferences_app(inputs=inference_futures).result()
+            inference_results = [f.result() for f in inference_futures]
+            predictions = pd.concat([r["predictions"] for r in inference_results], ignore_index=True)
             t_inf = perf_counter() - tic
+            t_pred = sum(r["time"] for r in inference_results) / len(inference_results)
             print(
                 f"\tPredicted {len(predictions)} molecules:\n",
                 f"\t\ttotal time: {t_inf:.2f} sec\n",
-                f"\t\tpredict_model time: {predictions['time'].mean():.2f} sec", 
+                f"\t\tpredict_model time: {t_pred:.2f} sec", 
                 flush=True
             )
 

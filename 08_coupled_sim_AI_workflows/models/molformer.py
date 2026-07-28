@@ -161,4 +161,7 @@ def predict_model(model_state, smiles):
             preds.append(out.detach().cpu())
     pred_y = torch.cat(preds).numpy() * model_state["y_std"] + model_state["y_mean"]
     toc = perf_counter()
-    return pd.DataFrame({'smiles': smiles, 'ie': pred_y, 'time': toc - tic})
+    return {
+        "predictions": pd.DataFrame({'smiles': smiles, 'ie': pred_y}),
+        "time": toc - tic
+    }

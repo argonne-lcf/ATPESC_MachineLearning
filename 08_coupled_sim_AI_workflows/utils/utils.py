@@ -4,16 +4,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
-def combine_inferences(inputs=[]):
-    """Concatenate a series of inferences into a single DataFrame
-    Args:
-        inputs: a list of the component DataFrames
-    Returns:
-        A single DataFrame containing the same inferences
-    """
-    import pandas as pd
-    return pd.concat(inputs, ignore_index=True)
-
 def plot_best_molecules(best_molecules: pd.DataFrame, batch: int) -> None:
     """Plot the ionization energy of the best molecules for each iteration
     of the active learning loop.
