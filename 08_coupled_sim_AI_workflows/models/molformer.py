@@ -4,8 +4,8 @@ Exposes fit_model / predict_model functions; the driver script wraps
 these into Parsl/Dragon apps and decides how model state is passed between them.
 """
 import os
-
 import pandas as pd
+from time import perf_counter
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModel, AutoConfig
@@ -74,6 +74,7 @@ def fit_model(train_data, seed = 42):
     Returns:
         Dict with CPU state_dict and target normalization stats.
     """
+    tic = perf_counter()
     torch.manual_seed(seed)
     tokenizer, base_encoder, hidden = _get_tokenizer_and_encoder()
     device = _get_device()
@@ -116,10 +117,13 @@ def fit_model(train_data, seed = 42):
             loss.backward()
             optim.step()
 
+    toc = perf_counter()
+
     return {
         "state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
         "y_mean": y_mean,
         "y_std": y_std,
+        "time": toc - tic,
     }
 
 
@@ -132,6 +136,7 @@ def predict_model(model_state, smiles):
     Returns:
         Dataframe with 'smiles' and 'ie' columns.
     """
+    tic = perf_counter()
     tokenizer, base_encoder, hidden = _get_tokenizer_and_encoder()
     device = _get_device()
 
@@ -155,4 +160,5 @@ def predict_model(model_state, smiles):
             )
             preds.append(out.detach().cpu())
     pred_y = torch.cat(preds).numpy() * model_state["y_std"] + model_state["y_mean"]
-    return pd.DataFrame({'smiles': smiles, 'ie': pred_y})
+    toc = perf_counter()
+    return pd.DataFrame({'smiles': smiles, 'ie': pred_y, 'time': toc - tic})

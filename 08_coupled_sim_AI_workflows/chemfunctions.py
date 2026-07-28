@@ -3,10 +3,10 @@
 Contains the quantum-chemistry primitives (SMILES -> XYZ, xtb vertical
 ionization energy). ML models live in ./models/.
 """
-import os
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial, update_wrapper
 from io import StringIO
+from time import perf_counter
 
 import numpy as np
 from ase.io import read
@@ -70,6 +70,7 @@ def _compute_vertical(smiles: str) -> float:
     Returns:
         Ionization energy in Ha
     """
+    tic = perf_counter()
 
     # Make the initial geometry
     xyz = generate_initial_xyz(smiles)
@@ -93,7 +94,10 @@ def _compute_vertical(smiles: str) -> float:
     atoms.set_initial_charges(charges)
     charged_energy = atoms.get_potential_energy()
 
-    return charged_energy - neutral_energy
+    ie = charged_energy - neutral_energy
+    sim_time = perf_counter() - tic
+
+    return ie
 
 
 # Make versions that execute in separate processes

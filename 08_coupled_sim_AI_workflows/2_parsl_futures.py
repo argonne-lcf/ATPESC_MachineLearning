@@ -153,14 +153,24 @@ if __name__ == "__main__":
             train_future = train_model_app(train_data)
             model_state = train_future.result()
             t_train = perf_counter() - tic
-            print(f"\tTrained on {len(train_data)} molecules in {t_train:.2f} sec", flush=True)
+            print(
+                f"\tTrained on {len(train_data)} molecules:\n"
+                f"\t\ttotal time: {t_train:.2f} sec\n",
+                f"\t\tfit_model time: {model_state['time']:.2f} sec", 
+                flush=True
+            )
 
             # Inference on all molecules (divided into chunks)
             tic = perf_counter()
             inference_futures = [inference_app(model_state, chunk) for chunk in chunks]
             predictions = combine_inferences_app(inputs=inference_futures).result()
             t_inf = perf_counter() - tic
-            print(f"\tPredicted {len(predictions)} molecules in {t_inf:.2f} sec", flush=True)
+            print(
+                f"\tPredicted {len(predictions)} molecules:\n",
+                f"\t\ttotal time: {t_inf:.2f} sec\n",
+                f"\t\tpredict_model time: {predictions['time'].mean():.2f} sec", 
+                flush=True
+            )
 
             # Sort inference predictions and store best molecules
             predictions.sort_values('ie', ascending=False, inplace=True)
