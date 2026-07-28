@@ -21,6 +21,9 @@ Time    | Talk                                                                  
 5:20PM	|  [Workflow management tools to couple simulation and AI (talk/hands on)](07_workflows_coupling_simulation_and_AI)                        | Christine Simpson, ANL
 6:30PM	|  *Dinner*
 
+Additional hands-on material:
+- [Agentic AI for Scientific Workflows](08_agents_for_science) — Thang Pham, ANL
+
 
 
 At the beginning of the day, we will temporarily split into two groups. Attendees can choose between [Introduction to deep learning](01novice_intro_to_deep_learning) and [Profiling deep learning](01advanced_profiling_deep_learning).  
