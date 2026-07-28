@@ -13,7 +13,15 @@
 
 _ATPESC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Lmod's init references unset vars (e.g. ZSH_EVAL_CONTEXT) that trip `set -u`.
+# Disable nounset around `module load`, then restore the caller's setting (this
+# script is sourced, so we must not leave their shell state changed).
+case $- in *u*) _atpesc_had_u=1 ;; *) _atpesc_had_u=0 ;; esac
+set +u
 module load frameworks
+[ "${_atpesc_had_u}" = 1 ] && set -u
+unset _atpesc_had_u
+
 source "${_ATPESC_ROOT}/.venv/bin/activate"
 
 export MACE_CACHE_DIR="${MACE_CACHE_DIR:-${_ATPESC_ROOT}/mace_models}"

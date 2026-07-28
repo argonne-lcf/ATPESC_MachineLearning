@@ -14,8 +14,11 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# Intel XPU PyTorch + IPEX + oneCCL.
+# Intel XPU PyTorch + IPEX + oneCCL. Disable nounset around Lmod: its init
+# script references unset vars (e.g. ZSH_EVAL_CONTEXT) that trip `set -u`.
+set +u
 module load frameworks
+set -u
 
 # Fresh venv that inherits the system (XPU) PyTorch from the frameworks module.
 python3 -m venv .venv --system-site-packages
