@@ -6,9 +6,14 @@ these into Parsl/Dragon apps and decides how model state is passed between them.
 import os
 import pandas as pd
 from time import perf_counter
+import warnings
 import torch
 import torch.nn as nn
+import transformers
 from transformers import AutoTokenizer, AutoModel, AutoConfig
+
+transformers.logging.set_verbosity_error()
+warnings.filterwarnings("ignore", message=".*Aten Op fallback.*")
 
 
 _MODEL_DIR = os.environ.get("MOLFORMER_WEIGHTS_DIR")

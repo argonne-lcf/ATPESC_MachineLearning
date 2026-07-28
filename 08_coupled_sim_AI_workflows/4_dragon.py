@@ -24,7 +24,6 @@ RDMA based communication for faster transfers.
 
 import os
 from time import perf_counter
-from pathlib import Path
 import pandas as pd
 import numpy as np
 import random
@@ -37,7 +36,7 @@ from dragon.native.machine import System, Node
 from dragon.native.pool import Pool as DragonPool
 
 from utils.parsl_config import aurora_gpu_config
-from chemfunctions import compute_vertical
+from chemfunctions import _compute_vertical as compute_vertical
 from utils.utils import plot_best_molecules
 
 # ~~~ Ensure the MoLFormer model weights are visible
@@ -63,9 +62,13 @@ if initial_training_count >= max_training_count:
 compute_vertical_app = compute_vertical
 
 # Model training app 
-def train_model_app(dd):
+def train_model_app():
     import torch
     from models.molformer import fit_model
+
+    # Attach to the DDict
+    dd = mp.current_process().stash["ddict"]
+
     batch = dd["batch"]
     model_output = fit_model(dd["train_data"])
     dd[f"model_state_{batch}"] = {
@@ -76,26 +79,30 @@ def train_model_app(dd):
     return model_output["time"]
 
 # Inference app to run the model on a chunk of SMILES
-def inference_app(dd, proc_id):
+def inference_app(proc_id):
     import torch
     import pandas as pd
     from models.molformer import predict_model
+
+    # Attach to the DDict
+    dd = mp.current_process().stash["ddict"]
+
     batch = dd["batch"]
     model_state = dd[f"model_state_{batch}"]
-    smiles = dd[f"chunk_{proc_id}"]["smiles"].to_list()
-    return predict_model(model_state, smiles)
+    smiles = dd[f"chunk_{proc_id}"].tolist()
+    outputs = predict_model(model_state, smiles)
+    dd[f"predictions_{proc_id}"] = outputs["predictions"]
+    return outputs["time"]
+
+# Setup function to stach the DDict at Pool init
+def setup(dd: DDict):
+    me = mp.current_process()
+    me.stash = {}
+    me.stash["ddict"] = dd
 
 # ~~~ Search space of molecules to sample from
 search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')
 search_space_size = len(search_space)
-
-# ~~~ Chunk the search space into smaller pieces, so inference tasks run in parallel on chunked data
-#gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
-gpu_executor = aurora_gpu_config.executors[0]
-num_nodes = gpu_executor.provider.nodes_per_block  # number of nodes
-num_workers_pn = gpu_executor.max_workers_per_node  # number of workers per node
-num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))
-chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
 
 
 if __name__ == "__main__":
@@ -127,19 +134,20 @@ if __name__ == "__main__":
     dd = DDict(managers_per_node, num_nodes, tot_ddict_mem)
     print(f"Started DDict on {num_nodes} nodes with {tot_ddict_mem/1024/1024/1024:.1f} GB of memory\n",flush=True)
 
+    # ~~~ Chunk the search space into smaller pieces and add those to the DDict
+    num_chunks = min(num_nodes * num_gpus_per_node, len(search_space['smiles']))
+    chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
+    for i, chunk in enumerate(chunks):
+        dd[f"chunk_{i}"] = chunk
+
     # ~~~ Start with some random guesses of molecules to create initial training data
-    init_mols = search_space.sample(initial_training_count)['smiles']
+    init_mols = search_space.sample(initial_training_count)['smiles'].to_list()
     print(f"Sampled {initial_training_count}/{search_space_size} random molecules", flush=True)
 
     # ~~~ Launch the simulations with Dragon native Pool
-    def setup(dd: DDict):
-        me = mp.current_process()
-        me.stash = {}
-        me.stash["ddict"] = dd
-    
     tic = perf_counter()
     num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
-    pool = DragonPool(num_workers, initializer=setup, initargs=(dd,))
+    pool = DragonPool(num_workers)
     print(f'Submitted {initial_training_count} simulations ...', flush=True)
     results = pool.map_async(compute_vertical_app, init_mols).get()
     pool.close()
@@ -155,6 +163,7 @@ if __name__ == "__main__":
             'batch': 0,
             'time': perf_counter() - start_time
         })
+        already_ran.add(init_mols[i])
     train_data = pd.DataFrame(train_data)
     dd["train_data"] = train_data
     init_sim_time = perf_counter() - tic
@@ -174,80 +183,98 @@ if __name__ == "__main__":
 
         # Train on subset of molecules
         tic = perf_counter()
-        #model_fit_time = train_model_app(train_data, weights_path).result()
+        pool = DragonPool(policy=System().gpu_policies(), # launches one process per GPU, binding each process to a single GPU
+                      processes_per_policy=1, 
+                      initializer=setup, 
+                      initargs=(dd,)
+        )
+        model_fit_time = pool.apply_async(train_model_app).get()
+        pool.close()
+        pool.join()
         t_train = perf_counter() - tic
         print(
             f"\tTrained on {len(train_data)} molecules:\n"
             f"\t\ttotal time: {t_train:.2f} sec\n",
-            f"\t\tfit_model time: {0.0:.2f} sec", 
+            f"\t\tfit_model time: {model_fit_time:.2f} sec", 
             flush=True
         )
 
         # Inference on all molecules (divided into chunks)
         tic = perf_counter()
-        #inference_futures = [inference_app(weights_path, cp) for cp in chunk_paths]
-        #inference_results = [f.result() for f in inference_futures]
-        #predictions = pd.concat([r["predictions"] for r in inference_results], ignore_index=True)
+        chunk_id = [i for i in range(num_chunks)]
+        pool = DragonPool(policy=System().gpu_policies(), # launches one process per GPU, binding each process to a single GPU
+                        processes_per_policy=1, 
+                        initializer=setup, 
+                        initargs=(dd,)
+        )
+        model_pred_times = pool.map_async(inference_app, chunk_id).get()
+        pool.close()
+        pool.join()
+        predictions = pd.concat([dd[f"predictions_{i}"] for i in chunk_id], ignore_index=True)
         t_inf = perf_counter() - tic
-        t_pred = 0
+        model_pred_time = sum(model_pred_times) / len(model_pred_times)
         print(
             f"\tPredicted {search_space_size} molecules:\n",
             f"\t\ttotal time: {t_inf:.2f} sec\n",
-            f"\t\tpredict_model time: {t_pred:.2f} sec", 
+            f"\t\tpredict_model time: {model_pred_time:.2f} sec", 
             flush=True
         )
         
         # Sort inference predictions and store best molecules
-        #predictions.sort_values('ie', ascending=False, inplace=True)
-        #for i in range(5):
-        #    best_molecules.append({
-        #            'smiles': predictions['smiles'].iloc[i],
-        #            'ie': predictions['ie'].iloc[i],
-        #            'batch': batch,
-        #            'time': perf_counter() - start_time
-        #    })
-        #print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha", flush=True)
+        predictions.sort_values('ie', ascending=False, inplace=True)
+        for i in range(5):
+            best_molecules.append({
+                    'smiles': predictions['smiles'].iloc[i],
+                    'ie': predictions['ie'].iloc[i],
+                    'batch': batch,
+                    'time': perf_counter() - start_time
+            })
+        print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha", flush=True)
         
         # Submit new simulations for the top predictions
-        #sim_futures = []
-        #tic = perf_counter()
-        #for smiles in predictions['smiles']:
-        #    if smiles not in already_ran:
-        #        sim_futures.append(compute_vertical_app(smiles))
-        #        already_ran.add(smiles)
-        #        if len(sim_futures) >= batch_size:
-        #            break
+        tic = perf_counter()
+        num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
+        new_sims = []
+        for smiles in predictions['smiles']:
+            if smiles not in already_ran:
+                new_sims.append(smiles)
+                already_ran.add(smiles)
+                if len(new_sims) >= batch_size:
+                    break
         
-        # Wait for every simulation in the current batch to complete, and store successful results
-        #new_results = []
-        #for future in as_completed(sim_futures):
-        #    if future.exception() is None:
-        #        new_results.append({
-        #            'smiles': future.task_record['args'][0],
-        #            'ie': future.result(),
-        #            'batch': batch, 
-        #            'time': perf_counter() - start_time
-        #        })
-        #t_sim = perf_counter() - tic
-        #new_results = pd.DataFrame(new_results)
-        #print(f"\tSimulated {len(sim_futures)} new molecules in {t_sim:.2f} sec", flush=True)
+        pool = DragonPool(num_workers)
+        results = pool.map_async(compute_vertical_app, new_sims).get()
+        pool.close()
+        pool.join()
+
+        new_results = []
+        for i, result in enumerate(results):
+            new_results.append({
+                'smiles': init_mols[i],
+                'ie': result,
+                'batch': 0,
+                'time': perf_counter() - start_time
+            })
+        t_sim = perf_counter() - tic
+        new_results = pd.DataFrame(new_results)
+        print(f"\tSimulated {len(new_results)} new molecules in {t_sim:.2f} sec", flush=True)
         
         # Update the training data
-        #train_data = pd.concat((train_data, new_results), ignore_index=True)
+        train_data = pd.concat((train_data, new_results), ignore_index=True)
         dd["train_data"] = train_data
         
         # Compute model error estimate 
-        #error = 0.
-        #for smiles in train_data['smiles']:
-        #    true_ie = train_data[train_data['smiles'] == smiles]['ie'].iloc[0]
-        #    predicted_ie = predictions[predictions['smiles'] == smiles]['ie'].iloc[0]
-        #    error += abs(true_ie - predicted_ie) / true_ie
-        #error /= len(train_data)
-        #model_accuracy.append({
-        #    'batch': batch,
-        #    'error': error,
-        #})
-        #print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %", flush=True)
+        error = 0.
+        for smiles in train_data['smiles']:
+            true_ie = train_data[train_data['smiles'] == smiles]['ie'].iloc[0]
+            predicted_ie = predictions[predictions['smiles'] == smiles]['ie'].iloc[0]
+            error += abs(true_ie - predicted_ie) / true_ie
+        error /= len(train_data)
+        model_accuracy.append({
+            'batch': batch,
+            'error': error,
+        })
+        print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %", flush=True)
            
         # Repeat
         batch += 1
@@ -267,6 +294,3 @@ if __name__ == "__main__":
     train_data.to_csv('training_data.csv', index=False)
     best_molecules.to_csv('best_molecules.csv', index=False)
     print("All done!", flush=True)
-        
-
-
