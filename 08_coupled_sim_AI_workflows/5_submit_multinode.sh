@@ -1,20 +1,24 @@
 #!/bin/bash -l
-#PBS -A ALCFAITP
-#PBS -l select=1
-#PBS -N ml_in_the_loop
+#PBS -N simAI
+#PBS -A ATPESC2026
+#PBS -q ATPESC
+#PBS -l select=2
 #PBS -l walltime=0:30:00
-#PBS -l filesystems=home:eagle
+#PBS -l filesystems=home:flare
 #PBS -k doe
 #PBS -j oe
-#PBS -l place=scatter
-#PBS -q debug
 
 cd $PBS_O_WORKDIR
 
-module use /soft/modulefiles
-module load conda/2025-09-25
-conda activate /eagle/ALCFAITP/03-Coupling-Sim-AI/_ai4s_simAI
-export TMPDIR=/tmp
+# Activate the environment
+source 0_activate_env.sh
 
-echo "Running parsl ml_in_the_loop.py script"
-python ./3_ml_in_the_loop.py
+# Run workflows
+echo -e "\n\nRunning Parsl implementation using futures ..."
+python 2_parsl_futures.py
+
+echo -e "\n\nRunning Parsl implementation using IO to disk ..."
+python 3_parsl_io.py
+
+echo -e "\n\nRunning Dragon implementation using DDict ..."
+dragon 4_dragon.py
