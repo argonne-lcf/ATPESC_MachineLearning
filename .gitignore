@@ -15,4 +15,5 @@ ddict_orc*
 08_coupled_sim_AI_workflows/*.pt
 08_coupled_sim_AI_workflows/*.png
 08_coupled_sim_AI_workflows/*.pkl
+08_coupled_sim_AI_workflows/run_data/
 

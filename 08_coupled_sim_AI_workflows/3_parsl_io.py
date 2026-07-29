@@ -39,6 +39,8 @@ from utils.utils import plot_best_molecules
 
 # ~~~ Workflow run dir for IO
 run_dir = Path.cwd().resolve()
+data_dir = run_dir / "run_data"
+data_dir.mkdir(parents=True, exist_ok=True)
 
 # ~~~ Ensure the MoLFormer model weights are visible
 assert os.environ.get("MOLFORMER_WEIGHTS_DIR"), \
@@ -106,9 +108,9 @@ chunk_paths = []
 for i, chunk in enumerate(chunks):
     df = pd.DataFrame({"smiles": chunk})
     # CSV:
-    # path = str(run_dir / f"smiles_chunk_{i}.csv")
+    # path = str(data_dir / f"smiles_chunk_{i}.csv")
     # df.to_csv(path, index=False)
-    path = str(run_dir / f"smiles_chunk_{i}.pkl")
+    path = str(data_dir / f"smiles_chunk_{i}.pkl")
     df.to_pickle(path)
     # Can use to_parquet(engine="pyarrow") for faster IO
     chunk_paths.append(path)
@@ -178,14 +180,14 @@ if __name__ == "__main__":
             print(f"Iteration {batch}:")
             
             # Train on subset of molecules
-            weights_path = str(run_dir / f"MoLFormer_weights_iter{batch}.pt")
+            weights_path = str(data_dir / f"MoLFormer_weights_iter{batch}.pt")
             tic = perf_counter()
             model_fit_time = train_model_app(train_data, weights_path).result()
             t_train = perf_counter() - tic
             print(
                 f"\tTrained on {len(train_data)} molecules:\n"
                 f"\t\ttotal time: {t_train:.2f} sec\n",
-                f"\t\tfit_model time: {model_fit_time:.2f} sec", 
+                f"\t\tfit_model time: {model_fit_time:.2f} sec\n", 
                 f"\t\tworkflow overhead: {t_train - model_fit_time:.2f} sec", 
                 flush=True
             )
@@ -199,7 +201,7 @@ if __name__ == "__main__":
             print(
                 f"\tPredicted {len(inference_results)} molecules:\n",
                 f"\t\ttotal time: {t_inf:.2f} sec\n",
-                f"\t\tpredict_model time: {model_pred_time:.2f} sec", 
+                f"\t\tpredict_model time: {model_pred_time:.2f} sec\n", 
                 f"\t\tworkflow overhead: {t_inf - model_pred_time:.2f} sec",
                 flush=True
             )
@@ -250,16 +252,22 @@ if __name__ == "__main__":
                 'batch': batch,
                 'error': error,
             })
-            print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {100 * error:.2f} %", flush=True)
+            print(f"\tEstimated MRE: {100 * error:.2f}%", flush=True)
             best_smiles = predictions['smiles'].iloc[0]
             best_pred = predictions['ie'].iloc[0]
-            best_match = new_results[new_results['smiles'] == best_smiles]
-            if len(best_match) > 0:
-                best_true = best_match['ie'].iloc[0]
-                best_err = abs(best_true - best_pred) / abs(best_true)
-                print(f"\tBest predicted molecule: {best_smiles} with ionization energy {best_pred:.2f} Ha (relative error: {100 * best_err:.2f} %)", flush=True)
+            best_new = new_results[new_results['smiles'] == best_smiles]
+            if len(best_new) > 0:
+                best_true = best_new['ie'].iloc[0]
+            elif best_smiles in already_ran:
+                best_prev = train_data[train_data['smiles'] == best_smiles]
+                best_true = best_prev['ie'].iloc[0] if len(best_prev) > 0 else None
             else:
-                print(f"\tBest predicted molecule: {best_smiles} with ionization energy {best_pred:.2f} Ha", flush=True)
+                best_true = None
+            if best_true is not None:
+                best_err = abs(best_true - best_pred) / abs(best_true)
+                print(f"\tBest predicted molecule: {best_smiles}, IE={best_pred:.2f} Ha, relative error={100 * best_err:.2f}%", flush=True)
+            else:
+                print(f"\tBest predicted molecule: {best_smiles}, IE={best_pred:.2f} Ha", flush=True)
 
             # Update the training data
             train_data = pd.concat((train_data, new_results), ignore_index=True)
