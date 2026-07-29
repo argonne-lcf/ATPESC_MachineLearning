@@ -239,7 +239,7 @@ if __name__ == "__main__":
         # Sort inference predictions and store best molecules
         predictions = pd.concat([dd[f"predictions_{i}"] for i in chunk_id], ignore_index=True)
         predictions.sort_values('ie', ascending=False, inplace=True)
-        for i in range(5):
+        for i in range(50):
             best_molecules.append({
                     'smiles': predictions['smiles'].iloc[i],
                     'ie': predictions['ie'].iloc[i],

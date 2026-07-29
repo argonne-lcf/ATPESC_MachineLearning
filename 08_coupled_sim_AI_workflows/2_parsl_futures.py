@@ -75,10 +75,9 @@ search_space = pd.read_csv('./data/QM9-search.tsv', sep=r'\s+')
 search_space_size = len(search_space)
 
 # ~~~ Chunk the search space into smaller pieces, so inference tasks run in parallel on chunked data
-#gpu_executor = next(e for e in aurora_config.executors if e.label == "gpu")
-gpu_executor = aurora_gpu_config.executors[0]
-num_nodes = gpu_executor.provider.nodes_per_block  # number of nodes 
-num_workers_pn = gpu_executor.max_workers_per_node  # number of workers per node
+executor = aurora_gpu_config.executors[0]
+num_nodes = executor.provider.nodes_per_block  # number of nodes 
+num_workers_pn = executor.max_workers_per_node  # number of workers per node
 num_chunks = min(num_nodes * num_workers_pn, len(search_space['smiles']))
 chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
 
@@ -176,7 +175,7 @@ if __name__ == "__main__":
             # Sort inference predictions and store best molecules
             predictions = pd.concat([r["predictions"] for r in inference_results], ignore_index=True)
             predictions.sort_values('ie', ascending=False, inplace=True)
-            for i in range(5):
+            for i in range(50):
                 best_molecules.append({
                         'smiles': predictions['smiles'].iloc[i],
                         'ie': predictions['ie'].iloc[i],
