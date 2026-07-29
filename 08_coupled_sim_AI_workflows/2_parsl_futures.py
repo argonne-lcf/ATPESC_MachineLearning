@@ -207,21 +207,21 @@ if __name__ == "__main__":
             new_results = pd.DataFrame(new_results)
             print(f"\tSimulated {len(sim_futures)} new molecules in {t_sim:.2f} sec", flush=True)
 
-            # Update the training data
-            train_data = pd.concat((train_data, new_results), ignore_index=True)
-
-            # Compute model error estimate 
+            # Compute model error estimate
             error = 0.
-            for smiles in train_data['smiles']:
-                true_ie = train_data[train_data['smiles'] == smiles]['ie'].iloc[0]
+            for smiles in new_results['smiles']:
+                true_ie = new_results[new_results['smiles'] == smiles]['ie'].iloc[0]
                 predicted_ie = predictions[predictions['smiles'] == smiles]['ie'].iloc[0]
-                error += abs(true_ie - predicted_ie) / true_ie
-            error /= len(train_data)
+                error += abs(true_ie - predicted_ie) / abs(true_ie)
+            error /= len(new_results)
             model_accuracy.append({
                 'batch': batch,
                 'error': error,
             })
-            print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %", flush=True)
+            print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {100 * error:.2f} %", flush=True)
+
+            # Update the training data
+            train_data = pd.concat((train_data, new_results), ignore_index=True)
    
             # Repeat
             batch += 1
