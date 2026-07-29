@@ -19,7 +19,7 @@ if __name__ == "__main__":
         description="Simulate a random subset of molecules from the QM9 search space with xTB.",
     )
     parser.add_argument(
-        "--num_molecules", type=int, default=1024,
+        "--num_molecules", type=int, default=1000,
         help="Number of molecules to sample from the search space and simulate (default: 128).",
     )
     args = parser.parse_args()

@@ -218,6 +218,7 @@ if __name__ == "__main__":
             f"\tTrained on {len(train_data)} molecules:\n"
             f"\t\ttotal time: {t_train:.2f} sec\n",
             f"\t\tfit_model time: {model_fit_time:.2f} sec", 
+            f"\t\tworkflow overhead: {t_train - model_fit_time:.2f} sec", 
             flush=True
         )
 
@@ -230,7 +231,8 @@ if __name__ == "__main__":
         print(
             f"\tPredicted {search_space_size} molecules:\n",
             f"\t\ttotal time: {t_inf:.2f} sec\n",
-            f"\t\tpredict_model time: {model_pred_time:.2f} sec", 
+            f"\t\tpredict_model time: {model_pred_time:.2f} sec",
+            f"\t\tworkflow overhead: {t_inf - model_pred_time:.2f} sec",  
             flush=True
         )
         
@@ -244,7 +246,6 @@ if __name__ == "__main__":
                     'batch': batch,
                     'time': perf_counter() - start_time
             })
-        print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha", flush=True)
         
         # Submit new simulations for the top predictions 
         tic = perf_counter()
@@ -284,6 +285,15 @@ if __name__ == "__main__":
             'error': error,
         })
         print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {100 * error:.2f} %", flush=True)
+        best_smiles = predictions['smiles'].iloc[0]
+        best_pred = predictions['ie'].iloc[0]
+        best_match = new_results[new_results['smiles'] == best_smiles]
+        if len(best_match) > 0:
+            best_true = best_match['ie'].iloc[0]
+            best_err = abs(best_true - best_pred) / abs(best_true)
+            print(f"\tBest predicted molecule: {best_smiles} with ionization energy {best_pred:.2f} Ha (relative error: {100 * best_err:.2f} %)", flush=True)
+        else:
+            print(f"\tBest predicted molecule: {best_smiles} with ionization energy {best_pred:.2f} Ha", flush=True)
 
         # Update the training data
         train_data = pd.concat((train_data, new_results), ignore_index=True)
