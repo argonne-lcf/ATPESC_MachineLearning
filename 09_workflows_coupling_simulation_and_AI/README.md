@@ -2,7 +2,7 @@
 
 This example demonstrates a simple molecular design application combining simulations with machine learning (ML) training and inference. The objective is to efficiently identify molecules with the largest ionization energies from a large dataset of potential candidates. 
 
-The example was adapted from an [ExaWorks demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) developed by Logan Ward, ANL, and later modified by Christine Simpson, ANL. 
+The example was adapted from an [ExaWorks demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) developed by Logan Ward, ANL, and later modified by Christine Simpson, ANL and Riccardo Balin, ANL. 
 
 The ionization energy (IE) of a molecule is the amount of energy required to remove one electron from the molecule in its ground state to produce a positively charged ion.
 IE can be computed with quantum-chemistry packages -- here we use [xTB](https://xtb-docs.readthedocs.io/en/latest/contents.html) -- but each simulation is expensive, so screening a large candidate library exhaustively is out of reach on any realistic compute budget.
