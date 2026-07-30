@@ -31,6 +31,5 @@ fi
 
 ALCF_ACCESS_TOKEN="$(python "${AUTH}" get_access_token)"
 export ALCF_ACCESS_TOKEN
-echo $ALCF_ACCESS_TOKEN
 echo "ALCF_ACCESS_TOKEN exported (expires in \
 $(python "${AUTH}" get_time_until_token_expiration --units minutes) minutes)." >&2
