@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from atpesc_agentic.parsl_config import ExecutionTarget, build_parsl_config
+from atpesc_agentic.parsl_config import get_aurora_config
 from atpesc_agentic.run_mace_core import Backend, Device, MaceResult
 
 # Common ASE-readable structure file extensions used when a directory is given.
@@ -58,7 +58,6 @@ class EnsembleResult(BaseModel):
     """Structured result returned by a Parsl ensemble."""
 
     status: Literal["success", "partial_failure", "error"]
-    execution_target: ExecutionTarget
     total: int = Field(ge=0)
     succeeded: int = Field(ge=0)
     failed: int = Field(ge=0)
@@ -69,25 +68,18 @@ class EnsembleResult(BaseModel):
 
 _DFK = None
 _PARSL_APP = None
-_EXECUTION_TARGET: ExecutionTarget | None = None
 
 
 def _get_parsl_app(
-    target: ExecutionTarget,
     *,
     run_dir: str | Path,
     max_workers: int | None,
 ):
     """Load Parsl on the first ensemble call and reuse it until process exit."""
 
-    global _DFK, _PARSL_APP, _EXECUTION_TARGET
+    global _DFK, _PARSL_APP
 
     if _PARSL_APP is not None:
-        if target != _EXECUTION_TARGET:
-            raise RuntimeError(
-                f"Parsl already uses {_EXECUTION_TARGET!r}; restart the server "
-                f"to use {target!r}."
-            )
         return _PARSL_APP
 
     try:
@@ -96,13 +88,11 @@ def _get_parsl_app(
     except ImportError as exc:
         raise RuntimeError("Parsl is not installed. Install `.[ensemble]`.") from exc
 
-    config = build_parsl_config(
-        target,
+    config = get_aurora_config(
         run_dir=run_dir,
-        max_workers=max_workers,
+        max_workers_per_node=max_workers,
     )
     _DFK = parsl.load(config)
-    _EXECUTION_TARGET = target
 
     @python_app(executors=["mace_htex"])
     def run_one(job: dict) -> dict:
@@ -117,7 +107,7 @@ def _get_parsl_app(
 def shutdown_parsl() -> None:
     """Close tutorial Parsl workers; useful for tests and explicit teardown."""
 
-    global _DFK, _PARSL_APP, _EXECUTION_TARGET
+    global _DFK, _PARSL_APP
 
     if _DFK is None:
         return
@@ -129,7 +119,6 @@ def shutdown_parsl() -> None:
         parsl.clear()
         _DFK = None
         _PARSL_APP = None
-        _EXECUTION_TARGET = None
 
 
 atexit.register(shutdown_parsl)
@@ -138,13 +127,12 @@ atexit.register(shutdown_parsl)
 def run_mace_ensemble_core(
     structure_paths: list[str],
     model: str = "small",
-    device: Device = "cpu",
+    device: Device = "xpu",
     backend: Backend = "mace",
-    execution_target: ExecutionTarget = "local",
     run_dir: str = "runs/parsl",
     max_workers: int | None = None,
 ) -> EnsembleResult:
-    """Run one shared-core energy calculation per structure using Parsl.
+    """Run one shared-core energy calculation per structure using Parsl on Aurora.
 
     Each entry in ``structure_paths`` may be an ASE-readable structure file or a
     directory. Directories are searched recursively for files with a recognized
@@ -156,7 +144,6 @@ def run_mace_ensemble_core(
     if not paths:
         return EnsembleResult(
             status="error",
-            execution_target=execution_target,
             total=0,
             succeeded=0,
             failed=0,
@@ -165,21 +152,8 @@ def run_mace_ensemble_core(
             error_message="At least one structure path is required.",
         )
 
-    if execution_target == "aurora" and device != "xpu":
-        return EnsembleResult(
-            status="error",
-            execution_target=execution_target,
-            total=len(paths),
-            succeeded=0,
-            failed=len(paths),
-            wall_time_s=time.perf_counter() - started,
-            results=[],
-            error_message="Aurora ensemble calculations require device='xpu'.",
-        )
-
     try:
         app = _get_parsl_app(
-            execution_target,
             run_dir=run_dir,
             max_workers=max_workers,
         )
@@ -219,7 +193,6 @@ def run_mace_ensemble_core(
     except Exception as exc:
         return EnsembleResult(
             status="error",
-            execution_target=execution_target,
             total=len(paths),
             succeeded=0,
             failed=len(paths),
@@ -239,7 +212,6 @@ def run_mace_ensemble_core(
 
     return EnsembleResult(
         status=status,
-        execution_target=execution_target,
         total=len(results),
         succeeded=succeeded,
         failed=failed,
