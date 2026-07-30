@@ -1,4 +1,4 @@
-# 08 — Agentic AI for Scientific Workflows
+# 13 — Agentic AI for Scientific Workflows
 
 **ATPESC 2026** · Author: Thang Pham, ANL (tpham[at]anl.gov)
 
@@ -15,7 +15,7 @@ Four standalone Python examples build one scientific agent step by step:
 4. A human approval tool with durable LangGraph SQLite checkpoints.
 
 The examples are independent of ChemGraph. They borrow the useful design
-pattern—one scientific core with thin agent and execution adapters—but do not
+pattern with one scientific core with thin agent and execution adapters, but do not
 import, modify, or require ChemGraph.
 
 ## The important file
@@ -117,8 +117,19 @@ If you would like to build the demo environment at a later date, the included `i
 For the examples, ensure you have the following environment variables:
 
 # For using ALCF inference service from Aurora compute node
+```bash
 export http_proxy="proxy.alcf.anl.gov:3128"
 export https_proxy="proxy.alcf.anl.gov:3128"
+```
+
+If you have not done this step earlier to authenticate with ALCF inference service
+```bash
+python scripts/inference_auth_token.py authenticate
+```
+This will prompt a link that requires you to authenticate with Globus. After authentication:
+```bash
+source scripts/get_alcf_token.sh   # sets ALCF_ACCESS_TOKEN for this shell
+```
 
 ## Example 1 — direct LangGraph tool
 
@@ -150,55 +161,51 @@ export no_proxy=127.0.0.1,localhost,::1
 python examples/02_mcp_agent.py \
   --server-url http://127.0.0.1:8000/mcp \
   --structure data/structures/water.xyz \
-  --backend emt
+  --backend mace
+  --device xpu
 ```
 
-## Example 3 — MCP + Parsl ensemble
+## Example 3 — MCP + Parsl ensemble on Aurora
+
+Start the server from an Aurora compute node inside an active PBS allocation
+with the demo `.venv` activated. By default the Parsl workers load the
+`frameworks` module and re-activate the submitter's virtualenv so
+`torch.xpu.is_available()` returns `True` on each worker.
+
+Parsl needs `PBS_NODEFILE` to size the Aurora block — it reads the file to
+count the nodes in your allocation. That variable is only set in the shell
+where you ran `qsub -I`, so launch Terminal 1 from that shell. Confirm it is
+pointing at your job's node list first:
+
+```bash
+echo "$PBS_NODEFILE"
+cat  "$PBS_NODEFILE"     # lists the hostnames allocated to your job
+```
+
+If either is empty, you are not in the `qsub -I` shell. Either launch the
+MCP server from that shell, or locate the `PBS_NODEFILE` for your job and
+export it in the terminal you plan to use for Terminal 1.
+
+Override the worker init with `ATPESC_WORKER_INIT` if you need a custom
+snippet, for example to point workers at the shared ATPESC `activate.sh`:
+
+```bash
+export ATPESC_WORKER_INIT="source /lus/flare/projects/ATPESC2026/EXAMPLES/track-6-agentic-workflows-for-science/ATPESC_MachineLearning/13_agentic_workflows_for_science/activate.sh; export TMPDIR=/tmp"
+```
 
 Terminal 1:
 
 ```bash
-python examples/03_ensemble_server.py \
-  --execution-target local \
-  --port 8001 \
-  --max-workers 3
+python examples/03_ensemble_server.py --port 8001
 ```
 
 Terminal 2:
 
 ```bash
-
+# If you haven't set the proxy earlier
 export NO_PROXY=127.0.0.1,localhost,::1
 export no_proxy=127.0.0.1,localhost,::1
 
-python examples/03_ensemble_agent.py \
-  --server-url http://127.0.0.1:8001/mcp \
-  --backend emt \
-  data/structures/water.xyz \
-  data/structures/methane.xyz \
-  data/structures/ammonia.xyz
-```
-
-### Aurora
-
-Start the server from an Aurora compute node inside an active PBS allocation.
-The worker initialization must activate the same shared environment on every
-node:
-
-```bash
-export ATPESC_AURORA_WORKER_INIT="source /path/to/repo/activate.sh; export TMPDIR=/tmp"
-
-python examples/03_ensemble_server.py \
-  --execution-target aurora \
-  --port 8001
-```
-
-`activate.sh` already runs `module load frameworks` and activates the venv, so it
-is the single command each Parsl worker needs to reproduce the environment.
-
-Then connect from a second shell on the same node:
-
-```bash
 python examples/03_ensemble_agent.py \
   --server-url http://127.0.0.1:8001/mcp \
   --device xpu \
