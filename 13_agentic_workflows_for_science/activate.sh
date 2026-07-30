@@ -11,7 +11,7 @@
 # This is also the command to give Parsl workers on Aurora (Example 3):
 #   export ATPESC_AURORA_WORKER_INIT="source /path/to/repo/activate.sh"
 
-_ATPESC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_ATPESC_ROOT="/lus/flare/projects/ATPESC2026/EXAMPLES/track-6-agentic-workflows-for-science/ATPESC_MachineLearning/13_agentic_workflows_for_science"
 
 # Lmod's init references unset vars (e.g. ZSH_EVAL_CONTEXT) that trip `set -u`.
 # Disable nounset around `module load`, then restore the caller's setting (this
