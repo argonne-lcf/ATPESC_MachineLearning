@@ -16,7 +16,6 @@ def build_server(
     *,
     host: str = "127.0.0.1",
     port: int = 8001,
-    execution_target: Literal["local", "aurora"] = "local",
     run_dir: str = "runs/parsl",
     max_workers: int | None = None,
 ) -> FastMCP:
@@ -52,10 +51,10 @@ def build_server(
     def run_mace_ensemble(
         structure_paths: list[str],
         model: str = "small",
-        device: Literal["cpu", "xpu"] = "cpu",
+        device: Literal["cpu", "xpu"] = "xpu",
         backend: Literal["mace", "emt"] = "mace",
     ) -> dict:
-        """Calculate multiple structure energies concurrently with Parsl.
+        """Calculate multiple structure energies concurrently with Parsl on Aurora.
 
         Use this tool for two or more ASE-readable structure files. Each entry in
         ``structure_paths`` may be a structure file or a directory that is
@@ -68,7 +67,6 @@ def build_server(
             model=model,
             device=device,
             backend=backend,
-            execution_target=execution_target,
             run_dir=run_dir,
             max_workers=max_workers,
         ).model_dump()
@@ -80,11 +78,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8001)
-    parser.add_argument(
-        "--execution-target",
-        choices=("local", "aurora"),
-        default="local",
-    )
     parser.add_argument("--run-dir", default="runs/parsl")
     parser.add_argument("--max-workers", type=int)
     return parser.parse_args()
@@ -93,14 +86,13 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     print(
-        f"Starting {args.execution_target} ensemble MCP server at "
+        f"Starting Aurora ensemble MCP server at "
         f"http://{args.host}:{args.port}/mcp (press Ctrl-C to stop)",
         flush=True,
     )
     build_server(
         host=args.host,
         port=args.port,
-        execution_target=args.execution_target,
         run_dir=args.run_dir,
         max_workers=args.max_workers,
     ).run(transport="streamable-http")
