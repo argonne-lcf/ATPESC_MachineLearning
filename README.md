@@ -44,17 +44,20 @@ At the beginning of the first day, we will temporarily split into two groups. At
 
 The "Introduction to deep learning" session will rely on Jupyter Notebooks which are targeted for running on [Google's Colaboratory Platform](https://colab.research.google.com) or [ALCF JupyterHub](https://jupyter.alcf.anl.gov/). The Colab platform gives the user a virtual machine in which to run Python codes including machine learning codes. The VM comes with a preinstalled environment that includes most of what is needed for these tutorials.
 
-The other sessions involve Python scripts executed on the [Aurora](https://docs.alcf.anl.gov/aurora/getting-started-on-aurora/) and [AI Testbed](https://docs.alcf.anl.gov/ai-testbed/) platforms at ALCF.                                                                    | ...
+The other sessions involve Python scripts executed on the [Aurora](https://docs.alcf.anl.gov/aurora/getting-started-on-aurora/) and [AI Testbed](https://docs.alcf.anl.gov/ai-testbed/) platforms at ALCF.                                                             
 
 
 ## Reservations
 
-- **Queue**: ATPESC (`-q ATPESC`)
+- **Queue**:
+    - **Daytime reservations**: -q ATPESC
+    - **Evening reservations**: -q ATPESC-Night
+    - **Outside of reservations**: -q debug or -q prod ([more info](https://docs.alcf.anl.gov/aurora/running-jobs-aurora/)) 
 - **Project/Allocation**: ATPESC2026 (`-A ATPESC2026`)
 - Shared **directories**:
     - Aurora: `/flare/ATPESC2026`
-    - Polaris: `/eagle/projects/ATPESC2026`
-
+    - Polaris: `/eagle/ATPESC2026`
+- **ALCF Unix Groups**: ATPESC2026
 
 ## Using Google Colab
 
