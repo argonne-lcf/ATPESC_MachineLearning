@@ -50,7 +50,7 @@ The other sessions involve Python scripts executed on the [Aurora](https://docs.
 ## Reservations
 
 - **Queue**: ATPESC (`-q ATPESC`)
-- **Project/Allocation**: ATPESC2025 (`-A ATPESC2026`)
+- **Project/Allocation**: ATPESC2026 (`-A ATPESC2026`)
 - Shared **directories**:
     - Aurora: `/flare/ATPESC2026`
     - Polaris: `/eagle/projects/ATPESC2026`
