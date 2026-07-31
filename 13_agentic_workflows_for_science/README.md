@@ -246,12 +246,6 @@ python examples/04_human_in_the_loop.py \
   --resume approved
 ```
 
-## Tests
-
-```bash
-pytest
-```
-
 ## Layout
 
 ```text
