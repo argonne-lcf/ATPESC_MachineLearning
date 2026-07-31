@@ -67,22 +67,19 @@ Use Cerebras cluster command line tool to get addional information about the job
 * Jobs that have not yet completed can be listed as
     `(venv_pt) $ csctl get jobs`
 * Jobs can be canceled as shown:
-    `(venv_tf) $ csctl cancel job wsjob-eyjapwgnycahq9tus4w7id`
+    `(venv_pt) $ csctl cancel job wsjob-eyjapwgnycahq9tus4w7id`
 
 See `csctl -h` for more options.
 
 ## Hands-on Session Example
 
-Instructions to run GPT-J.
+Instructions to run GPT-J and Llama2-7B.
 
 * [GPT-J](./gpt-j.md)
-
-## Additional Examples 
-
-Instructions for additional examples to be followed in your own time.
-
-* [FC-MNIST](./fc-mnist.md)
 * [LLAMA2-7B](./llama2-7b.md)
+
+
+
 
 ## Useful Resources 
 
