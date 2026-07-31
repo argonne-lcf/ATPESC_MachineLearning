@@ -73,14 +73,6 @@ Do the following before you come to the tutorial:
 * To use a GPU in the notbook select `Runtime` -> `Change Runtime Type` and select an accelerator.
 
 
-## Cerebras API key
-
-For the [AI Testbed](04_AI_testbed/Cerebras/inference/README.md) hands on you will need a Cerebras Inference API key. 
-Follow these instructions on your computer to setup Cerebras Inference API key.
-- Visit <https://cloud.cerebras.ai> to sign up for an account
-- Create an API key by navigating to "API Keys" on the left nav bar.
-- Set your API key as an environment variable. You can do this by running the following command in your terminal: `export CEREBRAS_API_KEY="your-api-key-here"`
-
 
 ## Weights & Biases API key
 
