@@ -114,9 +114,8 @@ source activate.sh # Activate the example environment
 ```
 
 If you would like to build the demo environment at a later date, the included `install.sh` file can be used.
-For the examples, ensure you have the following environment variables:
 
-# For using ALCF inference service from Aurora compute node
+## For using ALCF inference service from Aurora compute node
 ```bash
 export http_proxy="proxy.alcf.anl.gov:3128"
 export https_proxy="proxy.alcf.anl.gov:3128"
@@ -161,7 +160,7 @@ export no_proxy=127.0.0.1,localhost,::1
 python examples/02_mcp_agent.py \
   --server-url http://127.0.0.1:8000/mcp \
   --structure data/structures/water.xyz \
-  --backend mace
+  --backend mace \ 
   --device xpu
 ```
 
