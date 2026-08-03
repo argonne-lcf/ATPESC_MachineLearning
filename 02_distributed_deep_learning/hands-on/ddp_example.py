@@ -1,13 +1,10 @@
 # train_ddp.py
-import os
+from mpi4py import MPI
+import os, socket
 import argparse
 import torch
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
-
-# Optional: Intel and oneCCL
-import intel_extension_for_pytorch as ipex
-import oneccl_bindings_for_pytorch
 
 class SimpleCNN(torch.nn.Module):
     def __init__(self):
@@ -51,14 +48,20 @@ class RandomDataset(Dataset):
 
 
 def get_mpi_env():
-    rank = os.environ.get("OMPI_COMM_WORLD_RANK") or os.environ.get("PMI_RANK") or os.environ.get("PALS_RANKID")
-    size = os.environ.get("OMPI_COMM_WORLD_SIZE") or os.environ.get("PMI_SIZE") or os.environ.get("PALS_WORLD_SIZE")
-    local = os.environ.get("OMPI_COMM_WORLD_LOCAL_SIZE") or os.environ.get("PMI_LOCAL_SIZE") or os.environ.get("PALS_LOCAL_SIZE")
+    rank = MPI.COMM_WORLD.Get_rank()
+    world_size = MPI.COMM_WORLD.Get_size()
+    local_rank = os.environ.get('PALS_LOCAL_RANKID')
+    return rank, world_size, local_rank
 
-    rank = int(rank) if rank is not None else 0
-    size = int(size) if size is not None else 1
-    local = int(local) if local is not None else 1
-    return rank, size, local
+
+def set_env_for_ddp(rank, world_size, local_rank):
+    os.environ['RANK'] = str(rank)
+    os.environ['WORLD_SIZE'] = str(world_size)
+    MASTER_ADDR = socket.gethostname() if rank == 0 else None
+    MASTER_ADDR = MPI.COMM_WORLD.bcast(MASTER_ADDR, root=0)
+    os.environ['MASTER_ADDR'] = f"{MASTER_ADDR}.hsn.cm.aurora.alcf.anl.gov"
+    os.environ['MASTER_PORT'] = str(2345)
+    #print(f"DDP: Hi from rank {rank} of {world_size} with local rank {local_rank}. {MASTER_ADDR}")
 
 
 def main():
@@ -70,11 +73,14 @@ def main():
     args = parser.parse_args()
     
     # MPI/launcher env
-    rank, world_size, local_size = get_mpi_env()
-    torch.xpu.set_device(f"xpu:{rank % local_size}")
+    rank, world_size, local_rank = get_mpi_env()
+    set_env_for_ddp(rank, world_size, local_rank)
+    
+    torch.xpu.set_device(int(local_rank))
+    device = torch.device('xpu')
 
     dist.init_process_group(
-        backend="ccl",
+        backend="xccl",
         init_method="env://",
         world_size=world_size,
         rank=rank,
@@ -91,9 +97,8 @@ def main():
                         sampler=sampler)
 
     model = SimpleCNN().xpu()
-    model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[rank % local_size]
-    )
+    model = torch.nn.parallel.DistributedDataParallel(model)
+
     criterion = torch.nn.CrossEntropyLoss().xpu()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3 * world_size)
 
