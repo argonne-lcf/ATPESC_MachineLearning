@@ -74,8 +74,8 @@ def main():
                 continue
             chat_input = format_prompt(tokenizer, user_input, raw=args.raw)
             inputs = tokenizer(chat_input, return_tensors="pt").to(model.device)
-            output_ids = model.generate(**inputs, max_new_tokens=128, do_sample=True, temperature=0.8, top_p=0.95)
-            generated_text = tokenizer.decode(output_ids[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+            output_ids = model.generate(**inputs, max_new_tokens=128, do_sample=True, temperature=0.8, top_p=0.95, eos_token_id=stop_token_ids)
+            generated_text = tokenizer.decode(output_ids[0][inputs.input_ids.shape[1]:], skip_special_tokens=False).replace("<|im_end|>", "").strip()
             print(generated_text)
     except (KeyboardInterrupt, EOFError):
         print("\nBye!")
