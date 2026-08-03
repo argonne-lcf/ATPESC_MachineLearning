@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Distributed Deep Learning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Reveal.js core CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js/dist/reveal.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js/dist/theme/white.css">
+
+  <!-- Plotly v2.x (explicitly pinned) -->
+  <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
+  <!-- D3.js for CSV loading -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <style>
+    /* Positioning for logos on the title slide */
+    .reveal .slides section.title-slide {
+      position: relative;
+    }
+    .reveal .slides section.title-slide .logo {
+      height: 50px;
+      position: absolute;
+      bottom: -20px;
+    }
+    .reveal .slides section.title-slide .logo-left {
+      left: 0px;
+    }
+    .reveal .slides section.title-slide .logo-right {
+      right: 0px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 1: Title                   -->
+      <!-- ──────────────────────────────── -->
+      <section class="title-slide">
+        <img src="images/ATPESC2025_logo.svg" alt="ATPESC 2025 Logo" class="logo logo-left">
+        <img src="images/Argonne_logo.svg" alt="Argonne National Laboratory Logo" class="logo logo-right">
+        <h1>Distributed Deep Learning</h1>
+        <h3>Nathan Nichols &amp; Kaushik Velusamy</h3>
+        <p>AI/ML Team<br>Argonne National<br>Laboratory</p>
+        <!-- <p>emails@anl.gov</p> -->
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 2: Outline                 -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Outline</h2>
+        <ul>
+          <li>The need for distributed training</li>
+          <li>Communication libraries</li>
+          <li>State‑of‑the‑art parallelization schemes</li>
+          <li>Data‑parallel training in detail</li>
+          <li>I/O and data management in distributed training</li>
+          <li>Hands‑on</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 3: The need for distributed training on HPC -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>The need for distributed training on HPC</h2>
+        <blockquote cite="https://openai.com/blog/ai-and-compute/">
+          “Since 2012, the amount of compute used in the largest AI training runs has been increasing
+          exponentially with a 3.4‑month doubling time (by comparison, Moore’s Law had a 2‑year doubling period).”
+        </blockquote>
+        <p class="slide-source">
+          <em>
+            <a href="https://openai.com/blog/ai-and-compute/" target="_blank" rel="noopener">
+              Dario Amodei &amp; Danny Hernandez, <strong>AI and compute</strong>, OpenAI Blog, May 16 2018
+            </a>
+          </em>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 4: Training compute of frontier models -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <section>
+          <h2>Training compute of frontier models</h2>
+          <div id="compute-plot" style="width:100%;height:400px;"></div>
+          <p class="slide-source">
+            <em>
+              <a href="https://epoch.ai/trends" target="_blank" rel="noopener">
+                Epoch AI: <strong>Key Trends and Figures in Machine Learning</strong>
+              </a>
+            </em>
+          </p>
+        </section>
+
+        <!-- Slide 4.1: Transformer architecture introduced -->
+        <section>
+          <h2>Transformer Architecture Introduced!</h2>
+          <h3>
+            <a href="https://doi.org/10.5555/3295222.3295349" target="_blank" rel="noopener">
+              <em>Attention Is All You Need</em>
+            </a>
+          </h3>
+          <ul>
+            <li>Introduced by Vaswani et al. at NeurIPS 2017</li>
+            <li>Replaced recurrence/convolutions with self‑attention</li>
+            <li>Enabled massive parallelization &amp; modeling of long contexts</li>
+          </ul>
+        </section>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 5: Model size of frontier models -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Model size of frontier models</h2>
+        <div id="params-plot" style="width:100%;height:400px;"></div>
+        <p class="slide-source">
+          <em>
+            <a href="https://epoch.ai/trends" target="_blank" rel="noopener">
+              Epoch AI: <strong>Key Trends and Figures in Machine Learning</strong>
+            </a>
+          </em>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 6: ResNet‑50 Distributed Training Speedups -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <style>
+          /* monospace for equal-width characters */
+          .hw-cell { font-family: monospace; white-space: nowrap; }
+          /* fixed-width spans: before-X, X, after-X */
+          .hw-cell .before { display: inline-block; width: 8ch; text-align: right; }
+          .hw-cell .sep    { display: inline-block; width: 1ch; text-align: center; }
+          .hw-cell .after  { display: inline-block; width: 4ch; text-align: left; }
+        </style>
+      
+        <h2 style="font-size:1.4em; margin-bottom:0.2em; line-height:1.1;">
+          Distributed Training: ResNet-50
+        </h2>
+        <h3 style="font-size:1em; margin:0 0 0.4em; line-height:1.1;">
+          <a href="https://arxiv.org/abs/1903.12650" target="_blank" rel="noopener">
+            <em>Yet Another Accelerated SGD</em>
+          </a>
+        </h3>
+        <p style="font-size:0.8em; margin:0 0 0.5em; line-height:1.2;">
+          Scaling data-parallel SGD slashes ResNet-50/ImageNet training from days to seconds.
+        </p>
+      
+        <div style="overflow-x:auto;">
+          <table style="font-size:0.65em; border-collapse:collapse; width:100%; white-space:nowrap;">
+            <thead>
+              <tr>
+                <th style="padding:2px 4px; text-align:left;">Year</th>
+                <th style="padding:2px 4px; text-align:left;">Batch Size</th>
+          <!-- HW header cell: relative container -->
+          <th class="hw-cell" style="position:relative;">
+            <!-- invisible spans to size the column just like the body rows -->
+            <span class="before"></span>
+            <span class="sep"></span>
+            <span class="after"></span>
+      
+            <!-- absolutely positioned label, centered over the × column -->
+            <span
+              style="
+                position: absolute;
+                top: 50%; /* vertical center */
+                left: calc(9ch + 0.5ch); /* before‐width + half of sep‐width */
+                transform: translate(-50%, -50%);
+                font-family: monospace;
+                pointer-events: none;
+              "
+            >Hardware</span>
+                <th style="padding:2px 4px; text-align:left;">Library</th>
+                <th style="padding:2px 4px; text-align:left;">Time</th>
+                <th style="padding:2px 4px; text-align:left;">Accuracy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:2px 4px;">2015</td>
+                <td style="padding:2px 4px;">256</td>
+                <td class="hw-cell">
+                  <span class="before">P100    </span>
+                  <span class="sep">×</span>
+                  <span class="after">8   </span>
+                </td>
+                <td style="padding:2px 4px;">Caffe</td>
+                <td style="padding:2px 4px;">29 hrs</td>
+                <td style="padding:2px 4px;">75.3 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2017</td>
+                <td style="padding:2px 4px;">8,192</td>
+                <td class="hw-cell">
+                  <span class="before">P100    </span>
+                  <span class="sep">×</span>
+                  <span class="after">256 </span>
+                </td>
+                <td style="padding:2px 4px;">Caffe2</td>
+                <td style="padding:2px 4px;">1 hr</td>
+                <td style="padding:2px 4px;">76.3 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2018</td>
+                <td style="padding:2px 4px;">8,192 → 16,384</td>
+                <td class="hw-cell">
+                  <span class="before">Full TPU </span>
+                  <span class="sep">×</span>
+                  <span class="after">Pod </span>
+                </td>
+                <td style="padding:2px 4px;">TensorFlow</td>
+                <td style="padding:2px 4px;">30 mins</td>
+                <td style="padding:2px 4px;">76.1 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2017</td>
+                <td style="padding:2px 4px;">32,768</td>
+                <td class="hw-cell">
+                  <span class="before">P100    </span>
+                  <span class="sep">×</span>
+                  <span class="after">1,024</span>
+                </td>
+                <td style="padding:2px 4px;">Chainer</td>
+                <td style="padding:2px 4px;">15 mins</td>
+                <td style="padding:2px 4px;">74.9 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2018</td>
+                <td style="padding:2px 4px;">65,536</td>
+                <td class="hw-cell">
+                  <span class="before">P40     </span>
+                  <span class="sep">×</span>
+                  <span class="after">2048</span>
+                </td>
+                <td style="padding:2px 4px;">TensorFlow</td>
+                <td style="padding:2px 4px;">6.6 mins</td>
+                <td style="padding:2px 4px;">75.8 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2018</td>
+                <td style="padding:2px 4px;">65,536</td>
+                <td class="hw-cell">
+                  <span class="before">TPU v3  </span>
+                  <span class="sep">×</span>
+                  <span class="after">1,024</span>
+                </td>
+                <td style="padding:2px 4px;">TensorFlow</td>
+                <td style="padding:2px 4px;">1.8 mins</td>
+                <td style="padding:2px 4px;">75.2 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2019</td>
+                <td style="padding:2px 4px;">55,296</td>
+                <td class="hw-cell">
+                  <span class="before">V100    </span>
+                  <span class="sep">×</span>
+                  <span class="after">3,456</span>
+                </td>
+                <td style="padding:2px 4px;">NNL</td>
+                <td style="padding:2px 4px;">2.0 mins</td>
+                <td style="padding:2px 4px;">75.29 %</td>
+              </tr>
+              <tr>
+                <td style="padding:2px 4px;">2019</td>
+                <td style="padding:2px 4px;">81,920</td>
+                <td class="hw-cell">
+                  <span class="before">V100    </span>
+                  <span class="sep">×</span>
+                  <span class="after">2048</span>
+                </td>
+                <td style="padding:2px 4px;">MXNet</td>
+                <td style="padding:2px 4px;">1.2 mins</td>
+                <td style="padding:2px 4px;">75.08 %</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 7: Training cost of frontier models -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Training cost of frontier models</h2>
+        <div id="cost-plot" style="width:100%;height:400px;"></div>
+        <p class="slide-source">
+          <em>
+            <a href="https://epoch.ai/trends" target="_blank" rel="noopener">
+              Epoch AI: <strong>Key Trends and Figures in Machine Learning</strong>
+            </a>
+          </em>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 8: Recap – Why Distributed Training? -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3 style="font-size:1.3em;margin-bottom:0.3em;">Why Distributed Training?</h3>
+        <ul style="font-size:0.9em;line-height:1.2;">
+          <li><strong>Exascale compute:</strong> 10<sup>18</sup> FLOP workloads need multi‑node parallelism.</li>
+          <li><strong>Model scale:</strong> Millions → trillions of parameters—beyond single‑device RAM.</li>
+          <li><strong>Data volumes:</strong> Petabyte‑scale datasets saturate node I/O and storage.</li>
+          <li><strong>HPC &amp; ML:</strong> Coupling large simulations with AI drives heterogeneous scaling.</li>
+          <li><strong>Efficiency:</strong> Distributed frameworks maximize utilization and power on exascale systems.</li>
+        </ul>
+        <p class="slide-source" style="font-size:0.7em;margin-top:0.8em;">
+          <em>
+            <a href="https://www.alcf.anl.gov/aurora" target="_blank" rel="noopener">
+              ALCF, <strong>Aurora Exascale Supercomputer</strong>
+            </a>
+          </em>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 9: Scientific Deep Learning at Scale -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3 style="font-size:1.3em;margin-bottom:0.3em;">Scientific DL at Scale</h3>
+        <ul style="font-size:0.9em;line-height:1.2;">
+          <li><strong>Climate Analytics:</strong> <a href="https://doi.org/10.1109/SC.2018.00054" target="_blank">Exascale DL for extreme weather modeling (2018)</a></li>
+          <li><strong>Cancer Research:</strong> <a href="https://doi.org/10.48550/arXiv.1909.12291" target="_blank">Accelerating cancer pathology analysis (2019)</a></li>
+          <li><strong>Inverse Problems:</strong> <a href="https://doi.org/10.48550/arXiv.1909.11150" target="_blank">Exascale DL for inverse problems (2019)</a></li>
+          <li><strong>Flood‑Filling Networks:</strong> <a href="https://doi.org/10.48550/arXiv.1905.06236" target="_blank">Scaling FFN training on HPC (2019)</a></li>
+          <li><strong>Dark Energy Survey:</strong> <a href="https://doi.org/10.1016/j.physletb.2019.06.009" target="_blank">DL at scale for galaxy catalogs (2019)</a></li>
+          <li><strong>Megatron‑LM:</strong> <a href="https://doi.org/10.48550/arXiv.2104.04473" target="_blank">Large‑scale transformer training (2021)</a></li>
+        </ul>
+        <p class="slide-source" style="font-size:0.7em;margin-top:0.8em;">
+          <em>Representative publications showcasing scientific deep learning at exascale.</em>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 10: Communication Libraries -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Communication Libraries</h2>
+        <ul>
+          <li>Collective ops (all‑reduce, all‑gather) underpin distributed DL.</li>
+          <li>Latency &amp; bandwidth optimizations dictate scaling efficiency.</li>
+          <li>Plugins bridge DL frameworks to HPC fabrics transparently.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 11: oneCCL in Distributed Training -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3>oneCCL in Distributed Training</h3>
+        <ul>
+          <li>Intel oneAPI Collective Communications Library (oneCCL).</li>
+          <li>Optimized for Intel GPUs and CPUs.</li>
+          <li>Implements MPI‑like collectives with Level Zero &amp; SYCL/DPC++ back‑ends.</li>
+          <li>Deep integration with PyTorch, TensorFlow, Horovod, IPEX.</li>
+          <li>High‑throughput collectives over OFI &amp; MPI transport layers.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 12: oneCCL Features -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3>oneCCL — Feature Highlights</h3>
+        <ul>
+          <li>Default hierarchical algorithm (<code>topo</code>) optimizes intra-node (scale-up) and inter-node (scale-out) communication</li>
+          <li>Collective operations on low-precision datatypes</li>
+          <li>Asynchronous progress threads overlap computation and communication</li>
+          <li>Unified C and C++ API for host (CPU) and device (GPU) memory buffers</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 13: oneCCL code example -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <pre><code class="language-cpp">
+// Minimal C++ all‑reduce with oneCCL
+#include &lt;oneapi/ccl.hpp&gt;
+
+int main(int argc, char** argv) {
+  ccl::init();
+  auto comm = ccl::create_communicator();
+  std::vector<float> send(1024, comm.rank()), recv(1024);
+  comm.allreduce(send, recv, ccl::reduction::sum).wait();
+  return 0;
+}
+        </code></pre>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 14: Communication Library Landscape -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3>Communication Library Landscape</h3>
+        <ul>
+          <li><strong>MPI:</strong> Portable, mature; rich semantics; CPU‑centric.</li>
+          <li><strong>NCCL:</strong> NVIDIA GPU collectives; PCIe/NVLink topology‑aware.</li>
+          <li><strong>RCCL:</strong> AMD ROCm counterpart to NCCL; HIP‑enabled.</li>
+          <li><strong>Gloo:</strong> Simple API; CPU/GPU; best &lt; 1 k ranks.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 15: Library Trade‑offs &amp; Selection Guide -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3>Library Trade‑offs &amp; Selection Guide</h3>
+        <ul>
+          <li><strong>Vendor lock‑in:</strong> NCCL (NVIDIA), RCCL (AMD), oneCCL (Intel).</li>
+          <li><strong>Heterogeneous support:</strong> MPI/UCX &amp; oneCCL span CPU + GPU.</li>
+          <li><strong>Ease of integration:</strong> Gloo simple; NCCL/oneCCL have framework plugins.</li>
+          <li><strong>Scalability:</strong> MPI &amp; *CCL proven to 10 k+ GPUs; Gloo ≤ 1 k.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 16: Parallelism Schemes Overview -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>State‑of‑the‑art Parallelism Schemes</h2>
+        <ul>
+          <li>Data Parallelism
+            <ul><li>Distributed Data‑Parallel (DDP)</li></ul>
+          </li>
+          <li>Model Parallelism
+            <ul>
+              <li>Tensor (intra‑layer) Parallelism</li>
+              <li>Pipeline (inter‑layer) Parallelism</li>
+            </ul>
+          </li>
+          <li>Hybrid (“3D”) Parallelism</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 17: Model Parallelism Overview -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Model Parallelism Overview</h2>
+        <p>Splits a model’s parameters or ops across devices to handle very large networks.</p>
+        <ul>
+          <li><strong>Tensor Parallelism:</strong> shard weight tensors within each layer; all devices work on the same batch.</li>
+          <li><strong>Pipeline Parallelism:</strong> cut the model into sequential stages; devices process different micro‑batches in flight.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 18: Tensor (Intra‑Layer) Parallelism -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Tensor (Intra‑Layer) Parallelism</h2>
+        <ul>
+          <li>Shards each layer’s weight tensors across multiple GPUs.</li>
+          <li>GPUs collaborate on the same mini‑batch.</li>
+          <li>Fine‑grained <code>all‑reduce</code> ops.</li>
+          <li>Key benefits:
+            <ul>
+              <li>Train layers too large for a single device.</li>
+              <li>Maintains low pipeline latency (no bubbles).</li>
+            </ul>
+          </li>
+          <li>Best for models with extremely large dense layers.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 19: Pipeline Parallelism -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Pipeline Parallelism</h2>
+        <ul>
+          <li><strong>Stages:</strong> e.g., layers 1–10 on GPU 0, 11–20 on GPU 1, …</li>
+          <li><strong>Micro‑batches:</strong> chunk the batch and stream pieces through stages.</li>
+          <li><strong>Overlap:</strong> compute on one micro‑batch overlaps communication of another.</li>
+          <li><strong>Pipeline bubbles:</strong> startup/shutdown idle periods when ramping up/down.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 19: Comparing Parallelism Forms -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Comparing Parallelism Forms</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+          <thead>
+            <tr>
+              <th style="border-bottom:1px solid #666;padding:4px;text-align:left;">Aspect</th>
+              <th style="border-bottom:1px solid #666;padding:4px;text-align:left;">Tensor Parallelism</th>
+              <th style="border-bottom:1px solid #666;padding:4px;text-align:left;">Pipeline Parallelism</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Granularity</td><td>Per‑layer shards; sync every op</td><td>Only at stage boundaries</td></tr>
+            <tr><td>Concurrency</td><td>All devices on same batch</td><td>Different micro‑batches on each stage</td></tr>
+            <tr><td>Overhead</td><td>Fine‑grained all‑reduces</td><td>Startup/drain bubbles</td></tr>
+            <tr><td>Best for</td><td>Huge layers, heavy tensor ops</td><td>Deep models, balanced stage compute</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 20: Data Parallel -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h3>Data Parallel</h3>
+        <ul>
+          <li>Replicate full model on each worker.</li>
+          <li>Each rank processes unique mini‑batch shard.</li>
+          <li>Gradients all‑reduced after backward pass.</li>
+          <li>Simple; scales to 10 k+ GPUs.</li>
+          <li>Bandwidth‑bound at very large scale.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 21: 3D Parallelism -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <figure style="margin:0;">
+          <img
+            src="images/3D_parallelism.svg"
+            alt="3D Parallelism diagram"
+            style="
+              display: block;
+              max-width: 90vw;
+              max-height: 90vh;
+              width: auto;
+              height: auto;
+              margin: 0 auto;
+            "
+          >
+        </figure>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 22: Data Parallel Training: PyTorch DDP -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Data Parallel Training: PyTorch DDP</h2>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 23: Linear Scaling Rule -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Linear Scaling Rule</h2>
+        <p>When global batch size multiplies by <em>k</em>, scale the learning rate by <em>k</em>.</p>
+        <p>
+          \( w_{t+1} = w_t - \eta\,\frac{1}{|B|}\sum_{x\in B}\nabla L(x,w_t) \)
+        </p>
+        <p><strong>lr<sub>new</sub> = lr<sub>base</sub> × world_size</strong></p>
+        <ul>
+          <li>Keep local batch size per worker.</li>
+          <li>Increase global batch size &amp; learning rate proportionally.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 24: Large-Batch Challenges and Solutions -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Large‑Batch Challenges &amp; Solutions</h2>
+        <ul>
+          <li><strong>Optimization Instability</strong> – use LR warm‑up (cosine or linear).</li>
+          <li><strong>Generalization Gap</strong> – apply LR decay, regularization, longer warm‑up.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 25: Optimization Instability -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Optimization Instability</h2>
+        <div id="optimization-instability-plot" style="width:100%;height:400px;"></div>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 26: Optimization Instability -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Generalization Gap (Log Scale)</h2>
+        <div id="generalization-gap-plot" style="width:100%;height:400px;"></div>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 26: PyTorch DDP Workflow -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>PyTorch DDP Workflow</h2>
+<pre><code>
+import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+dist.init_process_group('nccl')
+
+model = DDP(MyModel().cuda(), device_ids=[local_rank])
+optimizer = torch.optim.Adam(model.parameters(), lr=base_lr * world_size)
+
+for inputs, targets in loader:
+    outputs = model(inputs.cuda())
+    loss    = criterion(outputs, targets.cuda())
+    loss.backward()
+    optimizer.step()
+    optimizer.zero_grad()
+</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 27: Data Management and I/O Challenges -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Data Management &amp; I/O Challenges</h2>
+        <ul>
+          <li>Growing data volumes (TB–PB) demand efficient ingestion pipelines.</li>
+          <li>Complex workflows: preprocessing, augmentation, caching, staging.</li>
+          <li>Balancing throughput, latency &amp; compute utilization.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 28: DL I/O Traits -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>DL I/O Traits</h2>
+        <dl>
+          <dt><strong>Read‑Intensive:</strong></dt><dd>Sustained high‑throughput reads.</dd>
+          <dt><strong>Metadata‑Hungry:</strong></dt><dd>Millions of small files &amp; frequent directory ops.</dd>
+          <dt><strong>Random &amp; Sparse Access:</strong></dt><dd>Non‑sequential reads across dataset.</dd>
+          <dt><strong>Multi‑format:</strong></dt><dd>Images, JSON, TFRecord, HDF5, custom archives.</dd>
+          <dt><strong>Hierarchical Storage:</strong></dt><dd>Leveraging DRAM, SSD/NVMe, parallel file systems.</dd>
+        </dl>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 29: I/O vs Compute Bottlenecks in DL Workloads -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>I/O vs Compute Bottlenecks in DL Workloads</h2>
+        <dl>
+          <dt><strong><a href="https://doi.org/10.1007/978-3-319-46723-8_49" target="_blank">UNet3D</a></strong></dt>
+          <dd>3‑D convolutional U‑Net for volumetric data.</dd>
+          <dt><strong><a href="https://doi.org/10.18653/v1/N19-1423" target="_blank">BERT</a></strong></dt>
+          <dd>Transformer‑based language model pre‑training on large text corpora.</dd>
+        </dl>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 30: UNet3D I/O Bottleneck on GPFS -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>UNet3D I/O Bottleneck on GPFS</h2>
+        <ul>
+          <li><strong>I/O‑bound:</strong> Storage limits throttle sustained reads.</li>
+          <li><strong>GPU/CPU idle:</strong> Frequent I/O stalls leave compute under‑utilized.</li>
+          <li><strong>Weak scaling:</strong> Throughput plateaus as cluster size increases.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 31: BERT Pre‑training Scaling -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>BERT Pre‑training Scaling</h2>
+        <ul>
+          <li><strong>Compute‑bound:</strong> Floating‑point workloads saturate GPUs before I/O.</li>
+          <li><strong>Linear weak scaling:</strong> Performance grows nearly linearly with GPUs.</li>
+          <li><strong>I/O overhead:</strong> Well below storage limits, so not the bottleneck.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 32: Compute vs I/O Bound: Key Takeaways -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Compute vs I/O Bound: Key Takeaways</h2>
+        <ul>
+          <li><strong>Data‑intensive (UNet3D):</strong> Prioritize I/O optimizations—caching, parallel reads.</li>
+          <li><strong>Compute‑intensive (BERT):</strong> Scale GPU capacity &amp; optimize kernels.</li>
+          <li><strong>Choose your focus:</strong> Storage tuning vs hardware/algorithmic scaling.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 33: UNet3D I/O Throughput and Utilization -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2 style="text-align:center;">UNet3D I/O Throughput &amp; Utilization</h2>
+        <div class="two-plots" style="display:flex;gap:0;padding:0 40px;">
+          <div id="bw-plot"   style="flex:1;height:400px;min-width:0;"></div>
+          <div id="util-plot" style="flex:1;height:400px;min-width:0;"></div>
+        </div>
+        <p class="slide-source">
+          <em>
+            <a href="https://github.com/argonne-lcf/dlio_benchmark.git" target="_blank" rel="noopener">
+              ALCF, <strong>DLIO Benchmark</strong> (Polaris)
+            </a>
+          </em>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 33: Optimizing Data Pipelines -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Optimizing Data Pipelines</h2>
+        <ul>
+          <li><strong>Efficient Formats:</strong> preprocess to TFRecord/LMDB or binary archives.</li>
+          <li><strong>Sharding &amp; Layout:</strong> pack samples per file, bucket by size, shard across workers.</li>
+          <li><strong>Parallel I/O:</strong> async prefetch, multi‑thread/process workers.</li>
+          <li><strong>Caching &amp; Staging:</strong> in‑memory buffers, SSD/NVMe lanes, burst buffers.</li>
+          <li><strong>Filesystem Tuning:</strong> stripe count/size, object‑store optimizations.</li>
+        </ul>
+      </section>
+
+      <!-- ──────────────────────────────── -->
+      <!-- Slide 34: Summary -->
+      <!-- ──────────────────────────────── -->
+      <section>
+        <h2>Summary</h2>
+        <ul>
+          <li><strong>Scaling:</strong> Multi-node training for ever-larger models</li>
+          <li><strong>Communication:</strong> Optimized collectives &amp; hybrid parallelism</li>
+          <li><strong>Best Practices:</strong> LR scaling, overlap &amp; low-precision ops</li>
+          <li><strong>Data Pipeline:</strong> Sharding, caching &amp; parallel I/O</li>
+        </ul>
+      </section>
+
+    </div> <!-- .slides -->
+  </div>   <!-- .reveal -->
+
+  <!-- Reveal.js core -->
+  <script src="https://unpkg.com/reveal.js/dist/reveal.js"></script>
+  <!-- Math plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/math/math.js"></script>
+  <!-- MathJax -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    /* ------------------------------------------------------------------ */
+    /* Reveal initialisation (Reveal 4.x API)                             */
+    /* ------------------------------------------------------------------ */
+    Reveal.initialize({
+      hash: true,
+      slideNumber: true,
+      plugins: [ RevealMath.MathJax3 ],
+      mathjax3: {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+      }
+    });
+
+    /* ------------------------------------------------------------------ */
+    /* Helper: cache CSV data in memory so we only load once              */
+    /* ------------------------------------------------------------------ */
+    const csvCache = {};
+    function loadCsv(url) {
+      return csvCache[url]
+        ? Promise.resolve(csvCache[url])
+        : d3.csv(url).then(data => (csvCache[url] = data));
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Frontier‑model plots (compute, params, cost)                       */
+    /* ------------------------------------------------------------------ */
+    let frontierParsed = null;
+    function parseFrontier(rows) {
+      if (frontierParsed) return frontierParsed;
+      frontierParsed = rows
+        .filter(d => d['Publication date'])
+        .map(d => ({ ...d, date: new Date(d['Publication date']), year: new Date(d['Publication date']).getFullYear() }))
+        .filter(d => d.year >= 2010)
+        .sort((a, b) => a.date - b.date);
+      return frontierParsed;
+    }
+
+    function scatterTemplate({ x, y, name, color, yTitle, hoverY, divId }) {
+      const trace = {
+        x, y,
+        mode: 'markers',
+        type: 'scatter',
+        text: name,
+        customdata: frontierParsed.map(d => [d.Organization, d.Domain]),
+        hovertemplate:
+          '<b>%{text}</b><br>' +
+          'Organization: %{customdata[0]}<br>' +
+          'Domain: %{customdata[1]}<br>' +
+          'Published: %{x|%b %d, %Y}<br>' +
+          `${hoverY}: %{y:.2e}<extra></extra>`,
+        marker: { size: 8, symbol: 'circle', color, opacity: 0.8, line: { width: 0 } }
+      };
+
+      const layout = {
+        template: 'plotly_white',
+        hovermode: 'closest',
+        xaxis: { title: 'Publication date', type: 'date', tickformat: '%Y', showgrid: true, gridcolor: '#e5eaf2', zeroline: false },
+        yaxis: { title: yTitle, type: 'log', showgrid: true, gridcolor: '#e5eaf2', zeroline: false },
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        font: { family: 'IBM Plex Sans, sans‑serif', size: 12 },
+        showlegend: false
+      };
+
+      Plotly.newPlot(divId, [trace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    let computePlotted = false, paramsPlotted = false, costPlotted = false;
+    function drawComputePlot() {
+      if (computePlotted) return;
+      loadCsv('./data/frontier_ai_models.csv').then(rows => {
+        parseFrontier(rows);
+        scatterTemplate({
+          x: frontierParsed.map(d => d.date),
+          y: frontierParsed.map(d => +d['Training compute (FLOP)']),
+          name: frontierParsed.map(d => d.Model),
+          color: '#47c9b6',
+          yTitle: 'Training compute (FLOP)',
+          hoverY: 'Compute',
+          divId: 'compute-plot'
+        });
+        computePlotted = true;
+      });
+    }
+
+    function drawParamsPlot() {
+      if (paramsPlotted) return;
+      loadCsv('./data/frontier_ai_models.csv').then(rows => {
+        parseFrontier(rows);
+        scatterTemplate({
+          x: frontierParsed.map(d => d.date),
+          y: frontierParsed.map(d => +d.Parameters),
+          name: frontierParsed.map(d => d.Model),
+          color: '#fc034f',
+          yTitle: 'Number of parameters',
+          hoverY: 'Parameters',
+          divId: 'params-plot'
+        });
+        paramsPlotted = true;
+      });
+    }
+
+    function drawCostPlot() {
+      if (costPlotted) return;
+      loadCsv('./data/frontier_ai_models.csv').then(rows => {
+        parseFrontier(rows);
+        scatterTemplate({
+          x: frontierParsed.map(d => d.date),
+          y: frontierParsed.map(d => +d['Training compute cost (2023 USD)']),
+          name: frontierParsed.map(d => d.Model),
+          color: '#ffa500',
+          yTitle: 'Training compute cost (2023 USD)',
+          hoverY: 'Cost',
+          divId: 'cost-plot'
+        });
+        costPlotted = true;
+      });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* UNet3D bandwidth & utilisation plots                                */
+    /* ------------------------------------------------------------------ */
+    let bwUtilPlotted = false;
+    function drawBwAndUtilPlots() {
+      if (bwUtilPlotted) return;
+      const nodes = [1, 2, 4, 8, 16, 32, 64, 128, 256];
+      const bwTraces = [
+        { x: nodes, y: [3, 6.25, 12.5, 25, 45, 95, 180, 330, 380], mode: 'lines+markers', name: 'Lustre' },
+        { x: nodes, y: [3, 6.25, 12.5, 25, 50, 100, 200, 400, 800], mode: 'lines+markers', name: 'NVMe' }
+      ];
+      const utilTraces = [
+        {
+          x: nodes,
+          y: [99.8, 99.7, 99.5, 99.4, 97.8, 99.8, 92, 89, 53],
+          mode: 'lines+markers',
+          name: 'Lustre',
+          error_y: { type: 'data', array: [0.1, 0.1, 0.2, 0.2, 2.0, 0.2, 1.5, 1.0, 0.5], visible: true }
+        },
+        {
+          x: nodes,
+          y: [99.8, 99.7, 99.6, 99.5, 99.8, 99.8, 99.8, 99.0, 99.0],
+          mode: 'lines+markers',
+          name: 'NVMe'
+        }
+      ];
+      const sharedLayout = {
+        template: 'plotly_white',
+        hovermode: 'closest',
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        font: { family: 'IBM Plex Sans, sans‑serif', size: 12 },
+        showlegend: true,
+        xaxis: {
+          title: 'Number of nodes',
+          type: 'log',
+          tickmode: 'array',
+          tickvals: nodes,
+          ticktext: nodes
+        },
+        legend: { x: 0.02, y: 0.95, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.5)' }
+      };
+      Plotly.newPlot('bw-plot', bwTraces, { ...sharedLayout, yaxis: { title: 'Bandwidth (GiB/s)' } },
+                     { responsive: true, displayModeBar: false });
+      Plotly.newPlot('util-plot', utilTraces, { ...sharedLayout, yaxis: { title: 'Accelerator Usage (%)' } },
+                     { responsive: true, displayModeBar: false });
+      bwUtilPlotted = true;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Instability / generalization plots                                 */
+    /* ------------------------------------------------------------------ */
+    let instabilityPlotted = false;
+    function drawOptimizationInstabilityPlot() {
+      if (instabilityPlotted) return;
+      const epochs = Array.from({ length: 50 }, (_, i) => i + 1);
+      const traces = [
+        { x: epochs, y: [0.9256,0.8162,0.7259,0.6382,0.6128,0.5438,0.5017,0.4698,0.4109,0.3714,0.3229,0.2826,0.2694,0.2564,0.2317,0.1891,0.1510,0.1722,0.1165,0.0917,0.1163,0.1372,0.0922,0.1014,0.0681,0.0988,0.0385,0.0513,0.0471,0.0526,0.0678,0.0768,0.0112,0.0366,0.0128,0.0368,0.0064,0.0436,-0.0093,0.0133,-0.0043,-0.0166,0.0072,0.0055,-0.0034,-0.0143,0.0411,0.0273,-0.0076,0.0336], mode: 'lines', name: 'Stable LR (0.01)' },
+        { x: epochs, y: [1.1317,1.0675,1.1141,0.9927,0.7772,0.6053,0.3811,0.1936,0.1561,0.1401,0.2176,0.2882,0.2841,0.4083,0.3154,0.2684,0.2320,0.1670,0.1732,0.1449,0.0383,0.0789,0.0046,0.0471,0.0847,0.1106,0.1297,0.1412,0.0921,0.0219,0.0866,0.1053,-0.0259,0.1086,0.0059,0.0234,0.0205,0.0697,-0.0112,-0.0034,-0.0008,0.0659,0.0087,0.0225,-0.0384,-0.0087,-0.0729,0.0555,0.0098,0.0045], mode: 'lines+markers', name: 'High LR (0.1)' },
+        { x: epochs, y: [1.0650,1.1157,1.2648,1.2728,1.1469,1.3804,1.3709,1.4317,1.6021,1.6142,1.6286,1.7589,1.8393,1.8655,1.9868,2.1733,2.3391,2.5382,2.4921,2.7658,2.8474,3.0574,3.2446,3.3519,3.6324,3.7189,3.8585,4.0471,4.2222,4.4980,4.6856,4.8826,5.2389,5.4276,5.9802,6.1139,6.4377,6.6487,6.9774,7.4151,7.7196,8.1800,8.6449,8.9088,9.3864,9.9943,10.3561,11.0411,11.3698,12.0751], mode: 'lines', name: 'Very High LR (0.5)' }
+      ];
+      Plotly.newPlot('optimization-instability-plot', traces, {
+        title: { text: 'Optimization Instability: Training Loss vs Epochs' },
+        xaxis: { title: 'Epoch' },
+        yaxis: { title: 'Training Loss' }
+      }, { responsive: true, displayModeBar: false });
+      instabilityPlotted = true;
+    }
+
+    let gapPlotted = false;
+    function drawGeneralizationGapPlot() {
+      if (gapPlotted) return;
+      Plotly.newPlot('generalization-gap-plot', [{
+        x: [32, 64, 128, 256, 512, 1024, 2048],
+        y: [0.02, 0.02, 0.03, 0.03, 0.05, 0.065, 0.08],
+        mode: 'lines+markers',
+        name: 'Generalization Gap'
+      }], {
+        title: { text: 'Generalization Gap vs Batch Size' },
+        xaxis: {
+          title: 'Batch Size (log scale)',
+          type: 'log',
+          tickmode: 'array',
+          tickvals: [32, 64, 128, 256, 512, 1024, 2048]
+        },
+        yaxis: { title: 'Validation Loss – Training Loss' }
+      }, { responsive: true, displayModeBar: false });
+      gapPlotted = true;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Render plots for print dispatcher                                  */
+    /* ------------------------------------------------------------------ */
+    // detect print-to-PDF mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPrint = urlParams.has('print-pdf');
+    
+    if (isPrint) {
+      // only pre-draw when printing
+      drawComputePlot();
+      drawParamsPlot();
+      drawCostPlot();
+      drawBwAndUtilPlots();
+      drawOptimizationInstabilityPlot();
+      drawGeneralizationGapPlot();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Render‑on‑demand dispatcher                                        */
+    /* ------------------------------------------------------------------ */
+    function renderPlotsForCurrentSlide() {
+      const s = Reveal.getCurrentSlide();
+      if (s.querySelector('#compute-plot')) drawComputePlot();
+      if (s.querySelector('#params-plot'))  drawParamsPlot();
+      if (s.querySelector('#cost-plot'))    drawCostPlot();
+      if (s.querySelector('#bw-plot') && s.querySelector('#util-plot')) drawBwAndUtilPlots();
+      if (s.querySelector('#optimization-instability-plot')) drawOptimizationInstabilityPlot();
+      if (s.querySelector('#generalization-gap-plot'))       drawGeneralizationGapPlot();
+    }
+
+    Reveal.on('ready',        renderPlotsForCurrentSlide);
+    Reveal.on('slidechanged', renderPlotsForCurrentSlide);
+  </script>
+</body>
+</html>
+

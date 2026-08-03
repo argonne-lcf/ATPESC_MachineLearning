@@ -1,0 +1,283 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="630.456" height="688.405"
+     viewBox="0 0 472.842 516.304">
+
+  <defs>
+    <!-- clipping -->
+    <clipPath id="a">
+      <path d="M-7.436 519.085h491.29V-7.245H-7.436Z"/>
+    </clipPath>
+
+    <!-- single arrow (right-pointing) -->
+    <path id="dataArrow"
+          d="m0 0 -9.332 -9.333 9.332 -9.332 v4.667 h10.814 v-4.667 l9.332 9.332 -9.332 9.333 v-4.667 h-10.814 Z"
+          fill="#ffc000" stroke="#bc8c00" stroke-miterlimit="8" stroke-width=".762"/>
+
+    <!-- single arrow (blue) -->
+    <path id="dataArrowBlue"
+          d="m0 0 -9.332 -9.333 9.332 -9.332 v4.667 h10.814 v-4.667 l9.332 9.332 -9.332 9.333 v-4.667 h-10.814 Z"
+          fill="#4472c4" stroke="#2f528f" stroke-miterlimit="8" stroke-width=".762"/>
+
+    <!-- cluster of four right-pointing arrows -->
+    <g id="arrowCluster">
+      <use href="#dataArrow" x="0"     y="26.705"/>
+      <use href="#dataArrow" x="0"     y="62.813"/>
+      <use href="#dataArrow" x="0"     y="100.654"/>
+      <use href="#dataArrow" x="0"     y="136.242"/>
+    </g>
+
+    <!-- Tensor Parallel Group: four colored bars -->
+    <g id="tensorGroup">
+      <path fill="#afabab" stroke="#767171" stroke-miterlimit="8" stroke-width="2.286"
+            d="m29.413 0 19.317 7.096v21.81l-19.317-7.096Z"/>
+      <path fill="#f8cbad" stroke="#c55a11" stroke-miterlimit="8" stroke-width="2.286"
+            d="m19.317 0 19.317 7.096v21.81l-19.317-7.096Z"/>
+      <path fill="#9dc3e6" stroke="#2e75b6" stroke-miterlimit="8" stroke-width="2.286"
+            d="m9.396   0 19.317 7.096v21.81l-19.317-7.096Z"/>
+      <path fill="#c5e0b4" stroke="#548235" stroke-miterlimit="8" stroke-width="2.286"
+            d="m0       0 19.317 7.096v21.81l-19.317-7.096Z"/>
+    </g>
+
+    <!-- Pipeline Stage: yellow block + 4 tensorGroups -->
+    <g id="pipelineStage">
+      <path fill="#ffe699" stroke="#bf9000" stroke-miterlimit="8" stroke-width="2.286"
+            d="m0 0 73.309 25.852v167.534l-73.309-25.851Z"/>
+      <use href="#tensorGroup" x="11.996" y="25.133"/>
+      <use href="#tensorGroup" x="11.996" y="61.241"/>
+      <use href="#tensorGroup" x="11.996" y="99.082"/>
+      <use href="#tensorGroup" x="11.996" y="134.670"/>
+    </g>
+
+    <!-- Data Parallel Group 0 -->
+    <g id="dataParallelGroup0">
+      <!-- title -->
+      <text x="236.217" y="15" text-anchor="middle"
+            fill="#4472c4" font-family="Calibri" font-size="14" font-weight="bold">
+        Data Parallel Group 0
+      </text>
+
+      <!-- dashed outer frame -->
+      <rect x="2.612" y="2.271" width="467.211" height="236.43"
+            fill="none" stroke="#4472c4" stroke-width="2.286"
+            stroke-miterlimit="8" stroke-dasharray="9.144,6.858"/>
+
+      <!-- stage 3 -->
+      <use href="#pipelineStage" x="349.563" y="23.793"/>
+      <g transform="translate(349.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 3</tspan>
+          <tspan x="0" dy="1.2em">(layer 12-15)</tspan>
+        </text>
+      </g>
+      <use href="#arrowCluster" x="329.417" y="44.698"/>
+
+      <!-- stage 2 -->
+      <use href="#pipelineStage" x="249.563" y="23.793"/>
+      <g transform="translate(249.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 2</tspan>
+          <tspan x="0" dy="1.2em">(layer 8-11)</tspan>
+        </text>
+      </g>
+      <use href="#arrowCluster" x="229.417" y="44.698"/>
+
+      <!-- stage 1 -->
+      <use href="#pipelineStage" x="149.563" y="23.793"/>
+      <g transform="translate(149.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 1</tspan>
+          <tspan x="0" dy="1.2em">(layer 4-7)</tspan>
+        </text>
+      </g>
+      <use href="#arrowCluster" x="129.417" y="44.698"/>
+
+      <!-- stage 0 -->
+      <use href="#pipelineStage" x="49.563" y="23.793"/>
+      <g transform="translate(49.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 0</tspan>
+          <tspan x="0" dy="1.2em">(layer 0-3)</tspan>
+        </text>
+      </g>
+
+      <!-- dashed tensor-group boxes -->
+      <rect x="342.6375" y="45.139"  width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+      <rect x="342.6375" y="81.247"  width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+      <rect x="342.6375" y="119.088" width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+      <rect x="342.6375" y="154.676" width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+
+      <!-- computing node -->
+      <text transform="matrix(.73 0 0 .73 26.0875 118)" text-anchor="middle"
+            fill="#7f6000" font-family="Calibri" font-size="12" font-weight="bold">
+        <tspan x="0" dy="0">Computing</tspan>
+        <tspan x="0" dy="1.2em">Node</tspan>
+        <tspan x="0" dy="1.2em">(4 GPUs)</tspan>
+      </text>
+
+      <!-- GPU labels -->
+      <text transform="matrix(.73 0 0 .73 432  63.4)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 0</text>
+      <text transform="matrix(.73 0 0 .73 432  99.5)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 1</text>
+      <text transform="matrix(.73 0 0 .73 432 137.3)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 2</text>
+      <text transform="matrix(.73 0 0 .73 432 172.9)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 3</text>
+
+      <!-- inter-stage communication band & label -->
+      <g transform="translate(135 118) rotate(-90)">
+        <rect x="-70" y="-8" width="140" height="16" rx="3" ry="3"
+              fill="#f8f8f8" fill-opacity="0.8"/>
+        <text x="0" y="0" text-anchor="middle" alignment-baseline="middle"
+              fill="#7f6000" font-family="Calibri" font-size="12" font-weight="bold">
+          Inter-stage Communication
+        </text>
+      </g>
+    </g>
+
+    <!-- Data Parallel Group 1 -->
+    <g id="dataParallelGroup1">
+      <!-- title -->
+      <text x="236.217" y="15" text-anchor="middle"
+            fill="#4472c4" font-family="Calibri" font-size="14" font-weight="bold">
+        Data Parallel Group 1
+      </text>
+
+      <!-- dashed outer frame -->
+      <rect x="2.612" y="2.271" width="467.211" height="236.43"
+            fill="none" stroke="#4472c4" stroke-width="2.286"
+            stroke-miterlimit="8" stroke-dasharray="9.144,6.858"/>
+
+      <!-- stage 3 -->
+      <use href="#pipelineStage" x="349.563" y="23.793"/>
+      <g transform="translate(349.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 3</tspan>
+          <tspan x="0" dy="1.2em">(layer 12-15)</tspan>
+        </text>
+      </g>
+      <use href="#arrowCluster" x="329.417" y="44.698"/>
+
+      <!-- stage 2 -->
+      <use href="#pipelineStage" x="249.563" y="23.793"/>
+      <g transform="translate(249.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 2</tspan>
+          <tspan x="0" dy="1.2em">(layer 8-11)</tspan>
+        </text>
+      </g>
+      <use href="#arrowCluster" x="229.417" y="44.698"/>
+
+      <!-- stage 1 -->
+      <use href="#pipelineStage" x="149.563" y="23.793"/>
+      <g transform="translate(149.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 1</tspan>
+          <tspan x="0" dy="1.2em">(layer 4-7)</tspan>
+        </text>
+      </g>
+      <use href="#arrowCluster" x="129.417" y="44.698"/>
+
+      <!-- stage 0 -->
+      <use href="#pipelineStage" x="49.563" y="23.793"/>
+      <g transform="translate(49.563 16)">
+        <text transform="translate(36.654 200) rotate(19.542)" text-anchor="middle"
+              fill="#7f6000" font-family="Calibri" font-size="10" font-weight="bold">
+          <tspan x="0" dy="0">Pipeline Stage 0</tspan>
+          <tspan x="0" dy="1.2em">(layer 0-3)</tspan>
+        </text>
+      </g>
+
+      <!-- dashed tensor-group boxes -->
+      <rect x="342.6375" y="45.139"  width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+      <rect x="342.6375" y="81.247"  width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+      <rect x="342.6375" y="119.088" width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+      <rect x="342.6375" y="154.676" width="87.16" height="36.48"
+            fill="none" stroke="#548235" stroke-width="2.286"
+            stroke-dasharray="6.858,2.286"/>
+
+      <!-- computing node -->
+      <text transform="matrix(.73 0 0 .73 26.0875 118)" text-anchor="middle"
+            fill="#7f6000" font-family="Calibri" font-size="12" font-weight="bold">
+        <tspan x="0" dy="0">Computing</tspan>
+        <tspan x="0" dy="1.2em">Node</tspan>
+        <tspan x="0" dy="1.2em">(4 GPUs)</tspan>
+      </text>
+
+      <!-- GPU labels -->
+      <text transform="matrix(.73 0 0 .73 432  63.4)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 0</text>
+      <text transform="matrix(.73 0 0 .73 432  99.5)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 1</text>
+      <text transform="matrix(.73 0 0 .73 432 137.3)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 2</text>
+      <text transform="matrix(.73 0 0 .73 432 172.9)"
+            fill="#548235" font-family="Calibri" font-size="12" font-weight="bold">GPU 3</text>
+
+      <!-- inter-stage communication band & label -->
+      <g transform="translate(135 118) rotate(-90)">
+        <rect x="-70" y="-8" width="140" height="16" rx="3" ry="3"
+              fill="#f8f8f8" fill-opacity="0.8"/>
+        <text x="0" y="0" text-anchor="middle" alignment-baseline="middle"
+              fill="#7f6000" font-family="Calibri" font-size="12" font-weight="bold">
+          Inter-stage Communication
+        </text>
+      </g>
+    </g>
+  </defs>
+
+  <g clip-path="url(#a)">
+    <!-- top group -->
+    <use href="#dataParallelGroup0" x="0" y="0"/>
+
+    <!-- arrows down, blue, tips touching frame edges -->
+    <g id="verticalArrowCluster">
+      <use href="#dataArrowBlue"
+           x="86.217" y="248.034"
+           transform="rotate(90 86.217 248.034)"/>
+      <use href="#dataArrowBlue"
+           x="186.217" y="248.034"
+           transform="rotate(90 186.217 248.034)"/>
+      <use href="#dataArrowBlue"
+           x="286.217" y="248.034"
+           transform="rotate(90 286.217 248.034)"/>
+      <use href="#dataArrowBlue"
+           x="386.217" y="248.034"
+           transform="rotate(90 386.217 248.034)"/>
+    </g>
+
+    <!-- bottom group, shifted up so its frame edge meets arrow tips -->
+    <use href="#dataParallelGroup1" x="0" y="265"/>
+
+    <!-- Data Parallel Communication bar & label -->
+    <g transform="translate(236.217 253)">
+      <rect x="-91" y="-8" width="182" height="16" rx="3" ry="3"
+            fill="#f8f8f8" fill-opacity="0.8"/>
+      <text x="0" y="0" text-anchor="middle" alignment-baseline="middle"
+            fill="#4472c4" font-family="Calibri" font-size="12" font-weight="bold">
+        Data Parallel Communication
+      </text>
+    </g>
+  </g>
+</svg>

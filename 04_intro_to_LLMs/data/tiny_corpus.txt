@@ -1,0 +1,28 @@
+aurora trains models.
+polaris trains models.
+aurora runs jobs.
+polaris runs jobs.
+models predict tokens.
+tokens form sequences.
+sequences form batches.
+batches update models.
+checkpoint jobs often.
+restart jobs safely.
+mpi ranks communicate.
+scientists inspect results.
+gpus accelerate training.
+workflows schedule tasks.
+gradients flow backward.
+weights adjust slowly.
+data flows through layers.
+attention weighs context.
+experts route each token.
+vectors encode meaning.
+science advances quickly.
+queues grow during peaks.
+nodes exchange messages.
+kernels launch on devices.
+memory limits large models.
+loss values shrink over time.
+prompts guide generation.
+researchers analyze outputs.

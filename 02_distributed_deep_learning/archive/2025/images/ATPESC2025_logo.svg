@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1024 160"
+     role="img" aria-label="ATPESC 2025 logo">
+
+  <defs>
+    <style type="text/css"><![CDATA[
+      .filled {
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        font-size: 160px;
+        fill: #82C341;        /* green fill */
+        stroke: #16762D;      /* darker green outline */
+        stroke-width: 6;
+      }
+      .outline {
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        font-size: 160px;
+        fill: none;
+        stroke: #16762D;
+        stroke-width: 6;
+      }
+    ]]></style>
+  </defs>
+
+  <!-- "ATPESC" -->
+  <text x="0"   y="130" class="filled">ATPESC</text>
+
+  <!-- "2025" shifted right to sit nicely with a gap -->
+  <text x="650" y="130" class="outline">2025</text>
+</svg>

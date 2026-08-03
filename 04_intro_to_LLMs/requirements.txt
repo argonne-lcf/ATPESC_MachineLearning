@@ -1,0 +1,6 @@
+# Student runtime for the ATPESC 2026 LLM micro-lab.
+# CPU-only and offline after installation. Pinned for reproducible results.
+torch==2.8.0
+matplotlib==3.11.1
+jupyterlab==4.6.2
+ipykernel==6.30.1
