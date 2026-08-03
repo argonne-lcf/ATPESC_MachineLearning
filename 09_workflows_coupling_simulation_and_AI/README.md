@@ -5,13 +5,14 @@ This example demonstrates a simple molecular design application combining simula
 The example was adapted from an [ExaWorks demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) developed by Logan Ward, ANL, and later modified by Christine Simpson, ANL and Riccardo Balin, ANL. 
 
 The ionization energy (IE) of a molecule is the amount of energy required to remove one electron from the molecule in its ground state to produce a positively charged ion.
-IE can be computed with quantum-chemistry packages. Here we use [xTB](https://xtb-docs.readthedocs.io/en/latest/contents.html), but other libraries can be used. Even for this example, each simulation is relatively expensive, so screening a large candidate library exhaustively is out of reach on any realistic compute budget.
+IE can be computed with quantum-chemistry packages. Here we use [xTB](https://xtb-python.readthedocs.io/en/latest/), but other libraries can be used. Even for this example, each simulation is relatively expensive, so screening a large candidate library can be very expensive.
 To make the search tractable we couple simulation with a surrogate machine-learning model that predicts IE directly from a molecule's SMILES string, and use it to decide which candidates are worth simulating next.
+For this example, the [QM9 dataset](https://graphgt.github.io/molecule.html) with approximately 130,000 organic molecules is used as the search space.
 
-The surrogate is a fine-tuned [MoLFormer-XL](https://huggingface.co/ibm/MoLFormer-XL-both-10pct) model (IBM, ~50M params, pretrained on ~1.1B molecules from ZINC and PubChem).
-The encoder (or backbone) is frozen and a single linear regression head is trained on top of its pooled embeddings. This lightweight "linear probe" is cheap to fine-tune even on a single GPU and adapts the pre-trained MoLFormer model to predict the IE scalar values. Since the MoLFormer's embeddings are already meaningful for the QM9 search space.
+The surrogate is a fine-tuned [MoLFormer-XL](https://huggingface.co/ibm/MoLFormer-XL-both-10pct) model (~50M params pretrained on ~1.1B molecules from ZINC and PubChem).
+Since the MoLFormer's embeddings are already meaningful for the QM9 search space, the encoder (or backbone) is frozen and a single linear layer is trained on top of its pooled embeddings (see `MoLFormerRegressor` in [utils/molformer.py](./models/molformer.py)). This lightweight linear regression head is cheap to fine-tune even on a single GPU and adapts the pre-trained MoLFormer model to predict the IE scalar values. 
 
-Simulation and surrogate are woven together in an iterative loop, an approach often called [active learning](https://pubs.acs.org/doi/abs/10.1021/acs.chemmater.0c00768) (AL):
+The simulation and surrogate model are applied sequentially in an iterative loop alternating between training, inference and data generation/acquisition. This approach is often called active learning (AL) and can be useful across many domains:
 
 1. Simulate an initial batch of randomly chosen molecules to seed training data.
 2. Fine-tune the linear head on the accumulated (SMILES, IE) pairs.
@@ -23,19 +24,19 @@ A schematic of the loop is shown below.
 
 ![workflow](../figures/workflow.svg)
 
-This example ships three implementations of the same AL loop, each demonstrating a different way of moving data (model state and search-space chunks) between tasks:
+This example walks through three implementations of the same AL loop; two of the implementations use [Parsl](https://github.com/Parsl/parsl) and one uses [Dragon](https://dragonhpc.org/). Parsl builds upon Python's [`concurrent.futures`](https://docs.python.org/3/library/concurrent.futures.html#module-concurrent.futures), so downstream tasks that consume upstream futures form an implicit dependency graph. Data dependencies between tasks can be shared through Parsl's `AppFuture` objects directly. 
+Dragon extends Python `multiprocessing.Pool` to enable multi-node process launching and provides a distributed dictionary (DDict) for shared in-memory data staging. 
+On Aurora both implementations route xTB simulations to CPU cores and MoLFormer training and inference to the PVC GPU tiles.
 
-- **[2_parsl_futures.py](./2_parsl_futures.py)** -- data flows entirely through Parsl's `AppFuture` objects. The trained model's state_dict (~200 MB) is serialized and shipped from the training worker back to the driver, then re-shipped to every inference worker on the next iteration.
-- **[3_parsl_io.py](./3_parsl_io.py)** -- the training worker writes the state_dict to Lustre and returns only a path. Inference workers read it back from disk. Futures now carry small strings; the model state moves through the filesystem.
-- **[4_dragon.py](./4_dragon.py)** -- data lives in a distributed in-memory dictionary provided by [Dragon](https://dragonhpc.org/) (DDict), which supports RDMA-based transfers across nodes. The state_dict is stored under a key in the DDict once per iteration and workers read their local RAM instead of hitting the filesystem.
+The three implementations showcase different ways of moving data (model state and search-space chunks) between tasks and launching processes across nodes:
 
-All three drivers use the same simulation primitive (`chemfunctions.compute_vertical`) and the same model primitives (`models.molformer.fit_model` and `models.molformer.predict_model`), so per-iteration training and inference *compute* times should be nearly identical across the three variants. What changes is what happens *around* those calls -- and that is exactly the story: at what scale does the data-movement strategy start dominating wall clock, and when is a purely futures-based approach no longer good enough?
+- **[2_parsl_futures.py](./2_parsl_futures.py)** -- processes are luanched with Parsl's `HighThroughputExecutor` while data flows entirely through the `AppFuture` objects. The trained model weights (~200 MB) are serialized and transferred from the training worker back to the driver, then back to every inference worker along with the chunked SMILES on each iteration of the loop.
+- **[3_parsl_io.py](./3_parsl_io.py)** -- processes are luanched with Parsl's `HighThroughputExecutor` while model weights and chunked SMILES are read/written to Lustre. Training and inference workers only pass light-weight metedata across the futures. 
+- **[4_dragon.py](./4_dragon.py)** -- processes are launched with Dragon's native Pool and data is staged in a distributed in-memory dictionary provided by Dragon caled the DDict. Dragon supports RDMA-based transfers across nodes, meaning that worker either read/write to their local RAM or have fast access to other node's RAM instead of hitting the filesystem.
 
-Two of the drivers use [Parsl](https://github.com/Parsl/parsl) to submit and route tasks; one uses [Dragon](https://dragonhpc.org/). Parsl integrates cleanly with Python's [`concurrent.futures`](https://docs.python.org/3/library/concurrent.futures.html#module-concurrent.futures), so downstream tasks that consume upstream futures form an implicit dependency graph. Dragon offers a `multiprocessing.Pool`-style interface plus the DDict for shared in-memory state. On Aurora both stacks route xTB simulations to CPU cores and MoLFormer training and inference to the PVC GPU tiles.
+All three workflow driver scripts use the same simulation primitive (`chemfunctions.compute_vertical`) and the same model primitives (`models.molformer.fit_model` and `models.molformer.predict_model`), so per-iteration training and inference *compute* times should be nearly identical across the three variants. What changes is what happens *around* those calls, specifically related to process launching and data movement, which is the focus of this lesson.
 
-To provide a baseline, [1_simulate_molecules.py](./1_simulate_molecules.py) simulates a user-specified number of random molecules with xTB (no ML in the loop). This gives students a feel for how long an exhaustive brute-force screen would take -- and therefore what the AL loop is buying you.
-
-The three workflow drivers all expose the same three parameters:
+The drivers expose the same three parameters of the active learning loop:
 
 ```python
 # Define parameters for the workflow
@@ -44,9 +45,9 @@ max_training_count = 512      # Maximum training-set size (also the total simula
 batch_size = 64               # New simulations per AL iteration
 ```
 
-`initial_training_count` seeds the very first training pass; the loop then adds `batch_size` new simulations per iteration until `max_training_count` is reached. Balancing these values trades exploration (bigger initial batch → less biased first model) against exploitation (bigger per-iteration batch → faster convergence to the tail of the IE distribution). These parameters are the primary knobs you should experiment with.
+`initial_training_count` seeds the very first training pass; the loop then adds `batch_size` new simulations per iteration until `max_training_count` is reached. Balancing these values trades exploration (bigger initial batch → less biased first model) against exploitation (bigger per-iteration batch → faster convergence to the tail of the IE distribution). These parameters are some of the main knobs for optimizing the AL workflow.
 
-Each iteration prints per-phase timings (training, inference, simulation), the mean relative error of the model's predictions on the *newly simulated* molecules (a held-out set), and the best predicted molecule with its actual error. At the end of the run, a plot of the best identified molecules across iterations is generated and the full training history is saved to CSV. Both are useful for the homework problem below.
+To make comparisons of the workflow's computational performance and ability to fine-tune the model, the driver scripts output verbose information. This includes timings of the training, inference, and simulation components, the mean relative error of the model's predictions on the *newly simulated* molecules (a held-out set), and the best predicted molecule with its actual error. At the end of the run, a plot of the best identified molecules across iterations is generated and the full training history is saved to CSV. 
 
 ## Run Instructions
 
@@ -63,34 +64,36 @@ Each iteration prints per-phase timings (training, inference, simulation), the m
     python utils/test_imports.py
     ```
 
-3. Simulate a large number of molecues with Parsl:
+3. Simulate a large number of molecues with Parsl and estimate how long a brute-force screen would take with `python-xtb`:
 
     ```bash
     python 1_simulate_molecules.py
     ```
 
-4. Run the Parsl workflow script moving data through futures
+4. Run the Parsl workflow script moving data through futures:
 
     ```bash
     python 2_parsl_futures.py
     ```
 
-5. Run the Parsl workflow script moving data through disk
+5. Run the Parsl workflow script moving data through disk:
 
     ```bash
     python 3_parsl_io.py
     ```
 
-6. Run the Dragon workflow script moving data through the DDict
+6. Run the Dragon workflow script moving data through the DDict:
 
     ```bash
     dragon 4_dragon.py
     ```
 
 
-## Improving the Active Learning Loop (Homework)
+## Improving the Active Learning Loop (Optional Homework)
 
-The current loop uses the simplest possible strategy for picking which molecules to simulate next: **greedy top-K**. Each iteration, the model predicts IE for the full search space, sorts, and picks the K molecules with the highest predicted IE. This is one specific choice of *acquisition function* -- the function that scores each candidate for how much it's worth simulating -- and it is often not the best one.
+The current implementation of the ative learning loop uses a simple strategy for picking which molecules to simulate next, also known as the data acquisition step. Specifically, at each iteration, the workflow predicts the IE for the full search space using the ML surrogate, sorts the predictions, and finally picks the K molecules with the highest predicted IE to simulate in order to augment the training set. This approach can be called greedy top-K and is one example of an *acquisition function* that AL workflows adopt to determine which new samples are worth "acquiring" for training.
+
+A simple greedy top-K approach is often not the most effective because the model's top-K predictions tend to cluster ...
 
 The problem with pure greedy top-K is that the model's top-K predictions tend to cluster: molecules that look similar to each other, from a region of chemical space the model already thinks it understands. That means simulations get spent confirming what the model already knows instead of teaching it something new. A better acquisition function typically balances **exploitation** (pick molecules the model predicts are best) against **exploration** (pick molecules the model is uncertain about, or that are structurally different from what it has already seen). Some ideas to try, roughly in order of implementation effort:
 
