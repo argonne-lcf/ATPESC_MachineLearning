@@ -1,7 +1,7 @@
 # Introduction to deep learning
-ATPESC 2025
+ATPESC 2026
 
-Author: Bethany Lusch (blusch@anl.gov), adapting materials from Marieme Ngom, Prasanna Balaprakash, Taylor Childers, Corey Adams, and Kyle Felker.
+Author: Huihuo Zheng (huihuo.zheng@anl.gov), adapting materials from Bethany Lusch, Marieme Ngom, Prasanna Balaprakash, Taylor Childers, Corey Adams, and Kyle Felker.
 
 This is a hands-on introduction to deep learning, a machine learning technique that tends to outperform other techniques when dealing with a large amount of data. 
 
@@ -24,5 +24,27 @@ We will work on a classification problem involving the [MNIST dataset](https://h
 
 We are going to run Jupyter notebooks. You can run them in Google Colab (see instructions [here](../README.md)). If that's a problem you can also use your own computer or ALCF's [JupyterHub](https://docs.alcf.anl.gov/services/jupyter-hub/).
 
+## Running as a batch job on Polaris (PBS)
 
+`01_introduction_mnist.py` and `02_conv_networks.py` are non-interactive
+versions of the two notebooks above (same models, same training), for anyone
+who wants a reproducible run outside the live session instead of Colab/
+JupyterHub. Differences from the notebooks: matplotlib uses the "Agg" backend
+and saves figures to `$OUTDIR` instead of displaying them inline, tensors move
+to CUDA when available, and the open-ended "train NonlinearClassifier"
+exercise in the first notebook is filled in so the script runs end-to-end
+unattended.
 
+Clone this repo onto Polaris (e.g. under `/eagle/ATPESC2026/<your-username>/`)
+and submit `run.sh` from this directory:
+
+```bash
+cd 01_intro_to_deep_learning
+qsub run.sh
+```
+
+The script requests 1 node (`-A ATPESC2026`, `-q debug` by default; see the
+comment at the top of `run.sh` for switching to the `ATPESC`/`ATPESC-Night`
+reservation queues during the actual session) and takes well under 20 minutes
+total. Polaris compute nodes have no outbound internet by default, so `run.sh`
+sets the ALCF proxy env vars before the MNIST download.
