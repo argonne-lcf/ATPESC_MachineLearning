@@ -1,5 +1,9 @@
 # Instructions for ATPESC Hands-On Tutorial
 
+> [!NOTE]
+> Slides are available at:  
+> https://samf.sh/talks/2026/08/03
+
 1. Submit an interactive job:
 
     ```bash
@@ -11,9 +15,6 @@
 
     ```bash
     # from Aurora compute node (`x4...`)
-    
-    module load frameworks
-
     # proxy settings
     if [[ ! "${HOSTNAME}" =~ aurora-uan ]]; then
       export HTTP_PROXY="http://proxy.alcf.anl.gov:3128"
@@ -23,32 +24,15 @@
       export ftp_proxy="http://proxy.alcf.anl.gov:3128"
       export no_proxy="admin,polaris-adminvm-01,localhost,*.cm.polaris.alcf.anl.gov,polaris-*,*.polaris.alcf.anl.gov,*.alcf.anl.gov"
     fi
-    
-    git clone https://github.com/saforem2/wordplay
-    cd wordplay
-    
 
     # setup environment
     source <(curl -L https://bit.ly/ezpz-utils) && ezpz_setup_env
 
-    python3 -m pip install -e "." --require-virtualenv
-    python3 -m pip install deepspeed
-
-    python3 -m pip install wandb
-    export WANDB_API_KEY=USE_YOUR_KEY
+    # install ezpz
+    uv pip install --no-cache --link-mode=copy "git+https://github.com/saforem2"
 
     # test distributed functionality
-    ezpz-test
+    ezpz launch python3 -m ezpz.examples.test
 
-    python3 data/shakespeare_char/prepare.py
-    ezpz-launch -m wordplay \
-        train.backend=deepspeed \
-        train.eval_interval=100 \
-        data=shakespeare \
-        train.dtype=bf16 \
-        model.batch_size=8 \
-        model.block_size=1024 \
-        train.max_iters=1000 \
-        train.log_interval=10 \
-        train.compile=false
+    ezpz launch python3 -m ezpz.examples.fsdp_tp
     ```
