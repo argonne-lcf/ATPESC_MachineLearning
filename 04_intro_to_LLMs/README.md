@@ -1,60 +1,96 @@
-# Introduction to Language models
+# Introduction to Large Language Models — hands-on micro-lab
 
-Author: Archit Vasan (avasan@anl.gov), including and adapting materials and discussions over time by Varuni Sastri, Carlo Graziani, Taylor Childers, Venkat Vishwanath, Jay Alammar and Kevin Gimpel.
+A short (~6–8 minute), **deterministic, CPU-only** notebook that walks through the
+core mechanics of a language model end to end:
 
-This tutorial introduces sequential data modeling, tokenization methods and embeddings and attempts to demystify aspects of the Transformer model architecture.
-
-We will refer to this notebook:
-
-[Introduction to language models](https://github.com/argonne-lcf/ATPESC_MachineLearning/edit/master/03_introlangmodels/03_languagemodels.ipynb)
-
-The discussion will include:
-* tokenization
-* token embedding
-* positional encodings,
-* attention mechanisms,
-* output layers,
-* and training loops.
-
-We are first going to introduce sequential data modeling, tokenization and then use "text-generation" using the popular GPT-2 model and the Hugging Face pipeline. Then we are going to code the model elements of a simple LLM from scratch and train this ourselves.
-
-## Environment Setup
-1. If you are using ALCF, first log in. From a terminal run the following command:
 ```
-ssh username@polaris.alcf.anl.gov
+text → tokens → IDs → shifted targets → next-token loss → updated probabilities → sampled text
 ```
 
-2. We will be downloading data in our Jupyter notebook, which runs on hardware that by default has no Internet access. From the terminal on Polaris, edit the ~/.bash_profile file to have these proxy settings:
+You will train a tiny (10,688-parameter) one-block decoder Transformer on a small
+local corpus. It is **not** an LLM — it has a character-level vocabulary and a tiny
+repeated corpus — but it uses the *same* next-token training objective as a real
+decoder-only model.
+
+## What you'll do
+
+- **Part A — Tokenization:** split text into tokens and IDs; see how boundaries and
+  Unicode normalization (NFC) change the tokens; compare tokenizers.
+- **Part B — Training:** build the shifted `inputs`/`targets`, train with next-token
+  cross-entropy, watch the loss drop, then generate a sample.
+- **Visualizations:** character frequencies, the training-loss curve, and the model's
+  next-token probability distribution.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `atpesc_llm_micro_lab.ipynb` | The lab notebook — run this |
+| `lab_core.py` | Helper code (tokenizers, model, training) — imported by the notebook |
+| `data/tiny_corpus.txt` | The local training corpus |
+| `requirements.txt` | Python dependencies |
+
+The lab computation runs locally on a CPU; the only network step is a one-time
+fetch of the helper files (or installing dependencies).
+
+## Setup
+
+### Option A — Google Colab (recommended)
+
+No local install: Colab already includes PyTorch and Matplotlib, and a free
+**CPU** runtime is more than enough (no GPU needed).
+
+1. Open [Google Colab](https://colab.research.google.com/) and sign in.
+2. **File → Open notebook → GitHub**, search `jingyanjiang/ATPESC_MachineLearning`,
+   and open `04_intro_to_LLMs/atpesc_llm_micro_lab.ipynb`.
+3. The notebook needs its helper file and corpus, so add a **new first cell**,
+   paste this, and run it once:
+   ```python
+   !wget -q https://raw.githubusercontent.com/jingyanjiang/ATPESC_MachineLearning/master/04_intro_to_LLMs/lab_core.py
+   !mkdir -p data
+   !wget -q https://raw.githubusercontent.com/jingyanjiang/ATPESC_MachineLearning/master/04_intro_to_LLMs/data/tiny_corpus.txt -O data/tiny_corpus.txt
+   ```
+4. Run the **Setup** cell and continue top to bottom.
+
+### Option B — Your laptop (local)
+
+```bash
+# from this folder
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python -m ipykernel install --user --name atpesc-llm-lab --display-name "ATPESC LLM lab"
+jupyter lab                         # opens your browser
 ```
-export HTTP_PROXY="http://proxy-01.pub.alcf.anl.gov:3128"
-export HTTPS_PROXY="http://proxy-01.pub.alcf.anl.gov:3128"
-export http_proxy="http://proxy-01.pub.alcf.anl.gov:3128"
-export https_proxy="http://proxy-01.pub.alcf.anl.gov:3128"
-export ftp_proxy="http://proxy-01.pub.alcf.anl.gov:3128"
-export no_proxy="admin,polaris-adminvm-01,localhost,*.cm.polaris.alcf.anl.gov,polaris-*,*.polaris.alcf.anl.gov,*.alcf.anl.gov"
+Then open `atpesc_llm_micro_lab.ipynb` and pick the **ATPESC LLM lab** kernel.
+
+## Run it
+
+1. Run the **Setup** cell first (it prints your Python/PyTorch versions and fixes the
+   random seed to 2026).
+2. Work top to bottom. Wherever you see a **Try first** note, predict the answer
+   before running the cell.
+3. Use *Run → Run All Cells* to run everything at once.
+
+The whole notebook takes only a few seconds of compute on a laptop CPU.
+
+## What to expect
+
+With seed `2026`, training reduces the fixed-batch next-token loss from about
+**3.51 to 0.35** over 300 steps, and the seeded sample for the prompt `"aurora "`
+begins:
+
+```text
+aurora trains models.
+aurora trains weighs context.
+exp
 ```
 
-4. Now that we have the updated notebooks, we can open them. If you are using ALCF JupyterHub or Google Colab, you can be reminded of the steps [here](https://github.com/argonne-lcf/ai-science-training-series/blob/main/01_intro_AI_on_Supercomputer/01_linear_regression_sgd.ipynb). 
+The continuation is imperfect on purpose: this toy model has learned local character
+patterns, not general language ability. That contrast is the point of the lab.
 
-5. Reminder: Change the notebook's kernel to `datascience/conda-2023-01-10` (you may need to change kernel each time you open a notebook for the first time):
+## Tips
 
-    1. select *Kernel* in the menu bar
-    2. select *Change kernel...*
-    3. select *datascience/conda-2024-04-29* from the drop-down menu
-
-## __Exciting example:__
-
-Here is an image of GenSLM described earlier by Arvind Ramanathan. This is a language model that can model genomic information in a single model. It was shown to model the evolution of SARS-COV2 without expensive experiments.
-![GenSLM](images/genslm.png)
-
-## __References:__
-
-Here are some recommendations for further reading and additional code for review.
-
-* ["The Illustrated Transformer"](https://jalammar.github.io/illustrated-transformer/) by Jay Alammar
-* ["Visualizing A Neural Machine Translation Model (Mechanics of Seq2seq Models With Attention)"](https://jalammar.github.io/visualizing-neural-machine-translation-mechanics-of-seq2seq-models-with-attention/) 
-* ["The Illustrated GPT-2 (Visualizing Transformer Language Models)"](https://jalammar.github.io/illustrated-gpt2/)
-* ["LLM Tutorial Workshop (Argonne National Laboratory)"](https://github.com/brettin/llm_tutorial/tree/main)
-* ["LLM Tutorial Workshop Part 2 (Argonne National Laboratory)"](https://github.com/argonne-lcf/llm-workshop)
-
-
+- Prompts must use lowercase letters, spaces, and periods (the toy vocabulary). Other
+  characters map to an `<UNK>` token and produce garbled output.
+- Results are deterministic: the same seed and prompt always give the same output.
