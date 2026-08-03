@@ -56,10 +56,11 @@ Each iteration prints per-phase timings (training, inference, simulation), the m
     qsub -I -A ATPESC2026 -q ATPESC -l select=2 -l walltime=01:00:00 -l filesystems=home:flare
     ```
 
-2. Source the environment provided:
+2. Source the environment provided and check imports:
 
     ```bash
     source 0_activate_env.sh
+    python utils/test_imports.py
     ```
 
 3. Simulate a large number of molecues with Parsl:
