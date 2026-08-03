@@ -16,7 +16,7 @@ Our documentation for how to extend the Python environment provided in the frame
 ```
 python3 -m venv /path/to/new/venv --system-site-packages
 source  /path/to/new/venv/bin/activate
-pip install ezpz
+pip install git+https://github.com/saforem2/ezpz
 ```
 
 Resources:
