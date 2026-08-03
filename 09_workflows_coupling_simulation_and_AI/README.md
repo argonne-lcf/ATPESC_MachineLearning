@@ -5,13 +5,13 @@ This example demonstrates a simple molecular design application combining simula
 The example was adapted from an [ExaWorks demo](https://github.com/ExaWorks/molecular-design-parsl-demo/tree/main) developed by Logan Ward, ANL, and later modified by Christine Simpson, ANL and Riccardo Balin, ANL. 
 
 The ionization energy (IE) of a molecule is the amount of energy required to remove one electron from the molecule in its ground state to produce a positively charged ion.
-IE can be computed with quantum-chemistry packages -- here we use [xTB](https://xtb-docs.readthedocs.io/en/latest/contents.html) -- but each simulation is expensive, so screening a large candidate library exhaustively is out of reach on any realistic compute budget.
+IE can be computed with quantum-chemistry packages. Here we use [xTB](https://xtb-docs.readthedocs.io/en/latest/contents.html), but other libraries can be used. Even for this example, each simulation is relatively expensive, so screening a large candidate library exhaustively is out of reach on any realistic compute budget.
 To make the search tractable we couple simulation with a surrogate machine-learning model that predicts IE directly from a molecule's SMILES string, and use it to decide which candidates are worth simulating next.
 
 The surrogate is a fine-tuned [MoLFormer-XL](https://huggingface.co/ibm/MoLFormer-XL-both-10pct) model (IBM, ~50M params, pretrained on ~1.1B molecules from ZINC and PubChem).
-The encoder is frozen and a single linear regression head is trained on top of its pooled embeddings -- a lightweight "linear probe" that fine-tunes in seconds on a single GPU tile because MoLFormer's embeddings are already meaningful for the QM9 search space.
+The encoder (or backbone) is frozen and a single linear regression head is trained on top of its pooled embeddings. This lightweight "linear probe" is cheap to fine-tune even on a single GPU and adapts the pre-trained MoLFormer model to predict the IE scalar values. Since the MoLFormer's embeddings are already meaningful for the QM9 search space.
 
-Simulation and surrogate are woven together in an iterative loop, an approach often called [active learning](https://pubs.acs.org/doi/abs/10.1021/acs.chemmater.0c00768) (AL) or ML-in-the-loop:
+Simulation and surrogate are woven together in an iterative loop, an approach often called [active learning](https://pubs.acs.org/doi/abs/10.1021/acs.chemmater.0c00768) (AL):
 
 1. Simulate an initial batch of randomly chosen molecules to seed training data.
 2. Fine-tune the linear head on the accumulated (SMILES, IE) pairs.
