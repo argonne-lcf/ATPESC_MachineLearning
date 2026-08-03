@@ -3,4 +3,4 @@
 module load frameworks
 source /flare/ATPESC2026/frameworks_ezpz_venv/bin/activate
 WANDB_DISABLED=1 # Disable Weights & Biases logging
-ezpz-launch python3 -m ezpz.examples.fsdp_tp --dataset random --tp=4 
+ezpz launch python3 -m ezpz.examples.fsdp_tp --dataset random --tp=4 
