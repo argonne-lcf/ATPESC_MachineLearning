@@ -3,21 +3,21 @@ Parsl: Deploying Tasks with Parsl on ALCF Machines
 
 [Parsl](https://parsl.readthedocs.io/en/stable/) is a parallel programming library for Python.  It can be used to deploy large numbers of tasks with complex dependencies on ALCF machines, and is particularly well suited to run high-throughput workflows.  Parsl uses Python's concurrent futures module to create functions that return a Python futures object.  A Parsl workflow operates by creating futures for tasks that the Parsl executor will then fulfill by running them on available compute resources.
 
-When a Parsl program runs and is configured to use Polaris compute resources, it will dynamically and elastically create batch jobs under the user's account on the Polaris scheduler.  These batch jobs will communicator with the Parsl process that launched then to acquire work and run it.
+When a Parsl program runs and is configured to use Aurora compute resources, it will dynamically and elastically create batch jobs under the user's account on the Aurora scheduler.  These batch jobs will communicate with the Parsl process that launched them to acquire work and run it.
 
 A Parsl workflow contains two parts:
 * the workflow logic of functions and their dependencies
 * the configuration of compute resources
 
-We will begin by exploring how to define functions and dependencies.  Then we will describe how to configure resources to run the workflow on Polaris compute nodes.
+We will begin by exploring how to define functions and dependencies.  Then we will describe how to configure resources to run the workflow on Aurora compute nodes.  Configs for Polaris are included in this repo as well and can be swapped in to run these examples on Polaris.
 
 # Setup and installation
 
-First, login to Polaris and clone this repo:
+First, login to Aurora and clone this repo:
 
 ```bash
-# Login to Polaris
-ssh polaris.alcf.anl.gov
+# Login to Aurora
+ssh aurora.alcf.anl.gov
 
 # Clone the repo
 git clone git@github.com:argonne-lcf/ALCF_Hands_on_HPC_Workshop.git
@@ -26,15 +26,12 @@ cd ALCF_Hands_on_HPC_Workshop/workflows/parsl
 
 For the workshop, you can use the workshop python virtual environment that has parsl installed:
 ```bash
-module unload xalt
-source /grand/alcf_training/workflows/_env/bin/activate
+source /flare/alcf_training/workflows/_env/bin/activate
 ```
 
 To create your own environment:
 ```bash
-module unload xalt
-module load conda
-conda activate base
+module load frameworks
 python -m venv _env
 source _env/bin/activate
 pip install parsl
@@ -193,25 +190,25 @@ with parsl.load():
     print(fib_series.result())
 ```
 
-# Parsl Configuration and Running on Polaris
+# Parsl Configuration and Running on Aurora
 
-The previous examples used Parsl's default configuration that runs tasks on local threads (in our case, threads on the polaris login node).
+The previous examples used Parsl's default configuration that runs tasks on local threads (in our case, threads on the Aurora login node).
 
-To run tasks on compute nodes we need to load a Polaris specific config object at the start of the Parsl workflow, e.g.:
+To run tasks on compute nodes we need to load an Aurora specific config object at the start of the Parsl workflow, e.g.:
 ```python
-parsl.load(polaris_config)
+parsl.load(aurora_config)
 ```
 
-Here we describe how to write a config for Polaris and demonstrate how to run tasks on compute nodes with it.  Configs for Aurora are included in this repo as well and can be swapped in to run these examples on Aurora.
+Here we describe how to write a config for Aurora and demonstrate how to run tasks on compute nodes with it.  Configs for Polaris are included in this repo as well and can be swapped in to run these examples on Polaris.
 
-## Parsl Config for Polaris
+## Parsl Config for Aurora
 
-The Parsl Config object describes how compute resources are assigned to Parsl workers.  Depending on how you want to use Polaris resources your Config may look different (e.g. if your tasks use gpus or only cpus).  Each Parsl worker will run one task at a time.  It contains many options, but the main aspects that need to be specified in the Config are:
+The Parsl Config object describes how compute resources are assigned to Parsl workers.  Depending on how you want to use Aurora resources your Config may look different (e.g. if your tasks use gpus or only cpus).  Each Parsl worker will run one task at a time.  It contains many options, but the main aspects that need to be specified in the Config are:
 * Executor: the executor describes how many workers will be available to the workflow and what Provider and Launcher will allocate and start workers.
 * Provider: The provider describes how the Executor will get compute resources through the scheduler.
 * Launcher: the Launcher describes how the Provider will place worker processes on compute resources, typically with an MPI in the HPC context.
 
-On Polaris, for cases where you wish to run one task per gpu (a common use case), we recommend using the [`HighThroughputExecutor`](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor), the [`PBSProProvider`](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.PBSProProvider.html) or the [`LocalProvider`](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.LocalProvider.html), and the [`MpiExecLauncher`](https://parsl.readthedocs.io/en/stable/stubs/parsl.launchers.MpiExecLauncher.html).
+An Aurora node has 6 GPUs, each with 2 tiles, for 12 GPU tiles per node.  For cases where you wish to run one task per GPU tile (a common use case), we recommend using the [`HighThroughputExecutor`](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor), the [`PBSProProvider`](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.PBSProProvider.html) or the [`LocalProvider`](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.LocalProvider.html), and the [`MpiExecLauncher`](https://parsl.readthedocs.io/en/stable/stubs/parsl.launchers.MpiExecLauncher.html).
 
 
 
@@ -219,20 +216,25 @@ On Polaris, for cases where you wish to run one task per gpu (a common use case)
 
 If you wish to contain your parsl workflow in a single PBS job and control its submission by hand, you will need to use the `LocalProvider` in your Config.
 
-Here is an example Config that shows how to use the `LocalProvider` in a PBS job on Polaris (`polaris_injob_config.py`).  Each node will run 1 parsl worker per GPU, or 4 workers per node:
+Here is an example Config that shows how to use the `LocalProvider` in a PBS job on Aurora (`aurora_injob_config.py`).  Each node will run 1 parsl worker per GPU tile, or 12 workers per node:
 
 ```python
 import os
 from parsl.config import Config
 from parsl.addresses import address_by_interface
 
-# LocalProvider is for running orchestration with a job
 from parsl.providers import LocalProvider
 # The high throughput executor is for scaling to HPC systems:
 from parsl.executors import HighThroughputExecutor
 # Use the MPI launcher
 from parsl.launchers import MpiExecLauncher
 
+# Set your queue and account
+queue = "alcf_training"
+account = "alcf_training"
+
+# Set how to load environment
+load_env = f"source /flare/alcf_training/workflows/_env/bin/activate"
 
 # Get the number of nodes:
 node_file = os.getenv("PBS_NODEFILE")
@@ -240,30 +242,40 @@ with open(node_file,"r") as f:
     node_list = f.readlines()
     num_nodes = len(node_list)
 
-polaris_config = Config(
+tile_names = [f'{gid}.{tid}' for gid in range(6) for tid in range(2)]
+
+aurora_config = Config(
     executors=[
         HighThroughputExecutor(
-            # Specify network interface for the workers to connect to the Interchange
-            address=address_by_interface('bond0'),
+            # Specify network interface to use to connect worker nodes to interchange
+            # hsn0 is Aurora's Slingshot network interface
+            address=address_by_interface('hsn0'),
             # Ensures one worker per GPU
-            available_accelerators=4,
-            max_workers_per_node=4,
-            # Distributes threads to workers/GPUs in a way optimized for Polaris 
-            cpu_affinity="list:24-31,56-63:16-23,48-55:8-15,40-47:0-7,32-39",
+            # Since Aurora tile affinity can be a non-integer format, we use a list of strings here
+            # e.g. ['0.0', '0.1', '1.0', '1.1', ..., '5.1']
+            available_accelerators=tile_names,
+            max_workers_per_node=12,
+            # Distributes threads to workers/GPUs in a way optimized for Aurora
+            cpu_affinity="list:1-8,105-112:9-16,113-120:17-24,121-128:25-32,129-136:33-40,137-144:41-48,145-152:53-60,157-164:61-68,165-172:69-76,173-180:77-84,181-188:85-92,189-196:93-100,197-204",
             # Increase if you have many more tasks than workers
             prefetch_capacity=0,
-            provider=LocalProvider(   
-                # Distribute workers across all allocated nodes with mpiexec
-                launcher=MpiExecLauncher(bind_cmd="--cpu-bind", overrides="--ppn 1 --env TMPDIR=/tmp"),
+            # Use LocalProvider for in-job execution
+            provider=LocalProvider(
+                # Ensures 1 manger per node and allows it to divide work to all 64 threads
+                launcher=MpiExecLauncher(bind_cmd="--cpu-bind", overrides="--ppn 1"),
+                # Number of nodes per batch job
                 nodes_per_block=num_nodes,
-                init_blocks=1,
+                # Maximum number of batch jobs running workflow
                 max_blocks=1,
+                init_blocks=1,
             ),
         ),
     ],
     # How many times to retry failed tasks
     # this is necessary if you have tasks that are interrupted by a batch job ending
     retries=2,
+    # Turning off logging of the interchange can improve performance above 500 nodes
+    initialize_logging=False,
 )
 
 ```
@@ -274,9 +286,9 @@ Here is an example of how to use this Config in a workflow executed within a PBS
 import parsl
 import os
 from parsl import python_app
-from polaris_injob_config import polaris_config as config
-# To run on Aurora, uncomment the following line and comment out the above line
-# from aurora_injob_config import aurora_config as config
+from aurora_injob_config import aurora_config as config
+# To run on Polaris, uncomment the following line and comment out the above line
+# from polaris_injob_config import polaris_config as config
 
 # We will save outputs in the current working directory
 working_directory = os.getcwd()
@@ -300,7 +312,7 @@ def hello_affinity():
 
     return f"Hello from host {hostname}, GPU ID(s): {gpu_id}"
 
-# Load config for polaris
+# Load config for aurora
 with parsl.load(config):
 
     # Create futures calling 'hello_affinity', store them in list 'tasks'
@@ -325,14 +337,14 @@ qsub 4_hello_injob_orchestration.sh
 ## PBSProProvider Example for Elastic Execution (5_hello_external_orchestration.py)
 
 If you wish to distribute your tasks elastically over many PBS jobs, use the `PBSProProvider` in your config and execute your workflow on the login node.
-The Config object below will run 4 workers at a time.  These workers will be run on one Polaris node and each will access 1 GPU.
+The Config object below will run 12 workers at a time.  These workers will be run on one Aurora node and each will access 1 GPU tile.
 
 ```python
 import os
 from parsl.config import Config
 from parsl.addresses import address_by_interface
 
-# PBSPro is the right provider for polaris:
+# PBSPro is the right provider for aurora:
 from parsl.providers import PBSProProvider
 # The high throughput executor is for scaling to HPC systems:
 from parsl.executors import HighThroughputExecutor
@@ -344,25 +356,29 @@ queue = "alcf_training"
 account = "alcf_training"
 
 # Set how to load environment
-load_env = f"source /grand/alcf_training/workflows/_env/bin/activate"
+load_env = f"source /flare/alcf_training/workflows/_env/bin/activate"
 
 # These options will run work in 1 node batch jobs run one at a time
 nodes_per_job = 1
 max_num_jobs = 1
+tile_names = [f'{gid}.{tid}' for gid in range(6) for tid in range(2)]
 
 # The config will launch workers from this directory
 execute_dir = os.getcwd()
 
-polaris_config = Config(
+aurora_config = Config(
     executors=[
         HighThroughputExecutor(
-            # Specify network interface for the workers to connect to the Interchange
-            address=address_by_interface('bond0'),
+            # Specify network interface to use to connect worker nodes to interchange
+            # hsn0 is Aurora's Slingshot network interface
+            address=address_by_interface('hsn0'),
             # Ensures one worker per GPU
-            available_accelerators=4,
-            max_workers_per_node=4,
-            # Distributes threads to workers/GPUs in a way optimized for Polaris 
-            cpu_affinity="list:24-31,56-63:16-23,48-55:8-15,40-47:0-7,32-39",
+            # Since Aurora tile affinity can be a non-integer format, we use a list of strings here
+            # e.g. ['0.0', '0.1', '1.0', '1.1', ..., '5.1']
+            available_accelerators=tile_names,
+            max_workers_per_node=12,
+            # Distributes threads to workers/GPUs in a way optimized for Aurora
+            cpu_affinity="list:1-8,105-112:9-16,113-120:17-24,121-128:25-32,129-136:33-40,137-144:41-48,145-152:53-60,157-164:61-68,165-172:69-76,173-180:77-84,181-188:85-92,189-196:93-100,197-204",
             # Increase if you have many more tasks than workers
             prefetch_capacity=0,
             # Use PBSPro as the job scheduler
@@ -374,15 +390,16 @@ polaris_config = Config(
                 # Commands run before workers launched
                 # Make sure to activate your environment where Parsl is installed
                 worker_init=f'''{load_env};
+                            export TMPDIR=/tmp;
                             cd {execute_dir}''',
                 # Wall time for batch jobs
                 walltime="0:05:00",
                 # Change if data/modules located on other filesystem
-                scheduler_options="#PBS -l filesystems=home:eagle:grand",
-                # Ensures 1 manger per node and allows it to divide work to all 64 threads
-                launcher=MpiExecLauncher(bind_cmd="--cpu-bind", overrides="--ppn 1 --env TMPDIR=/tmp"),
+                scheduler_options="#PBS -l filesystems=home:flare",
+                # Ensures 1 manger per node and allows it to divide work to all 208 threads
+                launcher=MpiExecLauncher(bind_cmd="--cpu-bind", overrides="--ppn 1"),
                 # options added to #PBS -l select aside from ncpus
-                select_options="ngpus=4",
+                select_options="",
                 # Number of nodes per batch job
                 nodes_per_block=nodes_per_job,
                 # Minimum number of batch jobs running workflow
@@ -390,13 +407,15 @@ polaris_config = Config(
                 # Maximum number of batch jobs running workflow
                 max_blocks=max_num_jobs,
                 # Threads per node
-                cpus_per_node=64,
+                cpus_per_node=208,
             ),
         ),
     ],
     # How many times to retry failed tasks
     # this is necessary if you have tasks that are interrupted by a batch job ending
     retries=2,
+    # Turning off logging of the interchange can improve performance above 500 nodes
+    initialize_logging=False,
 )
 
 ```

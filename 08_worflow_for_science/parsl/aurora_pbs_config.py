@@ -28,7 +28,8 @@ aurora_config = Config(
     executors=[
         HighThroughputExecutor(
             # Specify network interface to use to connect worker nodes to interchange
-            address=address_by_interface('bond0'),
+            # hsn0 is Aurora's Slingshot network interface
+            address=address_by_interface('hsn0'),
             # Ensures one worker per GPU
             # Since Aurora tile affinity can be a non-integer format, we use a list of strings here
             # e.g. ['0.0', '0.1', '1.0', '1.1', ..., '5.1']

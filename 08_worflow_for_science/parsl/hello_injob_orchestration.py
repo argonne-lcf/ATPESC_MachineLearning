@@ -1,9 +1,9 @@
 import parsl
 import os
 from parsl import python_app
-from polaris_injob_config import polaris_config as config
-# To run on Aurora, uncomment the following line and comment out the above line
-# from aurora_injob_config import aurora_config as config
+from aurora_injob_config import aurora_config as config
+# To run on Polaris, uncomment the following line and comment out the above line
+# from polaris_injob_config import polaris_config as config
 
 # We will save outputs in the current working directory
 working_directory = os.getcwd()
@@ -27,7 +27,7 @@ def hello_affinity():
 
     return f"Hello from host {hostname}, GPU ID(s): {gpu_id}"
 
-# Load config for polaris
+# Load config for aurora
 with parsl.load(config):
 
     # Create futures calling 'hello_affinity', store them in list 'tasks'
