@@ -1,0 +1,43 @@
+=== 01_introduction_mnist.py ===
+Using device: cuda
+MNIST data loaded: train: 48000  examples, validation:  12000 examples, test: 10000 examples
+Input shape torch.Size([1, 28, 28])
+LinearClassifier(
+  (flatten): Flatten(start_dim=1, end_dim=-1)
+  (layer_1): Linear(in_features=784, out_features=10, bias=True)
+)
+Epoch 0: training loss: 0.9126529531478882, accuracy: 83.1375
+Epoch 1: training loss: 0.6825945184230805, accuracy: 85.32708333333333
+Epoch 2: training loss: 0.5889892008304596, accuracy: 86.39791666666666
+Epoch 3: training loss: 0.5364071420033772, accuracy: 87.09166666666667
+Epoch 4: training loss: 0.5019552551905314, accuracy: 87.58541666666667
+[linear model] training wall time: 36.8s
+Validation loss: 0.4942, validation accuracy: 87.58%
+[linear] showing max 10 first failures. The predicted class is shown first and the correct class in parentheses.
+NonlinearClassifier(
+  (flatten): Flatten(start_dim=1, end_dim=-1)
+  (layers_stack): Sequential(
+    (0): Linear(in_features=784, out_features=50, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=50, out_features=50, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=50, out_features=10, bias=True)
+  )
+)
+Epoch 0: training loss: 2.052813367843628, accuracy: 40.568749999999994
+Epoch 1: training loss: 1.1681265557607015, accuracy: 73.43333333333332
+Epoch 2: training loss: 0.6820254542032878, accuracy: 82.24166666666667
+Epoch 3: training loss: 0.5308107322851817, accuracy: 85.25208333333333
+Epoch 4: training loss: 0.46182414865493776, accuracy: 87.05833333333334
+[nonlinear model] training wall time: 37.4s
+Validation loss: 0.4537, validation accuracy: 86.89%
+[nonlinear] showing max 10 first failures. The predicted class is shown first and the correct class in parentheses.
+Done. Figures written to /eagle/ATPESC2026/hzheng/runs/polaris/atpesc-intro-dl/20260802-232322/outputs
+=== 02_conv_networks.py ===
+Using device: cuda
+Epoch 0: val. loss: 1.4992, val. accuracy: 96.2333
+Epoch 1: val. loss: 1.4929, val. accuracy: 96.8167
+Epoch 2: val. loss: 1.4943, val. accuracy: 96.6667
+[CNN] training wall time: 24.4s
+Done. Figures written to /eagle/ATPESC2026/hzheng/runs/polaris/atpesc-intro-dl/20260802-232322/outputs
+Done. Figures in /eagle/ATPESC2026/hzheng/runs/polaris/atpesc-intro-dl/20260802-232322/outputs, logs in /eagle/ATPESC2026/hzheng/runs/polaris/atpesc-intro-dl/20260802-232322/logs
