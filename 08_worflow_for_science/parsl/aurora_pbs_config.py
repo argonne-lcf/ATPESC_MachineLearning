@@ -10,11 +10,11 @@ from parsl.executors import HighThroughputExecutor
 from parsl.launchers import MpiExecLauncher
 
 # Set your queue and account
-queue = "alcf_training"
-account = "alcf_training"
+queue = "ATPESC"
+account = "ATPESC2026"
 
 # Set how to load environment
-load_env = f"source /flare/alcf_training/workflows/_env/bin/activate"
+load_env = f"source {os.getcwd()}/../0_activate_preinstall.sh"
 
 # These options will run work in 1 node batch jobs run one at a time
 nodes_per_job = 1
