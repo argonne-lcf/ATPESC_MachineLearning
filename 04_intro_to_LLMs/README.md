@@ -41,14 +41,14 @@ No local install: Colab already includes PyTorch and Matplotlib, and a free
 **CPU** runtime is more than enough (no GPU needed).
 
 1. Open [Google Colab](https://colab.research.google.com/) and sign in.
-2. **File → Open notebook → GitHub**, search `jingyanjiang/ATPESC_MachineLearning`,
+2. **File → Open notebook → GitHub**, search `argonne-lcf/ATPESC_MachineLearning`,
    and open `04_intro_to_LLMs/atpesc_llm_micro_lab.ipynb`.
 3. The notebook needs its helper file and corpus, so add a **new first cell**,
    paste this, and run it once:
    ```python
-   !wget -q https://raw.githubusercontent.com/jingyanjiang/ATPESC_MachineLearning/master/04_intro_to_LLMs/lab_core.py
+   !wget -q https://raw.githubusercontent.com/argonne-lcf/ATPESC_MachineLearning/master/04_intro_to_LLMs/lab_core.py
    !mkdir -p data
-   !wget -q https://raw.githubusercontent.com/jingyanjiang/ATPESC_MachineLearning/master/04_intro_to_LLMs/data/tiny_corpus.txt -O data/tiny_corpus.txt
+   !wget -q https://raw.githubusercontent.com/argonne-lcf/ATPESC_MachineLearning/master/04_intro_to_LLMs/data/tiny_corpus.txt -O data/tiny_corpus.txt
    ```
 4. Run the **Setup** cell and continue top to bottom.
 
