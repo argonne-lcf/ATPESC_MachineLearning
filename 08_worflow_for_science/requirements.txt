@@ -1,0 +1,4 @@
+dragonhpc
+parsl==2026.02.23
+globus-compute-sdk
+globus-compute-endpoint
