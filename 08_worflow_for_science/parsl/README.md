@@ -39,7 +39,7 @@ pip install parsl
 
 # Parsl functions and logic
 
-## Function app types (0_getting_started.py)
+## Function app types (1_getting_started.py)
 
 Parsl supports two main function types: the `python_app` type for running native python functions and the `bash_app` type that can be used to wrap around calls to a compiled executables.
 
@@ -76,7 +76,7 @@ with open('hello-stdout', 'r') as f:
     print(f.read())
 ```
 
-## Running parallel tasks (1_parallel_workflow.py)
+## Running parallel tasks (2_parallel_workflow.py)
 
 To run many tasks in parallel, create futures that call your app.  Once all futures have been created, only then wait on the results.
 
@@ -110,7 +110,7 @@ with parsl.load():
     print(outputs)
 ```
 
-## Running tasks with sequential dependencies (2_sequential_workflow.py)
+## Running tasks with sequential dependencies (3_sequential_workflow.py)
 
 To create dependencies between tasks, make the creation of one future dependent on the result of another future.
 
@@ -151,7 +151,7 @@ with open(saved.outputs[0].result(), 'r') as f:
     print('File contents: %s' % f.read())
 ```
 
-## Creating tasks within tasks (3_dynamic_workflow.py)
+## Creating tasks within tasks (4_dynamic_workflow.py)
 
 Sometimes it is advantageous for an app to call another app.  Apps that call other apps have a special type called a `join_app` (the join the results of other apps).  Here is an example:
 
@@ -329,12 +329,12 @@ with parsl.load(config):
 
 ```
 
-Run this example by submitting the script `4_hello_injob_orchestration.sh`:
+Run this example by submitting the script `5_hello_injob_orchestration.sh`:
 ```shell
-qsub 4_hello_injob_orchestration.sh
+qsub 5_hello_injob_orchestration.sh
 ```
 
-## PBSProProvider Example for Elastic Execution (5_hello_external_orchestration.py)
+## PBSProProvider Example for Elastic Execution (6_hello_external_orchestration.py)
 
 If you wish to distribute your tasks elastically over many PBS jobs, use the `PBSProProvider` in your config and execute your workflow on the login node.
 The Config object below will run 12 workers at a time.  These workers will be run on one Aurora node and each will access 1 GPU tile.
@@ -420,20 +420,20 @@ aurora_config = Config(
 
 ```
 
-To use this config, execute script `5_hello_external_orchestration.py` from a login node:
+To use this config, execute script `6_hello_external_orchestration.py` from a login node:
 ```shell
-python 5_hello_external_orchestration.py
+python 6_hello_external_orchestration.py
 ```
 
 
-## Run MPI application (6_mpi_app_example.py)
+## Run MPI application (7_mpi_app_example.py)
 
 In the previous example, `mpiexec` was used as a launcher, rather than an executor.  In order to run applications that have MPI communication, `mpiexec` has to be used a different way by Parsl.  To run MPI applications, use the `SimpleLauncher` and the `MPIExecutor`.  Note that the configuration has to set `max_workers_per_block` to align with the resource needs of the application.  To run applications with different node numbers, a different `Config` object is needed.
 
 This script runs the application hello_affinity from our [GettingStarted](https://github.com/argonne-lcf/GettingStarted/tree/master/Examples/Polaris/affinity_gpu) repo.  It is a C++ program with MPI enabled.
 
 ```shell
-python 6_mpi_app_example.py
+python 7_mpi_app_example.py
 ```
 
 ```python
