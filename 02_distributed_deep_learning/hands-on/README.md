@@ -9,15 +9,11 @@ Resources:
 
 # Part 2: PyTorch FSDP + Tensor Parallelism
 
-We will experiment with an example using PyTorch FSDP and tensor parallelism. For simplicity, the example comes from Sam Foreman's [ezpz](https://github.com/saforem2/ezpz) library (`ezpz.examples.fsdp_tp`). This could be run during an interactive job using `bash submit_fsdp_tp.sh`. 
+We will experiment with an example using PyTorch FSDP and tensor parallelism. For simplicity, the example comes from Sam Foreman's [ezpz](https://github.com/saforem2/ezpz) library (`ezpz.examples.fsdp_tp`). This could be run during an interactive job using `bash submit_fsdp_tp.sh`. You can check out the example and its options [here](https://github.com/saforem2/ezpz/blob/main/src/ezpz/examples/fsdp_tp.py).
 
-## Creating a custon Python environment on Aurora
-Our documentation for how to extend the Python environment provided in the frameworks module is [here](https://docs.alcf.anl.gov/aurora/data-science/python/#virtual-environments-via-venv).
-```
-python3 -m venv /path/to/new/venv --system-site-packages
-source  /path/to/new/venv/bin/activate
-pip install git+https://github.com/saforem2/ezpz
-```
+Here, we can use a shared Python environment that builds on the frameworks module by adding ezpz. (`/flare/ATPESC2026/frameworks_ezpz_venv/`)
+For future reference, our documentation for how to extend the Python environment provided in the frameworks module is [here](https://docs.alcf.anl.gov/aurora/data-science/python/#virtual-environments-via-venv).
+
 
 Resources:
 - [PyTorch FSDP documentation](https://docs.pytorch.org/docs/2.13/fsdp.html)
