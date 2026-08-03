@@ -3,7 +3,7 @@
 SFT training for SmolLM2-1.7B on Aurora (Intel XPU).
 
 Supports full fine-tuning
-with DDP (--no_fsdp) or FSDP2, assistant-only loss masking, and streaming
+with DDP (--no_fsdp) or FSDP, assistant-only loss masking, and streaming
 JSONL datasets with a 'messages' column.
 """
 
@@ -221,7 +221,7 @@ def main():
     training_args = SFTConfig(**train_kw)
 
     if is_main:
-        mode = "DDP" if args.no_fsdp else "FSDP2"
+        mode = "DDP" if args.no_fsdp else "FSDP"
         print(f"[Config] {mode}  lr={args.lr}  batch={args.batch_size}  "
               f"grad_accum={args.grad_accum}  max_steps={max_steps}", flush=True)
 

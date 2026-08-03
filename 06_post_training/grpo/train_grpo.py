@@ -12,7 +12,7 @@ A single TinyZero-style reward function scores each completion:
   0.1  — valid format but wrong answer or wrong numbers
   1.0  — correct answer using exactly the provided numbers
 
-Supports FSDP2 (default, required for 3B) and DDP (--no_fsdp, for smaller models).
+Supports FSDP (default, required for 3B) and DDP (--no_fsdp, for smaller models).
 """
 
 import os
@@ -271,7 +271,7 @@ def main():
     training_args = GRPOConfig(**train_kw)
 
     if is_main:
-        mode = "DDP" if args.no_fsdp else "FSDP2"
+        mode = "DDP" if args.no_fsdp else "FSDP"
         print(f"[Config] {mode}  lr={args.lr}  batch={args.batch_size}  "
               f"grad_accum={args.grad_accum}  max_steps={args.max_steps}", flush=True)
 

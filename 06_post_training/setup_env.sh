@@ -1,14 +1,6 @@
 #!/bin/bash
-set -eo pipefail
+set -o pipefail
 
-if [ -n "${BASH_SOURCE[0]}" ]; then
-    SCRIPT_PATH="${BASH_SOURCE[0]}"
-elif [ -n "$ZSH_VERSION" ]; then
-    SCRIPT_PATH="${(%):-%x}"
-else
-    SCRIPT_PATH="$0"
-fi
-SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
 export VENV_PATH="${VENV_PATH:-/lus/flare/projects/ATPESC2026/LLM_post-training/venv}"
 
 module load frameworks

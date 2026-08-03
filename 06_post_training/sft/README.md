@@ -70,7 +70,7 @@ cd ${PROJECT_PATH}/ATPESC_MachineLearning/06_post_training/sft
 bash run_sft.sh
 ```
 
-#### DO NOT RUN THIS -- Option B: PBS batch job
+#### Option B: PBS batch job
 
 ```bash
 qsub submit_sft.sh
