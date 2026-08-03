@@ -9,7 +9,7 @@ In this tutorial, we will focus on Cerebras (AI training and low-level programmi
 * [Sambanova](./SambaNova/README.md)
 * [Tenstorrent](./Tenstorrent/README.md)
 
-Additional details on ALCF AI Testbed is available at [online documentation](https://docs.alcf.anl.gov/ai-testbed/getting-started/).
+Additional details on ALCF AI Testbed is available at [online documentation](https://docs.alcf.anl.gov/ai-testbed/).
 
 
 
