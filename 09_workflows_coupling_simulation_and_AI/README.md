@@ -30,9 +30,9 @@ On Aurora both implementations route xTB simulations to CPU cores and MoLFormer 
 
 The three implementations showcase different ways of moving data (model state and search-space chunks) between tasks and launching processes across nodes:
 
-- **[2_parsl_futures.py](./2_parsl_futures.py)** -- processes are luanched with Parsl's `HighThroughputExecutor` while data flows entirely through the `AppFuture` objects. The trained model weights (~200 MB) are serialized and transferred from the training worker back to the driver, then back to every inference worker along with the chunked SMILES on each iteration of the loop.
-- **[3_parsl_io.py](./3_parsl_io.py)** -- processes are luanched with Parsl's `HighThroughputExecutor` while model weights and chunked SMILES are read/written to Lustre. Training and inference workers only pass light-weight metedata across the futures. 
-- **[4_dragon.py](./4_dragon.py)** -- processes are launched with Dragon's native Pool and data is staged in a distributed in-memory dictionary provided by Dragon caled the DDict. Dragon supports RDMA-based transfers across nodes, meaning that worker either read/write to their local RAM or have fast access to other node's RAM instead of hitting the filesystem.
+- **[2_parsl_futures.py](./2_parsl_futures.py)** -- processes are launched with Parsl's `HighThroughputExecutor` while data flows entirely through the `AppFuture` objects. The trained model weights (~200 MB) are serialized and transferred from the training worker back to the driver, then back to every inference worker along with the chunked SMILES on each iteration of the loop.
+- **[3_parsl_io.py](./3_parsl_io.py)** -- processes are launched with Parsl's `HighThroughputExecutor` while model weights and chunked SMILES are read/written to Lustre. Training and inference workers only pass light-weight metadata across the futures. 
+- **[4_dragon.py](./4_dragon.py)** -- processes are launched with Dragon's native Pool and data is staged in a distributed in-memory dictionary provided by Dragon called the DDict. Dragon supports RDMA-based transfers across nodes, meaning that workers either read/write to their local RAM or have fast access to other nodes' RAM instead of hitting the filesystem.
 
 All three workflow driver scripts use the same simulation primitive (`chemfunctions.compute_vertical`) and the same model primitives (`models.molformer.fit_model` and `models.molformer.predict_model`), so per-iteration training and inference *compute* times should be nearly identical across the three variants. What changes is what happens *around* those calls, specifically related to process launching and data movement, which is the focus of this lesson.
 
@@ -64,7 +64,7 @@ To make comparisons of the workflow's computational performance and ability to f
     python utils/test_imports.py
     ```
 
-3. Simulate a large number of molecues with Parsl and estimate how long a brute-force screen would take with `python-xtb`:
+3. Simulate a large number of molecules with Parsl and estimate how long a brute-force screen would take with `python-xtb`:
 
     ```bash
     python 1_simulate_molecules.py
@@ -91,26 +91,41 @@ To make comparisons of the workflow's computational performance and ability to f
 
 ## Improving the Active Learning Loop (Optional Homework)
 
-The current implementation of the ative learning loop uses a simple strategy for picking which molecules to simulate next, also known as the data acquisition step. Specifically, at each iteration, the workflow predicts the IE for the full search space using the ML surrogate, sorts the predictions, and finally picks the K molecules with the highest predicted IE to simulate in order to augment the training set. This approach can be called greedy top-K and is one example of an *acquisition function* that AL workflows adopt to determine which new samples are worth "acquiring" for training.
+The current implementation of the active learning loop uses a simple strategy for picking which molecules to simulate next, also known as the data acquisition step. At each iteration, the workflow predicts the ionization energy (IE) for the full search space using the ML surrogate, sorts the predictions, and finally picks the K molecules with the highest predicted IE to simulate in order to augment the training set. This top-K candidate selection is one example of an *acquisition function* that AL workflows adopt to determine which new samples are worth "acquiring" for training.
 
-A simple greedy top-K approach is often not the most effective because the model's top-K predictions tend to cluster ...
+A simple top-K acquisition function is often not the most effective because it does not take into account the uncertainty/error of the predictions and can cluster the newly selected samples in a region of the search space where it is more confident and ignore other promising areas. 
+We see the outcomes of these limitations in this example; the model identifies molecules with larger predicted IE as the loop iterations progress, however the error of those predictions also grows meaning that the model does not get better at identifying top candidates.
 
-The problem with pure greedy top-K is that the model's top-K predictions tend to cluster: molecules that look similar to each other, from a region of chemical space the model already thinks it understands. That means simulations get spent confirming what the model already knows instead of teaching it something new. A better acquisition function typically balances **exploitation** (pick molecules the model predicts are best) against **exploration** (pick molecules the model is uncertain about, or that are structurally different from what it has already seen). Some ideas to try, roughly in order of implementation effort:
+A better acquisition function typically balances *exploitation* against *exploration*. 
+Exploitation involves choosing candidates in a part of the search space which the model predicts will maximize the objective. This can give immediate payoff by moving quickly towards the objective, but depends on whether the model is accurate. The top-K approach is completely biased towards exploitation.
+Exploration involves choosing candidates which will expand the search over more areas of the search space and make the model more generalizable by looking at diverse candidates. This can delay the payoff but potentially improve the result by developing a better model and exploring more of the search space. 
 
-- **&epsilon;-greedy.** Pick `(1-&epsilon;)*batch_size` molecules by top-K as before, and `&epsilon;*batch_size` by uniform random sampling from the search space. Trivial to implement (a few lines around the "submit new simulations" block) and often meaningfully better than pure greedy at avoiding local optima. Try &epsilon; in the 0.1--0.3 range.
+Below are some ideas to try, roughly in order of implementation effort:
 
-- **Diversity-aware batch selection.** Instead of picking the top-K by predicted IE, pick the top-1 and then iteratively add molecules that are both high-predicted-IE *and* dissimilar from the ones already picked in this batch. Similarity can be measured by SMILES/Morgan-fingerprint Tanimoto distance (RDKit has `DataStructs.TanimotoSimilarity`). Prevents the batch from being 64 copies of near-identical molecules.
+- **&epsilon;-greedy.** Pick `(1-&epsilon;)*batch_size` molecules by top-K sorting, and `&epsilon;*batch_size` by uniform random sampling from the entire search space. This approach directly balances exploitation (`&epsilon;=0`) and exploration (`&epsilon;=1`) and while simple it can often provide a significant improvement over top-K. Try &epsilon; in the range 0.1--0.5.
 
-- **Uncertainty via a small ensemble.** Train N (say 3--5) linear heads with different random seeds on top of the same frozen MoLFormer encoder. At inference time, run all N heads and take the mean prediction plus the standard deviation across the heads. The **standard deviation is a rough uncertainty estimate**. Pick molecules that maximize `mean + &lambda;*std` (Upper Confidence Bound) or that maximize `std` alone (pure exploration). The MoLFormer forward pass dominates cost, so N heads share that pass -- adding heads is cheap.
+- **Diversity-aware batch selection.** Instead of picking the top-K by predicted IE, pick the top 1 and then iteratively add molecules that are both high-predicted-IE *and* dissimilar from the ones already picked in this batch. Which measure of similarity to choose is often problem dependent, but here we can use the Tanimoto similarity (see code snippet below). This approach ensures the newly acquired training samples are diverse and the model does not bias towards a specific area of the search space.
 
-- **Expected Improvement (EI).** Compute the improvement each candidate would give over the best-simulated-so-far IE, weighted by the model's uncertainty. Classic Bayesian-optimization acquisition function; naturally trades off exploration and exploitation without a manual &epsilon; or &lambda;. Requires an uncertainty estimate (see ensemble above).
+```python
+from rdkit import Chem, DataStructs
+from rdkit.Chem import rdFingerprintGenerator
 
-- **Query by committee.** Similar to the ensemble idea but the *disagreement* between models -- not the standard deviation -- is what drives selection. Molecules where the committee disagrees most are the most informative to simulate. Often equivalent to UCB in practice.
+smiles = {"methanol": "CO", "ethanol": "CCO"}
 
-For any of these, keep everything else in the loop identical (same model, same simulation, same seeds) so the comparison is fair. Then look at:
+# Build Morgan fingerprints (ECFP4-like: radius=2, 2048 bits)
+mfpgen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+fps = {name: mfpgen.GetFingerprint(Chem.MolFromSmiles(s))
+       for name, s in smiles.items()}
 
-- **Best IE discovered by iteration N** across acquisition functions. A better acquisition function should reach higher-IE molecules with fewer simulations.
-- **MRE on the held-out (newly simulated) molecules** each iteration. If MRE stays high, the loop is exploring; if it drops, the loop is settling into a region it understands. Neither is inherently better -- what matters is which one finds better molecules faster.
-- **Diversity of the top-K picks each iteration** (e.g., mean pairwise Tanimoto distance). Greedy top-K tends to collapse this over iterations; a good acquisition function shouldn't.
+# Tanimoto distance (larger values mean less similar)
+dist = 1.0 - DataStructs.TanimotoSimilarity(fps["methanol"], fps["ethanol"])
+print(f"Tanimoto distance (methanol vs ethanol): {dist:.2f}")
+```
 
-If you have time, also try varying `initial_training_count`, `max_training_count`, and `batch_size` and observe how the acquisition function's advantage changes. A cleverer acquisition function typically matters more when the simulation budget is small relative to the search space.
+- **Uncertainty via a small ensemble.** Train N (say 3--5) linear heads with different random seeds on top of the same frozen MoLFormer encoder. At inference time, run all N heads and use the mean as the predicted IE and the standard deviation as a *rough uncertainty estimate*. Sort and pick molecules according to the largest upper confidence bound (UCB) `mean + &lambda;*std` (1 is a good starting value for &lambda;, providing a balance of exploitation and exploration). Note that the MoLFormer forward pass dominates cost during inference, so it is cheaper to evaluate the encoder once and then the N heads. 
+
+- **Query by committee.** Similar to the ensemble idea but the *disagreement* between models is what drives selection, thus prioritizing exploration. Molecules where the committee disagrees most (e.g., the largest variance) are the most informative to simulate.
+
+For any of these acquisition functions, keep everything else in the loop identical (same model, same simulation, same seeds) so the comparison is fair. Also, make sure to modify the `initial_training_count`, `batch_size`, and `max_training_count` parameters of the workflow to find the right balance between initial exploration and loop acquisition. 
+Then look at the best identified molecule along with its IE, the MRE for each loop iteration, and the total run time to evaluate how the loop is performing and how quickly it converges.
+
