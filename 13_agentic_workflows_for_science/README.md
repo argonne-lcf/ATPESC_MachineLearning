@@ -104,7 +104,7 @@ used automatically. See the
 This demo is designed to be run interactively on an Aurora node
 
 ```bash
-qsub -I -A ATPESC2025 -q ATPESC -l select=1 -l walltime=0:60:0 -l filesystems=home:flare
+qsub -I -A ATPESC2026 -q ATPESC -l select=1 -l walltime=0:60:0 -l filesystems=home:flare
 ```
 
 Once your interactive job has started, activate the demo environment:
@@ -160,7 +160,7 @@ export no_proxy=127.0.0.1,localhost,::1
 python examples/02_mcp_agent.py \
   --server-url http://127.0.0.1:8000/mcp \
   --structure data/structures/water.xyz \
-  --backend mace \ 
+  --backend mace \
   --device xpu
 ```
 
