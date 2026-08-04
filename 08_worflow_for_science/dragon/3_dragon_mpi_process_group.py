@@ -7,20 +7,20 @@ from dragon.native.process import ProcessTemplate
 from dragon.infrastructure.facts import PMIBackend
 
 # Optimal CPU and GPU affinities for Aurora Nodes
-# gpu_affinities = [[float(f'{gid}.{tid}')] for gid in range(6) for tid in range(2)]
-# cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(c, c+8)) for c in range(53, 104-8, 8)]
+gpu_affinities = [[float(f'{gid}.{tid}')] for gid in range(6) for tid in range(2)]
+cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(c, c+8)) for c in range(53, 104-8, 8)]
 
 # Set the PMI backend and path to MPI executable for Aurora
-# pmi_backend = PMIBackend.PMIX
-# exe = "" # Path to MPI executable for Aurora, TBD
+pmi_backend = PMIBackend.PMIX
+exe = "/flare/ATPESC2026/EXAMPLES/track-6-workflows-for-science/GettingStarted/Examples/Aurora/affinity_gpu/sycl/hello_affinity" # Path to MPI executable for Aurora
 
 # Optimal CPU and GPU affinities for Polaris Nodes
-gpu_affinities = [[3],[2],[1],[0]]
-cpu_affinities = [list(range(c, c+8)) for c in range(0, 32, 8)]
+# gpu_affinities = [[3],[2],[1],[0]]
+# cpu_affinities = [list(range(c, c+8)) for c in range(0, 32, 8)]
 
 # Set the PMI backend and path to MPI executable for Polaris
-pmi_backend = PMIBackend.CRAY
-exe = "/grand/alcf_training/workflows/GettingStarted/Examples/Polaris/affinity_gpu/hello_affinity"
+# pmi_backend = PMIBackend.CRAY
+# exe = ""
 
 
 if __name__ == '__main__':
@@ -60,5 +60,3 @@ if __name__ == '__main__':
     pg.start()
     pg.join()
     pg.close()
-
-    
