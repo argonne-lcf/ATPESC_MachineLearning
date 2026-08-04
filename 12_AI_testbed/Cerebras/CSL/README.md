@@ -114,9 +114,8 @@ cslc --help
 export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
 export https_proxy=http://proxy.alcf.anl.gov:3128
 cd ~/ATPESC
-# NOTE: development fork — on merge, swap to https://github.com/argonne-lcf/ATPESC_MachineLearning.git
-git clone https://github.com/vksastry/ATPESC_MachineLearning.git
-cd ATPESC_MachineLearning/04_AI_testbed/Cerebras/CSL
+git clone https://github.com/argonne-lcf/ATPESC_MachineLearning.git
+cd ATPESC_MachineLearning/12_AI_testbed/Cerebras/CSL
 ```
 
 > [!NOTE]
