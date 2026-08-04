@@ -93,14 +93,17 @@ See `csctl -h` for more options.
 
 Ready to go deeper? Pick up where the hands-on left off. 💪
 
-- [ ] **Make the new learning rate actually take effect.** After you lower the LR, why does resuming
-      *still* give a NaN — and what are the **two ways** to make your fix stick?
-      <details><summary>🔑 nudge</summary> A checkpoint carries the optimizer + LR-scheduler state, which overrides your YAML on resume. Either start from a fresh <code>model_dir</code>, or use the <code>LoadCheckpointStates</code> callback to load <code>"model"</code> weights only. Full walkthrough in <a href="./gpt3.md#-homework--make-the-new-learning-rate-actually-stick">gpt3.md</a>.</details>
-- [ ] **Find the edge.** Sweep the learning rate (e.g. `0.1`, `0.5`, `1.0`, `5.0`) — *where* does it flip
-      from "trains" to "NaN"? Plot loss-vs-step for a few values.
-- [ ] **Meet the safety nets.** GPT configs are hard to break on purpose. Investigate `max_gradient_norm`,
-      the AdamW optimizer, warmup, and bf16 loss scaling — which one does the most to *prevent* divergence?
-      Turn one off and see what changes.
+Use a **fresh `model_dir`** for every run.
+
+- [ ] **Make your fix stick.** When you lower the learning rate and just re-run, it *still* goes to NaN —
+      the checkpoint restores the old optimizer + LR-scheduler state and overrides your YAML. Get the
+      model to actually train with your new LR.
+      <details><summary>🔑 nudge</summary> Either start from a fresh <code>model_dir</code>, or load only the weights with the <code>LoadCheckpointStates</code> callback (<code>load_checkpoint_states: "model"</code>). Full walkthrough in <a href="./gpt3.md#-homework--make-the-new-learning-rate-actually-stick">gpt3.md</a>.</details>
+- [ ] **Find the tipping point.** Starting from the healthy LR, raise it step by step —
+      `6e-4 → 1e-2 → 1e-1 → 1` (fresh `model_dir` each run) — until the loss goes to NaN.
+      **What's the highest LR that still trains?**
+- [ ] *(Optional)* **Does warmup help?** Your config ramps the LR up from 0 over the first steps.
+      Try a **constant** high LR (no warmup) versus the warmup schedule — which one diverges faster?
 
 > [!TIP]
 > Keep an eye on the logged `lr`, the loss scale, and the gradient norm — they tell you *why* a run
