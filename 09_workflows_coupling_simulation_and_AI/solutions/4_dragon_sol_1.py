@@ -75,14 +75,13 @@ def train_model_app():
     # Attach to the DDict
     dd = mp.current_process().stash["ddict"]
 
-    # ===========================================
-    # Get the batch number and training data from the DDict
-
-    model_output = fit_model(train_data)
-
-    # ===========================================
-    # Write the model state dict to the DDict
-    
+    batch = dd["batch"]
+    model_output = fit_model(dd["train_data"])
+    dd[f"model_state_{batch}"] = {
+        "state_dict": model_output["state_dict"],
+        "y_mean": model_output["y_mean"],
+        "y_std": model_output["y_std"],
+    }
     return model_output["time"]
 
 # Inference app to run the model on a chunk of SMILES
@@ -94,15 +93,11 @@ def inference_app(proc_id):
     # Attach to the DDict
     dd = mp.current_process().stash["ddict"]
 
-    # ===========================================
-    # Get the batch number, model state and chunked SMILES from the DDict
-
+    batch = dd["batch"]
+    model_state = dd[f"model_state_{batch}"]
+    smiles = dd[f"chunk_{proc_id}"].tolist()
     outputs = predict_model(model_state, smiles)
-
-    # ===========================================
-    # Write the predictions to the DDict
-    
-
+    dd[f"predictions_{proc_id}"] = outputs["predictions"]
     return outputs["time"]
 
 # Setup function to stash the DDict at Pool init

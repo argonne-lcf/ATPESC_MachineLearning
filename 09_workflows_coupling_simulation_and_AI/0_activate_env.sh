@@ -1,15 +1,17 @@
 #!/bin/bash
 
 if hostname -f | grep -q "aurora"; then
+    EXAMPLE_PATH="/flare/ATPESC2026/EXAMPLES/track-6-AI-ML/09_coupled_workflows_for_science"
     if hostname -f | grep -q "uan"; then
         echo "Setting up environment for ALCF Aurora login nodes"
         module load frameworks
-        conda activate /flare/ATPESC2026/usr/balin/_atpesc_simAI
+        conda activate ${EXAMPLE_PATH}/_atpesc_simAI
+        conda-unpack
     else
         echo "Setting up environment for ALCF Aurora compute nodes"
         NODES=$(cat ${PBS_NODEFILE} | wc -l)
-        mpiexec -np "${NODES}" -ppn 1 /flare/ATPESC2026/usr/balin/bcast/bcast \
-          /flare/ATPESC2026/usr/balin/_atpesc_simAI.tar.gz /tmp
+        mpiexec -np "${NODES}" -ppn 1 ${EXAMPLE_PATH}/bcast/bcast \
+          ${EXAMPLE_PATH}/_atpesc_simAI.tar.gz /tmp
         mpiexec -np "${NODES}" -ppn 1 mkdir -p /tmp/_atpesc_simAI
         mpiexec -np "${NODES}" -ppn 1 tar -xzf /tmp/_atpesc_simAI.tar.gz -C /tmp/_atpesc_simAI
         mpiexec -np "${NODES}" -ppn 1 /tmp/_atpesc_simAI/bin/python /tmp/_atpesc_simAI/bin/conda-unpack
@@ -17,7 +19,7 @@ if hostname -f | grep -q "aurora"; then
         conda activate /tmp/_atpesc_simAI
         module load xpu-smi
         export TMPDIR=/tmp
-        export MOLFORMER_WEIGHTS_DIR=/flare/ATPESC2026/usr/balin/model-weights/MolFormer-XL
+        export MOLFORMER_WEIGHTS_DIR=${EXAMPLE_PATH}/model-weights/MolFormer-XL
         # Make chemfunctions.py and models/ importable from the workflow root,
         # even when Parsl workers cd into runinfo at startup.
         export PYTHONPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd):${PYTHONPATH}"

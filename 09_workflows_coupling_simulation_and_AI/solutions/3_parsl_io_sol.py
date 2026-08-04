@@ -70,10 +70,14 @@ def train_model_app(train_data, weights_path):
     import torch
     from models.molformer import fit_model
     model_state = fit_model(train_data)
-
-    # ===========================================
-    # Insert solution below to save model weights to file
-
+    torch.save(
+        {
+            "state_dict": model_state["state_dict"],
+            "y_mean": model_state["y_mean"],
+            "y_std": model_state["y_std"],
+        },
+        weights_path,
+    )
     return model_state["time"]
 
 # Inference app to run the model on a chunk of SMILES
@@ -82,14 +86,11 @@ def inference_app(weights_path, chunk_path):
     import torch
     import pandas as pd
     from models.molformer import predict_model
-
-    # ===========================================
-     # Insert solution below to load model weights from file
     state = torch.load(weights_path, weights_only=True)
-
-    # ===========================================
-    # Insert solution below to load chuncked smiles from file
-    
+    # CSV variant (slightly slower): 
+    #smiles = pd.read_csv(chunk_path)["smiles"].to_list()
+    # Pickle variant:
+    smiles = pd.read_pickle(chunk_path)["smiles"].to_list()
     return predict_model(state, smiles)
 
 # ~~~ Search space of molecules to sample from
@@ -107,11 +108,12 @@ chunks = np.array_split(np.array(search_space['smiles']), num_chunks)
 chunk_paths = []
 for i, chunk in enumerate(chunks):
     df = pd.DataFrame({"smiles": chunk})
-
-    # ===========================================
-    # Insert solution below to write chuncked smiles to file
-    path = 
-    
+    # CSV variant (slightly slower):
+    #path = str(data_dir / f"smiles_chunk_{i}.csv")
+    #df.to_csv(path, index=False)
+    # Pickle variant:
+    path = str(data_dir / f"smiles_chunk_{i}.pkl")
+    df.to_pickle(path)
     chunk_paths.append(path)
 
 
