@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2x2 GEMV - dataflow animation</title>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #eef1f5;
+    --ink: #18202b;
+    --ink-soft: #4a5666;
+    --ink-mute: #7a8798;
+    --border: #d5dbe3;
+    --border-strong: #b7c0cd;
+    /* direction-of-travel encoding */
+    --south: #0e7490;      /* x_color — southbound broadcast (teal) */
+    --south-fill: #cff3fb;
+    --east: #b45309;       /* ax_color — eastbound reduce (amber) */
+    --east-fill: #ffe8c2;
+    --accent: #4338ca;
+    --good: #15803d;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 6px 18px rgba(16,24,40,.06);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1116;
+      --panel: #161b22;
+      --panel-2: #1c232d;
+      --ink: #e7edf4;
+      --ink-soft: #aeb9c7;
+      --ink-mute: #7c8899;
+      --border: #2a3441;
+      --border-strong: #3a4756;
+      --south: #38bdf8;
+      --south-fill: #0b3947;
+      --east: #f6a838;
+      --east-fill: #4a2f0a;
+      --accent: #a5b4fc;
+      --good: #4ade80;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#f6f7f9;--panel:#fff;--panel-2:#eef1f5;--ink:#18202b;--ink-soft:#4a5666;
+    --ink-mute:#7a8798;--border:#d5dbe3;--border-strong:#b7c0cd;
+    --south:#0e7490;--south-fill:#cff3fb;--east:#b45309;--east-fill:#ffe8c2;
+    --accent:#4338ca;--good:#15803d;
+    --shadow:0 1px 2px rgba(16,24,40,.06), 0 6px 18px rgba(16,24,40,.06);
+  }
+  :root[data-theme="dark"] {
+    --bg:#0e1116;--panel:#161b22;--panel-2:#1c232d;--ink:#e7edf4;--ink-soft:#aeb9c7;
+    --ink-mute:#7c8899;--border:#2a3441;--border-strong:#3a4756;
+    --south:#38bdf8;--south-fill:#0b3947;--east:#f6a838;--east-fill:#4a2f0a;
+    --accent:#a5b4fc;--good:#4ade80;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  .viz {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 20px clamp(12px, 3vw, 28px) 40px;
+    line-height: 1.45;
+  }
+
+  .viz h1 {
+    font-size: clamp(19px, 3.4vw, 26px);
+    margin: 4px 0 2px;
+    letter-spacing: -.01em;
+  }
+  .viz .sub {
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin: 0 0 16px;
+  }
+  .viz .sub code { font-family: var(--mono); font-size: .92em; }
+
+  /* ---- legend ---- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .legend .item { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-soft); }
+  .legend .swatch {
+    width: 26px; height: 14px; border-radius: 4px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+  .legend .swatch.south { background: var(--south); }
+  .legend .swatch.east  { background: var(--east); }
+  .legend .glyph { font-family: var(--mono); font-weight: 700; }
+  .legend .glyph.south { color: var(--south); }
+  .legend .glyph.east  { color: var(--east); }
+
+  /* ---- step controls ---- */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .controls button.nav {
+    font: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    padding: 8px 14px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .controls button.nav:hover:not(:disabled) { border-color: var(--accent); }
+  .controls button.nav:disabled { opacity: .4; cursor: default; }
+
+  .steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1 1 auto;
+  }
+  .steps button {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .steps button .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--border-strong); color: var(--panel);
+    font-size: 11px; font-weight: 800;
+  }
+  .steps button[aria-current="true"] {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+  }
+  .steps button[aria-current="true"] .n { background: rgba(255,255,255,.28); color:#fff; }
+
+  /* ---- caption ---- */
+  .caption {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+    min-height: 62px;
+  }
+  .caption .ctitle { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+  .caption .cbody { color: var(--ink-soft); font-size: 13.5px; }
+  .caption code { font-family: var(--mono); font-size: .9em; color: var(--ink); }
+
+  /* ---- host panel ---- */
+  .host {
+    background: var(--panel);
+    border: 1px dashed var(--border-strong);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    box-shadow: var(--shadow);
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .host.active { border-style: solid; border-color: var(--accent); }
+  .host .hlabel {
+    font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .host .xfer {
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none;
+    padding: 2px 9px; border-radius: 999px; color: #fff; background: var(--ink-mute);
+  }
+  .host.active .xfer { background: var(--accent); }
+  .host .harrays { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .host .harr { font-family: var(--mono); font-size: 12px; }
+  .host .harr .nm { color: var(--ink-mute); font-family: var(--sans); font-size: 11px; display:block; margin-bottom:4px;}
+
+  .transfer-bridge {
+    text-align: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    color: var(--ink-mute);
+    font-size: 18px;
+    line-height: 1;
+    height: 20px;
+    margin-bottom: 6px;
+  }
+  .transfer-bridge.h2d { color: var(--accent); }
+  .transfer-bridge.d2h { color: var(--good); }
+
+  /* ---- PE grid ---- */
+  .grid-wrap { overflow-x: auto; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(215px, 1fr));
+    gap: clamp(30px, 5vw, 52px);
+    padding: 30px 30px 26px;
+    min-width: 480px;
+  }
+
+  .pe {
+    position: relative;
+    background: var(--panel);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 14px;
+    padding: 12px 13px 13px;
+    box-shadow: var(--shadow);
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .pe.spotlight { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent), var(--shadow); }
+
+  .pe .pe-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 9px;
+  }
+  .pe .coord { font-family: var(--mono); font-weight: 700; font-size: 14px; }
+  .pe .role {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+    color: var(--ink-mute); background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px;
+  }
+
+  .pe .amat { display: inline-grid; gap: 3px; margin-bottom: 9px; }
+  .pe .amat .arow { display: grid; grid-auto-flow: column; gap: 3px; }
+  .pe .amat .cell {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    width: 30px; text-align: center; padding: 3px 0; border-radius: 4px;
+    background: var(--panel-2); color: var(--ink-soft);
+    border: 1px solid var(--border);
+  }
+  .pe .amat.hidden { visibility: hidden; }
+  .pe .amat.used .cell { background: color-mix(in srgb, var(--south-fill) 60%, var(--panel)); color: var(--ink); }
+
+  .vecrow { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 2px; }
+  .vec { font-family: var(--mono); font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+  .vec .vk { color: var(--ink-mute); font-weight: 700; }
+  .vec .vv {
+    padding: 2px 7px; border-radius: 6px; font-weight: 700;
+    background: var(--panel-2); border: 1px solid var(--border);
+  }
+  .vec.x .vv    { color: var(--south); border-color: color-mix(in srgb, var(--south) 40%, var(--border)); }
+  .vec.x.spent .vv { color: var(--ink-mute); text-decoration: line-through; opacity:.7;}
+  .vec.y .vv    { color: var(--ink); }
+  .vec.y.partial .vv { background: var(--south-fill); border-color: color-mix(in srgb, var(--south) 45%, var(--border)); }
+  .vec.y.final .vv   { background: var(--east-fill); border-color: color-mix(in srgb, var(--east) 55%, var(--border)); color: var(--ink); }
+  .vec.y.seed .vv    { border-style: dashed; }
+  .vec .tag { font-family: var(--sans); font-size: 10px; color: var(--ink-mute); }
+
+  /* ---- ports (direction indicators) ---- */
+  .port {
+    position: absolute; font-family: var(--mono); font-weight: 800; font-size: 15px;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .port.on { opacity: 1; }
+  .port.south {           /* emit down: bottom edge */
+    left: 50%; bottom: -26px; transform: translateX(-50%);
+    color: var(--south); flex-direction: column; line-height: .9;
+  }
+  .port.north {           /* receive from above: top edge */
+    left: 50%; top: -26px; transform: translateX(-50%);
+    color: var(--south); flex-direction: column; line-height: .9;
+  }
+  .port.east {            /* emit right: right edge */
+    top: 50%; right: -30px; transform: translateY(-50%);
+    color: var(--east);
+  }
+  .port.west {            /* receive from left: left edge */
+    top: 50%; left: -30px; transform: translateY(-50%);
+    color: var(--east);
+  }
+  .port .lbl { font-family: var(--sans); font-size: 8.5px; font-weight: 700; letter-spacing:.02em; }
+
+  .ramp {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .03em;
+    color: var(--south); background: var(--south-fill);
+    border: 1px solid color-mix(in srgb, var(--south) 45%, var(--border));
+    border-radius: 6px; padding: 1px 5px; opacity: 0; transition: opacity .2s;
+  }
+  .ramp.on { opacity: 1; }
+
+  /* long southbound / eastbound connectors between cells */
+  .flow-hint {
+    text-align:center; font-size:12px; color:var(--ink-soft);
+    margin-top: 4px; font-family: var(--mono);
+  }
+  .flow-hint b.south { color: var(--south); }
+  .flow-hint b.east { color: var(--east); }
+
+  .result-banner {
+    margin-top: 14px; text-align: center; font-family: var(--mono);
+    font-size: 15px; font-weight: 800; color: var(--good);
+    opacity: 0; height: 0; overflow: hidden; transition: opacity .2s;
+  }
+  .result-banner.on { opacity: 1; height: auto; }
+
+  @media (max-width: 460px) {
+    .grid { gap: 34px 30px; padding: 26px 18px; }
+    .steps button .txt { display: none; }
+  }
+</style>
+
+<div class="viz" data-palette="#0e7490,#b45309">
+  <h1>gemv-07: y = A&middot;x + b on a 2&times;2 PE grid</h1>
+  <p class="sub">Watching data flow through the Cerebras fabric. <code>A</code> is 4&times;6, <code>x</code>=ones(6), <code>b</code>=twos(4). Color encodes <b>direction of travel</b>.</p>
+
+  <div class="legend">
+    <span class="item"><span class="swatch south">&darr;</span> <code>x_color</code> &mdash; broadcast <b style="color:var(--south)">SOUTH</b> down columns</span>
+    <span class="item"><span class="swatch east">&rarr;</span> <code>ax_color</code> &mdash; reduce <b style="color:var(--east)">EAST</b> across rows</span>
+    <span class="item"><span class="glyph south">RAMP</span> loop-back into sender's own core</span>
+    <span class="item"><b style="color:var(--good)">y</b> = final result</span>
+  </div>
+
+  <div class="controls">
+    <button class="nav" id="prev">&larr; Prev</button>
+    <button class="nav" id="next">Next &rarr;</button>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <div class="caption" id="caption" aria-live="polite">
+    <div class="ctitle" id="ctitle"></div>
+    <div class="cbody" id="cbody"></div>
+  </div>
+
+  <div class="host" id="host">
+    <div class="hlabel"><span>Host (run.py) &mdash; numpy arrays</span><span class="xfer" id="xfer">idle</span></div>
+    <div class="harrays">
+      <div class="harr"><span class="nm">A (4&times;6)</span>[[&nbsp;0&nbsp;1&nbsp;2&nbsp;|&nbsp;&nbsp;3&nbsp;&nbsp;4&nbsp;&nbsp;5]<br>&nbsp;[&nbsp;6&nbsp;7&nbsp;8&nbsp;|&nbsp;&nbsp;9&nbsp;10&nbsp;11]<br>&nbsp;[12&nbsp;13&nbsp;14&nbsp;|&nbsp;15&nbsp;16&nbsp;17]<br>&nbsp;[18&nbsp;19&nbsp;20&nbsp;|&nbsp;21&nbsp;22&nbsp;23]]</div>
+      <div class="harr"><span class="nm">x (6)</span>[1 1 1 1 1 1]</div>
+      <div class="harr"><span class="nm">b (4)</span>[2 2 2 2]</div>
+      <div class="harr"><span class="nm">y result (4)</span><span id="hostY">[· · · ·]</span></div>
+    </div>
+  </div>
+
+  <div class="transfer-bridge" id="bridge">&nbsp;</div>
+
+  <div class="grid-wrap">
+    <div class="grid" id="grid">
+      <!-- PE (0,0) NW -->
+      <div class="pe" id="pe00">
+        <div class="ramp">RAMP&#8617;</div>
+        <div class="pe-head"><span class="coord">PE (0,0)</span><span class="role">NW &middot; top &middot; left</span></div>
+        <div class="amat" data-pe="0,0"></div>
+        <div class="vecrow" data-vecs="0,0"></div>
+        <span class="port north"><span>&darr;</span><span class="lbl">NORTH</span></span>
+        <span class="port south"><span>&darr;</span><span class="lbl">SOUTH</span></span>
+        <span class="port east">&rarr;</span>
+        <span class="port west">&rarr;</span>
+      </div>
+      <!-- PE (1,0) NE -->
+      <div class="pe" id="pe10">
+        <div class="ramp">RAMP&#8617;</div>
+        <div class="pe-head"><span class="coord">PE (1,0)</span><span class="role">NE &middot; top &middot; right</span></div>
+        <div class="amat" data-pe="1,0"></div>
+        <div class="vecrow" data-vecs="1,0"></div>
+        <span class="port north"><span>&darr;</span><span class="lbl">NORTH</span></span>
+        <span class="port south"><span>&darr;</span><span class="lbl">SOUTH</span></span>
+        <span class="port east">&rarr;</span>
+        <span class="port west">&rarr;</span>
+      </div>
+      <!-- PE (0,1) SW -->
+      <div class="pe" id="pe01">
+        <div class="ramp">RAMP&#8617;</div>
+        <div class="pe-head"><span class="coord">PE (0,1)</span><span class="role">SW &middot; bottom &middot; left</span></div>
+        <div class="amat" data-pe="0,1"></div>
+        <div class="vecrow" data-vecs="0,1"></div>
+        <span class="port north"><span>&darr;</span><span class="lbl">NORTH</span></span>
+        <span class="port south"><span>&darr;</span><span class="lbl">SOUTH</span></span>
+        <span class="port east">&rarr;</span>
+        <span class="port west">&rarr;</span>
+      </div>
+      <!-- PE (1,1) SE -->
+      <div class="pe" id="pe11">
+        <div class="ramp">RAMP&#8617;</div>
+        <div class="pe-head"><span class="coord">PE (1,1)</span><span class="role">SE &middot; bottom &middot; right</span></div>
+        <div class="amat" data-pe="1,1"></div>
+        <div class="vecrow" data-vecs="1,1"></div>
+        <span class="port north"><span>&darr;</span><span class="lbl">NORTH</span></span>
+        <span class="port south"><span>&darr;</span><span class="lbl">SOUTH</span></span>
+        <span class="port east">&rarr;</span>
+        <span class="port west">&rarr;</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-hint" id="flowhint">&nbsp;</div>
+  <div class="result-banner" id="banner">y = [17, 53, 89, 125]  =  A&middot;x + b &nbsp;&check;</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var PES = ["0,0", "1,0", "0,1", "1,1"];
+  var elId = { "0,0": "pe00", "1,0": "pe10", "0,1": "pe01", "1,1": "pe11" };
+
+  // A quadrants (column-major storage on device, shown row-major for reading)
+  var A = {
+    "0,0": [[0,1,2],[6,7,8]],
+    "1,0": [[3,4,5],[9,10,11]],
+    "0,1": [[12,13,14],[18,19,20]],
+    "1,1": [[15,16,17],[21,22,23]]
+  };
+  var partial = { "0,0":[5,23], "1,0":[12,30], "0,1":[41,59], "1,1":[48,66] };
+  var finalY  = { "1,0":[17,53], "1,1":[89,125] };
+
+  function isTop(pe){ return pe[2] === "0"; }   // row = char after comma
+  function isLeft(pe){ return pe[0] === "0"; }  // col
+  function fmt(a){ return "[" + a.join(", ") + "]"; }
+
+  // ---- render the static A quadrants once ----
+  document.querySelectorAll(".amat").forEach(function (node) {
+    var pe = node.getAttribute("data-pe");
+    var m = A[pe];
+    node.innerHTML = m.map(function (row) {
+      return '<div class="arow">' + row.map(function (v) {
+        return '<div class="cell">' + v + "</div>";
+      }).join("") + "</div>";
+    }).join("");
+  });
+
+  // ---- step definitions ----
+  // each step returns per-PE display + global flow state
+  var steps = [
+    {
+      tab: "Build",
+      title: "0 · Host builds A, x, b",
+      body: "The host program (run.py) constructs the full problem in numpy: <code>A = arange(24).reshape(4,6)</code>, <code>x = ones(6)</code>, <code>b = twos(4)</code>. Nothing is on the wafer yet.",
+      host: "building", bridge: "", hint: "",
+      pe: function () { return { showA:false, x:null, y:null, xSpent:false, aUsed:false, spot:false,
+                                 north:false, south:false, east:false, west:false, ramp:false }; }
+    },
+    {
+      tab: "H2D copy",
+      title: "1 · Host → PEs (memcpy H2D)",
+      body: "Each PE receives its <b>quadrant of A</b>. <code>x</code> goes to the <b>top row only</b>; <code>b</code> is written straight into <code>y</code> on the <b>left column only</b> (so it is pre-seeded into the accumulator). Right-column <code>y</code> starts at zero.",
+      host: "h2d", bridge: "&darr;&darr;&darr;", bridgeCls:"h2d", hint: "",
+      pe: function (pe) {
+        return {
+          showA: true, aUsed: false, spot: false, xSpent: false,
+          x: isTop(pe) ? [1,1,1] : null,
+          y: isLeft(pe) ? { v:[2,2], cls:"seed", tag:"= b" } : { v:[0,0], cls:"", tag:"zero" },
+          north:false, south:false, east:false, west:false, ramp:false
+        };
+      }
+    },
+    {
+      tab: "Broadcast",
+      title: "2 · Broadcast x SOUTH  (x_color)",
+      body: "<code>compute()</code> runs; the top row <code>@fmovs</code> its <code>x</code> onto <code>x_color</code>. The router sends each element <b style='color:var(--south)'>SOUTH</b> to the PE below <b>and</b> back down its own <span style='color:var(--south);font-weight:700'>RAMP</span> &mdash; so the senders receive their own x too. Bottom PEs receive from <b style='color:var(--south)'>NORTH</b>.",
+      host: "idle", bridge: "", hint: "<b class='south'>x_color</b>: top row emits SOUTH + RAMP-loopback; bottom row receives from NORTH",
+      pe: function (pe) {
+        return {
+          showA: true, aUsed: false, spot: false, xSpent: false,
+          x: isTop(pe) ? [1,1,1] : null,
+          y: isLeft(pe) ? { v:[2,2], cls:"seed", tag:"= b" } : { v:[0,0], cls:"", tag:"zero" },
+          north: !isTop(pe), south: isTop(pe), east:false, west:false, ramp: isTop(pe)
+        };
+      }
+    },
+    {
+      tab: "@fmacs",
+      title: "3 · Each x arrival fires recv_x → @fmacs",
+      body: "Every arriving wavelet calls <code>recv_x(x_val)</code>, doing <code>@fmacs(y, y, A_col, x_val)</code> — <code>y += A[:,j]·x[j]</code> — then sliding <code>A_dsd</code> to the next column. After N_per_PE=3 arrivals each PE's partial y is complete (left column still carries its <code>b</code> seed).",
+      host: "idle", bridge: "", hint: "partial y per PE = its A-quadrant · x  (+ b on the left column)",
+      pe: function (pe) {
+        return {
+          showA: true, aUsed: true, spot: false, xSpent: isTop(pe),
+          x: isTop(pe) ? [1,1,1] : null,
+          y: { v: partial[pe], cls:"partial", tag:"partial" },
+          north:false, south:false, east:false, west:false, ramp:false
+        };
+      }
+    },
+    {
+      tab: "Reduce",
+      title: "4 · Reduce EAST  (ax_color)",
+      body: "Completion of recv_x <code>@activate</code>s <code>reduce</code>. The <b>left column</b> <code>@fmovs</code> its partial y <b style='color:var(--east)'>EAST</b> on <code>ax_color</code>; the <b>right column</b> pulls it from a fabin DSD and <code>@fadds</code> it in. Right column now holds the final y.",
+      host: "idle", bridge: "", hint: "<b class='east'>ax_color</b>: left column sends EAST (@fmovs) → right column adds (@fadds)",
+      pe: function (pe) {
+        var isFinal = !isLeft(pe);
+        return {
+          showA: true, aUsed: true, spot: isFinal, xSpent: isTop(pe),
+          x: isTop(pe) ? [1,1,1] : null,
+          y: isFinal ? { v: finalY[pe], cls:"final", tag:"FINAL" }
+                     : { v: partial[pe], cls:"partial", tag:"sent →" },
+          north:false, south:false, east: isLeft(pe), west: !isLeft(pe), ramp:false
+        };
+      }
+    },
+    {
+      tab: "D2H copy",
+      title: "5 · PEs → Host (memcpy D2H)",
+      body: "The host copies <code>y</code> back from the <b>right column</b>: first M/2 from PE(1,0), last M/2 from PE(1,1). Result <code>y = [17, 53, 89, 125]</code> matches <code>A@x + b</code>.",
+      host: "d2h", bridge: "&uarr;&uarr;&uarr;", bridgeCls:"d2h", hint: "",
+      banner: true,
+      pe: function (pe) {
+        var isFinal = !isLeft(pe);
+        return {
+          showA: true, aUsed: true, spot: isFinal, xSpent: isTop(pe),
+          x: isTop(pe) ? [1,1,1] : null,
+          y: isFinal ? { v: finalY[pe], cls:"final", tag:"read → host" }
+                     : { v: partial[pe], cls:"partial", tag:"" },
+          north:false, south:false, east:false, west:false, ramp:false
+        };
+      }
+    }
+  ];
+
+  var cur = 0;
+
+  // ---- build the step tab buttons ----
+  var stepsBar = document.getElementById("steps");
+  steps.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.innerHTML = '<span class="n">' + i + '</span><span class="txt">' + s.tab + '</span>';
+    b.addEventListener("click", function () { go(i); });
+    stepsBar.appendChild(b);
+  });
+
+  function renderVecs(pe, st) {
+    var wrap = document.querySelector('[data-vecs="' + pe + '"]');
+    var html = "";
+    if (st.x) {
+      html += '<span class="vec x' + (st.xSpent ? " spent" : "") + '">' +
+              '<span class="vk">x</span><span class="vv">' + fmt(st.x) + '</span></span>';
+    }
+    if (st.y) {
+      html += '<span class="vec y ' + st.y.cls + '">' +
+              '<span class="vk">y</span><span class="vv">' + fmt(st.y.v) + '</span>' +
+              (st.y.tag ? '<span class="tag">' + st.y.tag + '</span>' : '') +
+              '</span>';
+    }
+    wrap.innerHTML = html;
+  }
+
+  function go(i) {
+    cur = Math.max(0, Math.min(steps.length - 1, i));
+    var s = steps[cur];
+
+    // caption
+    document.getElementById("ctitle").innerHTML = s.title;
+    document.getElementById("cbody").innerHTML = s.body;
+
+    // step buttons state
+    Array.prototype.forEach.call(stepsBar.children, function (b, idx) {
+      b.setAttribute("aria-current", idx === cur ? "true" : "false");
+    });
+    document.getElementById("prev").disabled = (cur === 0);
+    document.getElementById("next").disabled = (cur === steps.length - 1);
+
+    // host panel
+    var host = document.getElementById("host");
+    var xfer = document.getElementById("xfer");
+    host.classList.toggle("active", s.host === "h2d" || s.host === "d2h" || s.host === "building");
+    if (s.host === "h2d") { xfer.textContent = "H2D  →  device"; }
+    else if (s.host === "d2h") { xfer.textContent = "D2H  ←  device"; }
+    else if (s.host === "building") { xfer.textContent = "building arrays"; }
+    else { xfer.textContent = "idle"; }
+    document.getElementById("hostY").textContent = (s.host === "d2h") ? "[17, 53, 89, 125]" : "[· · · ·]";
+
+    // bridge glyphs
+    var bridge = document.getElementById("bridge");
+    bridge.className = "transfer-bridge" + (s.bridgeCls ? " " + s.bridgeCls : "");
+    bridge.innerHTML = s.bridge || "&nbsp;";
+
+    // flow hint + banner
+    document.getElementById("flowhint").innerHTML = s.hint || "&nbsp;";
+    document.getElementById("banner").classList.toggle("on", !!s.banner);
+
+    // per-PE
+    PES.forEach(function (pe) {
+      var st = s.pe(pe);
+      var el = document.getElementById(elId[pe]);
+      el.classList.toggle("spotlight", !!st.spot);
+
+      var amat = el.querySelector(".amat");
+      amat.classList.toggle("hidden", !st.showA);
+      amat.classList.toggle("used", !!st.aUsed);
+
+      renderVecs(pe, st);
+
+      el.querySelector(".port.north").classList.toggle("on", !!st.north);
+      el.querySelector(".port.south").classList.toggle("on", !!st.south);
+      el.querySelector(".port.east").classList.toggle("on", !!st.east);
+      el.querySelector(".port.west").classList.toggle("on", !!st.west);
+      el.querySelector(".ramp").classList.toggle("on", !!st.ramp);
+    });
+  }
+
+  document.getElementById("prev").addEventListener("click", function () { go(cur - 1); });
+  document.getElementById("next").addEventListener("click", function () { go(cur + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") { go(cur - 1); }
+    else if (e.key === "ArrowRight") { go(cur + 1); }
+  });
+
+  go(0);
+})();
+</script>
+
+</body>
+</html>

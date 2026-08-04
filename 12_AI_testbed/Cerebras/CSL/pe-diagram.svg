@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 560" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M0,1 L9,5 L0,9 Z" fill="#5a6472"/>
+    </marker>
+  </defs>
+
+  <!-- light card background so it reads in both GitHub themes -->
+  <rect x="0.5" y="0.5" width="719" height="559" rx="16" fill="#ffffff" stroke="#e4e8ee"/>
+
+  <!-- fabric links (double-headed) -->
+  <g stroke="#5a6472" stroke-width="2.2" marker-start="url(#ah)" marker-end="url(#ah)">
+    <line x1="360" y1="108" x2="360" y2="150"/>
+    <line x1="360" y1="410" x2="360" y2="452"/>
+    <line x1="152" y1="280" x2="240" y2="280"/>
+    <line x1="480" y1="280" x2="568" y2="280"/>
+  </g>
+
+  <!-- PE box (snug) -->
+  <rect x="240" y="150" width="240" height="260" rx="14" fill="#fbfcfe" stroke="#aab4c2" stroke-width="1.5"/>
+
+  <!-- Router -->
+  <rect x="288" y="184" width="144" height="42" rx="10" fill="#e8e0ff" stroke="#6b46c1" stroke-width="1.5"/>
+  <text x="360" y="211" text-anchor="middle" font-size="16" font-weight="700" fill="#3c1a78">🔀 Router</text>
+
+  <!-- RAMP link router -> CE -->
+  <line x1="360" y1="226" x2="360" y2="262" stroke="#5a6472" stroke-width="2.2" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <rect x="372" y="235" width="50" height="18" rx="5" fill="#eef0f3"/>
+  <text x="397" y="248" text-anchor="middle" font-size="11" font-weight="700" fill="#3a4756">RAMP</text>
+
+  <!-- Compute Engine -->
+  <rect x="272" y="262" width="176" height="42" rx="10" fill="#dcefff" stroke="#1d6fb8" stroke-width="1.5"/>
+  <text x="360" y="289" text-anchor="middle" font-size="15" font-weight="700" fill="#0b3d66">🧮 Compute Engine</text>
+
+  <!-- CE -> Memory -->
+  <line x1="360" y1="304" x2="360" y2="340" stroke="#5a6472" stroke-width="2.2" marker-start="url(#ah)" marker-end="url(#ah)"/>
+
+  <!-- Local memory -->
+  <rect x="262" y="340" width="196" height="52" rx="10" fill="#fff3d6" stroke="#d99a00" stroke-width="1.5"/>
+  <text x="360" y="362" text-anchor="middle" font-size="14" font-weight="700" fill="#7a5a00">💾 Local memory</text>
+  <text x="360" y="381" text-anchor="middle" font-size="12" fill="#95721a">~48 KB SRAM · private</text>
+
+  <!-- Neighbors -->
+  <g>
+    <rect x="304" y="68" width="112" height="40" rx="20" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <text x="360" y="93" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4756">⬆ NORTH</text>
+
+    <rect x="304" y="452" width="112" height="40" rx="20" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <text x="360" y="477" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4756">⬇ SOUTH</text>
+
+    <rect x="40" y="260" width="112" height="40" rx="20" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <text x="96" y="285" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4756">⬅ WEST</text>
+
+    <rect x="568" y="260" width="112" height="40" rx="20" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <text x="624" y="285" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4756">EAST ➡</text>
+  </g>
+</svg>
