@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <rect x="0.5" y="0.5" width="359" height="359" rx="16" fill="#ffffff" stroke="#e4e8ee"/>
+
+  <!-- mesh links (outer ring) -->
+  <g stroke="#c4ccd6" stroke-width="2">
+    <line x1="64" y1="64" x2="296" y2="64"/>
+    <line x1="64" y1="296" x2="296" y2="296"/>
+    <line x1="64" y1="64" x2="64" y2="296"/>
+    <line x1="296" y1="64" x2="296" y2="296"/>
+  </g>
+  <!-- center PE's four links, emphasized -->
+  <g stroke="#8a94a3" stroke-width="3">
+    <line x1="180" y1="180" x2="180" y2="64"/>
+    <line x1="180" y1="180" x2="180" y2="296"/>
+    <line x1="180" y1="180" x2="64"  y2="180"/>
+    <line x1="180" y1="180" x2="296" y2="180"/>
+  </g>
+
+  <!-- corner PEs (grey) -->
+  <g>
+    <rect x="16"  y="16"  width="96" height="96" rx="12" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <rect x="248" y="16"  width="96" height="96" rx="12" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <rect x="16"  y="248" width="96" height="96" rx="12" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <rect x="248" y="248" width="96" height="96" rx="12" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.5"/>
+    <text x="64"  y="70"  text-anchor="middle" font-size="18" font-weight="700" fill="#7a8798">PE</text>
+    <text x="296" y="70"  text-anchor="middle" font-size="18" font-weight="700" fill="#7a8798">PE</text>
+    <text x="64"  y="302" text-anchor="middle" font-size="18" font-weight="700" fill="#7a8798">PE</text>
+    <text x="296" y="302" text-anchor="middle" font-size="18" font-weight="700" fill="#7a8798">PE</text>
+  </g>
+
+  <!-- NORTH neighbor (blue) -->
+  <rect x="132" y="16" width="96" height="96" rx="12" fill="#dcefff" stroke="#1d6fb8" stroke-width="1.5"/>
+  <text x="180" y="60" text-anchor="middle" font-size="19" font-weight="700" fill="#0b3d66">PE</text>
+  <text x="180" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#1d6fb8">north</text>
+
+  <!-- WEST neighbor (rose) -->
+  <rect x="16" y="132" width="96" height="96" rx="12" fill="#ffe0ec" stroke="#d1477f" stroke-width="1.5"/>
+  <text x="64" y="176" text-anchor="middle" font-size="19" font-weight="700" fill="#8a2b54">PE</text>
+  <text x="64" y="196" text-anchor="middle" font-size="12" font-weight="700" fill="#d1477f">west</text>
+
+  <!-- CENTER PE (purple) -->
+  <rect x="132" y="132" width="96" height="96" rx="12" fill="#e8e0ff" stroke="#6b46c1" stroke-width="2"/>
+  <text x="180" y="188" text-anchor="middle" font-size="22" font-weight="800" fill="#3c1a78">PE</text>
+
+  <!-- EAST neighbor (amber) -->
+  <rect x="248" y="132" width="96" height="96" rx="12" fill="#fff3d6" stroke="#d99a00" stroke-width="1.5"/>
+  <text x="296" y="176" text-anchor="middle" font-size="19" font-weight="700" fill="#7a5a00">PE</text>
+  <text x="296" y="196" text-anchor="middle" font-size="12" font-weight="700" fill="#b6860b">east</text>
+
+  <!-- SOUTH neighbor (teal) -->
+  <rect x="132" y="248" width="96" height="96" rx="12" fill="#d9f7e6" stroke="#10996a" stroke-width="1.5"/>
+  <text x="180" y="292" text-anchor="middle" font-size="19" font-weight="700" fill="#0b5c40">PE</text>
+  <text x="180" y="312" text-anchor="middle" font-size="12" font-weight="700" fill="#10996a">south</text>
+</svg>

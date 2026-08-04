@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2x2 GEMV - data placement and computation</title>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #eef1f6;
+    --sheet: #ffffff;
+    --panel: #f5f7fb;
+    --ink: #14181f;
+    --ink-soft: #55607a;
+    --ink-mute: #8892a6;
+    --border: #d9dfea;
+    --border-bold: #b7c0d0;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --good: #157347;
+
+    /* quadrant identities (line / fill) */
+    --nw: #0e7490;  --nw-fill: #d6f3fb;
+    --ne: #b45309;  --ne-fill: #ffe9c7;
+    --sw: #be185d;  --sw-fill: #ffdbe8;
+    --se: #6d28d9;  --se-fill: #e9dfff;
+
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --shadow: 0 1px 2px rgba(20,30,60,.05), 0 10px 30px rgba(20,30,60,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #090c14; --sheet: #121826; --panel: #0e1420; --ink: #e9edf6;
+      --ink-soft: #a7b0c4; --ink-mute: #6b7488; --border: #263049; --border-bold: #38445f;
+      --accent: #8b93ff; --accent-soft: #1b2140; --good: #4ade80;
+      --nw: #38bdf8; --nw-fill: #0c3a49; --ne: #f6a838; --ne-fill: #3f2c0b;
+      --sw: #f472b6; --sw-fill: #431227; --se: #a78bfa; --se-fill: #271552;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 12px 34px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#eef1f6; --sheet:#fff; --panel:#f5f7fb; --ink:#14181f; --ink-soft:#55607a;
+    --ink-mute:#8892a6; --border:#d9dfea; --border-bold:#b7c0d0; --accent:#4f46e5; --accent-soft:#eef0ff; --good:#157347;
+    --nw:#0e7490; --nw-fill:#d6f3fb; --ne:#b45309; --ne-fill:#ffe9c7;
+    --sw:#be185d; --sw-fill:#ffdbe8; --se:#6d28d9; --se-fill:#e9dfff;
+  }
+  :root[data-theme="dark"] {
+    --bg:#090c14; --sheet:#121826; --panel:#0e1420; --ink:#e9edf6; --ink-soft:#a7b0c4;
+    --ink-mute:#6b7488; --border:#263049; --border-bold:#38445f; --accent:#8b93ff; --accent-soft:#1b2140; --good:#4ade80;
+    --nw:#38bdf8; --nw-fill:#0c3a49; --ne:#f6a838; --ne-fill:#3f2c0b;
+    --sw:#f472b6; --sw-fill:#431227; --se:#a78bfa; --se-fill:#271552;
+  }
+
+  * { box-sizing: border-box; }
+
+  .sheet {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: clamp(20px, 4vw, 48px) clamp(14px, 3vw, 40px) 64px;
+    line-height: 1.5;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: clamp(24px, 4.4vw, 38px);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+    font-weight: 800;
+  }
+  .lede {
+    color: var(--ink-soft);
+    font-size: clamp(15px, 1.7vw, 17px);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .lede code { font-family: var(--mono); color: var(--ink); background: var(--panel); padding: 1px 6px; border-radius: 5px; }
+
+  section { margin-top: clamp(34px, 5vw, 56px); }
+  h2 {
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-mute); font-weight: 700; margin: 0 0 6px;
+  }
+  h2 .n { font-family: var(--mono); color: var(--accent); font-size: 13px; }
+  .sub { color: var(--ink-soft); font-size: 15px; margin: 0 0 20px; max-width: 64ch; }
+  .sub b { color: var(--ink); }
+
+  /* ---------- Placement ---------- */
+  .placement {
+    display: grid;
+    grid-template-columns: minmax(320px, 1.15fr) minmax(230px, .85fr);
+    gap: clamp(18px, 3vw, 32px);
+    align-items: start;
+  }
+  @media (max-width: 760px) { .placement { grid-template-columns: 1fr; } }
+
+  .board-wrap { overflow-x: auto; }
+  .board {
+    display: inline-grid;
+    gap: 4px;
+    padding: 16px;
+    background: var(--sheet);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    font-family: var(--mono);
+    /* columns: b | x0..x5 | y  (rows: label + 4) set inline */
+  }
+  .cell {
+    width: 34px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12.5px; font-variant-numeric: tabular-nums;
+    border-radius: 5px; user-select: none;
+    transition: transform .12s, box-shadow .12s, filter .12s, opacity .12s;
+  }
+  .cell.a { border: 1px solid var(--border); color: var(--ink); }
+  .cell.a.nw { background: var(--nw-fill); }
+  .cell.a.ne { background: var(--ne-fill); }
+  .cell.a.sw { background: var(--sw-fill); }
+  .cell.a.se { background: var(--se-fill); }
+
+  .cell.head { color: var(--ink-mute); font-size: 11px; height: 22px; }
+  .cell.xh { color: var(--ink); font-weight: 700; border-radius: 6px; }
+  .cell.xh.left  { background: color-mix(in srgb, var(--nw) 16%, transparent); }
+  .cell.xh.right { background: color-mix(in srgb, var(--ne) 16%, transparent); }
+  .cell.blab, .cell.ylab { color: var(--ink-mute); font-size: 11px; }
+  .cell.b, .cell.y { font-weight: 700; border: 1px solid var(--border); border-radius: 6px; }
+  .cell.b.top { background: color-mix(in srgb, var(--nw) 16%, transparent); }
+  .cell.b.bot { background: color-mix(in srgb, var(--sw) 16%, transparent); }
+  .cell.y { background: var(--panel); color: var(--ink-mute); }
+  .cell.spacer { background: transparent; }
+
+  /* dim / highlight states */
+  .board.focus .cell.a:not(.hot),
+  .board.focus .cell.xh:not(.hot),
+  .board.focus .cell.b:not(.hot) { opacity: .32; }
+  .cell.hot { box-shadow: inset 0 0 0 2px currentColor; }
+  .cell.a.hot.nw, .cell.b.hot.top, .cell.xh.hot.left { color: var(--nw); }
+  .cell.a.hot.ne, .cell.xh.hot.right { color: var(--ne); }
+  .cell.a.hot.sw, .cell.b.hot.bot { color: var(--sw); }
+  .cell.a.hot.se { color: var(--se); }
+
+  .quad-note { font-family: var(--mono); font-size: 11.5px; color: var(--ink-mute); margin-top: 12px; }
+
+  /* PE grid */
+  .pes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pe {
+    text-align: left; cursor: pointer; font: inherit;
+    background: var(--sheet); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 12px 13px; box-shadow: var(--shadow);
+    transition: border-color .14s, transform .14s, box-shadow .14s;
+  }
+  .pe:hover { transform: translateY(-2px); }
+  .pe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pe .tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 12px; font-weight: 700; margin-bottom: 8px;
+  }
+  .pe .dot { width: 11px; height: 11px; border-radius: 3px; }
+  .pe[data-q="nw"] .dot { background: var(--nw); } .pe[data-q="nw"].sel { border-color: var(--nw); }
+  .pe[data-q="ne"] .dot { background: var(--ne); } .pe[data-q="ne"].sel { border-color: var(--ne); }
+  .pe[data-q="sw"] .dot { background: var(--sw); } .pe[data-q="sw"].sel { border-color: var(--sw); }
+  .pe[data-q="se"] .dot { background: var(--se); } .pe[data-q="se"].sel { border-color: var(--se); }
+  .pe.sel { box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); }
+  .pe .coord { color: var(--ink-mute); font-weight: 600; }
+  .pe .rows { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); display: grid; gap: 3px; }
+  .pe .rows b { color: var(--ink); font-weight: 700; }
+
+  .hint { font-size: 12.5px; color: var(--ink-mute); margin: 14px 0 0; }
+  .hint b { color: var(--ink-soft); }
+
+  /* ---------- Computation ---------- */
+  .compute {
+    background: var(--sheet); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .compute-head {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  .compute-head .pill {
+    font-family: var(--mono); font-size: 12px; font-weight: 700; color: #fff;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .compute-head .desc { font-size: 13.5px; color: var(--ink-soft); }
+  .compute-head .desc code { font-family: var(--mono); color: var(--ink); }
+  .calc { padding: 8px 18px 18px; overflow-x: auto; }
+  table.mac { border-collapse: collapse; font-family: var(--mono); font-size: 13px; width: 100%; min-width: 440px; }
+  table.mac th, table.mac td { text-align: right; padding: 8px 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.mac th { color: var(--ink-mute); font-weight: 600; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  table.mac td.op { text-align: left; color: var(--ink-soft); }
+  table.mac tr.init td { color: var(--ink-mute); }
+  table.mac tr.step td .col { color: var(--accent); }
+  table.mac tr.total td { border-top: 2px solid var(--border-bold); font-weight: 800; color: var(--ink); }
+  table.mac tr.total td.op { color: var(--ink); }
+  .runY { color: var(--good); font-weight: 700; }
+
+  /* step reveal animation */
+  table.mac tr.step, table.mac tr.total { transition: opacity .4s ease, background-color .5s ease; }
+  table.mac tr.step.pending, table.mac tr.total.pending { opacity: 0; }
+  table.mac tr.step.show, table.mac tr.total.show { opacity: 1; }
+  table.mac tr.step.active td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+  .compute-head .cc { margin-left: auto; display: inline-flex; align-items: center; gap: 12px; }
+  .compute-head .status { font-family: var(--mono); font-size: 11.5px; color: var(--ink-mute); min-width: 156px; text-align: right; }
+  .compute-head .status b { color: var(--ink); font-weight: 700; }
+  .compute-head .replay {
+    font: inherit; font-size: 12px; font-weight: 700; font-family: var(--mono);
+    color: var(--accent); background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 8px; padding: 5px 11px; cursor: pointer;
+  }
+  .compute-head .replay:hover { background: color-mix(in srgb, var(--accent) 18%, var(--accent-soft)); }
+  .compute-head .replay:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* wavelet pulse on the board */
+  .cell.wave { animation: wavePulse .62s ease; position: relative; z-index: 2; box-shadow: 0 0 0 2px var(--accent); }
+  @keyframes wavePulse { 0% { transform: scale(1); } 35% { transform: scale(1.22); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .cell.wave { animation: none; } }
+
+  /* ---------- Reduce ---------- */
+  .reduce {
+    display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center;
+    gap: 10px; background: var(--sheet); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px; box-shadow: var(--shadow); overflow-x: auto;
+  }
+  @media (max-width: 640px) { .reduce { grid-template-columns: 1fr; text-align: center; } .reduce .op { transform: rotate(90deg); } }
+  .rbox { font-family: var(--mono); border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); }
+  .rbox .lab { font-size: 11px; color: var(--ink-mute); margin-bottom: 4px; }
+  .rbox .val { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rbox.left { background: color-mix(in srgb, var(--nw) 10%, var(--sheet)); }
+  .rbox.right { background: color-mix(in srgb, var(--ne) 10%, var(--sheet)); }
+  .rbox.final { background: color-mix(in srgb, var(--good) 12%, var(--sheet)); border-color: color-mix(in srgb, var(--good) 45%, var(--border)); }
+  .rbox.final .val { color: var(--good); }
+  .reduce .op { font-family: var(--mono); font-size: 20px; font-weight: 800; color: var(--ink-mute); text-align: center; }
+
+  .foot { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--ink-mute); font-family: var(--mono); }
+  .foot b { color: var(--ink-soft); }
+</style>
+
+<div class="sheet">
+  <header>
+    <div class="eyebrow">Cerebras · CSL · 2×2 GEMV</div>
+    <h1>Where A, x, b live — and how each PE computes</h1>
+    <p class="lede">The problem is <code>y = A·x + b</code> with <code>A</code> 4×6, split across four PEs. Pick a PE below to see exactly which slice of the data it holds, then watch it turn that slice into its piece of the answer.</p>
+  </header>
+
+  <section>
+    <h2><span class="n">1</span> Placement — who holds what</h2>
+    <p class="sub"><code>A</code> is carved into four <b>quadrants</b> (one per PE). <code>x</code> is loaded only on the <b>top row</b>; <code>b</code> only on the <b>left column</b>. Hover or tap a PE to light up its slice in the matrix.</p>
+    <div class="placement">
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+        <div class="quad-note" id="quadNote">Columns are grouped 0–2 · 3–5 &nbsp;|&nbsp; rows 0–1 · 2–3</div>
+      </div>
+      <div>
+        <div class="pes" id="pes"></div>
+        <p class="hint"><b>Note:</b> the top row holds <code>x</code>; the bottom row gets its copy by <b>broadcast</b> (south). <code>b</code> sits in the left column so it rides the eastward reduce into the final answer.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span> Computation — the column view</h2>
+    <p class="sub">A matrix–vector product is a <b>weighted sum of A's columns</b>: <code>y = Σ x[j]·A[:,j]</code>. Each PE only sums <b>its own</b> columns. Every <code>x</code> value arrives as a wavelet and triggers one multiply-accumulate (<code>@fmacs</code>).</p>
+    <div class="compute" id="compute"></div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span> Reduce east — into the final answer</h2>
+    <p class="sub">Each row of PEs adds its <b>left</b> partial into its <b>right</b> partial (the <code>ax_color</code> reduce). The right column then holds the finished <code>y</code>, which the host reads back.</p>
+    <div class="reduce" id="reduce"></div>
+    <p class="hint" id="checkLine"></p>
+  </section>
+
+  <div class="foot">A = arange(24).reshape(4,6) · x = ones(6) · b = twos(4) &nbsp;—&nbsp; expected <b>y = A@x + b = [17, 53, 89, 125]</b></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var A = [
+    [0, 1, 2, 3, 4, 5],
+    [6, 7, 8, 9, 10, 11],
+    [12, 13, 14, 15, 16, 17],
+    [18, 19, 20, 21, 22, 23]
+  ];
+  var x = [1, 1, 1, 1, 1, 1];
+  var b = [2, 2, 2, 2];
+
+  // quadrant metadata
+  var Q = {
+    nw: { name: "NW", coord: "(0,0)", rows: [0, 1], cols: [0, 1, 2], bslice: [0, 1], top: true, left: true },
+    ne: { name: "NE", coord: "(1,0)", rows: [0, 1], cols: [3, 4, 5], bslice: null, top: true, left: false },
+    sw: { name: "SW", coord: "(0,1)", rows: [2, 3], cols: [0, 1, 2], bslice: [2, 3], top: false, left: true },
+    se: { name: "SE", coord: "(1,1)", rows: [2, 3], cols: [3, 4, 5], bslice: null, top: false, left: false }
+  };
+  var order = ["nw", "ne", "sw", "se"];
+  var qColorVar = { nw: "--nw", ne: "--ne", sw: "--sw", se: "--se" };
+
+  function quadOf(r, c) {
+    var top = r < 2, left = c < 3;
+    return top ? (left ? "nw" : "ne") : (left ? "sw" : "se");
+  }
+  function partial(q) { // includes b for left column
+    var m = Q[q], out = [];
+    for (var i = 0; i < 2; i++) {
+      var r = m.rows[i], s = m.bslice ? b[m.bslice[i]] : 0;
+      for (var k = 0; k < 3; k++) s += A[r][m.cols[k]] * x[m.cols[k]];
+      out.push(s);
+    }
+    return out;
+  }
+  function fmt(a) { return "[" + a.join(", ") + "]"; }
+
+  /* ---------- build placement board ---------- */
+  var board = document.getElementById("board");
+  // grid: col1 = b, col2..7 = A cols (x header), col8 = y
+  board.style.gridTemplateColumns = "auto repeat(6, auto) auto";
+
+  function mk(cls, txt) {
+    var d = document.createElement("div");
+    d.className = "cell " + cls;
+    if (txt !== undefined && txt !== null) d.textContent = txt;
+    return d;
+  }
+
+  // header row: [spacer][x0..x5][spacer]
+  board.appendChild(mk("head bcorner", ""));
+  for (var c = 0; c < 6; c++) {
+    var xh = mk("xh " + (c < 3 ? "left" : "right"), x[c]);
+    xh.dataset.xcol = c;
+    board.appendChild(xh);
+  }
+  board.appendChild(mk("head", "y"));
+
+  // small caption row under header handled by CSS spacing; now 4 data rows
+  for (var r = 0; r < 4; r++) {
+    // b cell
+    var bc = mk("b " + (r < 2 ? "top" : "bot"), b[r]);
+    bc.dataset.brow = r;
+    board.appendChild(bc);
+    // A cells
+    for (var cc = 0; cc < 6; cc++) {
+      var q = quadOf(r, cc);
+      var ac = mk("a " + q, A[r][cc]);
+      ac.dataset.r = r; ac.dataset.c = cc; ac.dataset.q = q;
+      board.appendChild(ac);
+    }
+    // y cell (final result per row)
+    board.appendChild(mk("y", "·"));
+  }
+
+  /* ---------- build PE tiles ---------- */
+  var pes = document.getElementById("pes");
+  order.forEach(function (q) {
+    var m = Q[q];
+    var btn = document.createElement("button");
+    btn.className = "pe"; btn.dataset.q = q; btn.type = "button";
+    btn.innerHTML =
+      '<span class="tag"><span class="dot"></span>' + m.name +
+      ' <span class="coord">' + m.coord + '</span></span>' +
+      '<div class="rows">' +
+        '<div>A: rows <b>' + m.rows.join(",") + '</b> · cols <b>' + m.cols.join(",") + '</b></div>' +
+        '<div>x: <b>[' + m.cols.map(function (c) { return x[c]; }).join(",") + ']</b>' + (m.top ? '' : ' <span style="color:var(--ink-mute)">(via broadcast)</span>') + '</div>' +
+        '<div>y init: <b>' + (m.bslice ? '[' + m.bslice.map(function (i) { return b[i]; }).join(",") + '] = b' : '[0,0]') + '</b></div>' +
+      '</div>';
+    btn.addEventListener("mouseenter", function () { focusQuad(q); });
+    btn.addEventListener("mouseleave", function () { if (board.classList.contains("locked")) focusQuad(selected); else clearFocus(); });
+    btn.addEventListener("click", function () { select(q); });
+    btn.addEventListener("focus", function () { focusQuad(q); });
+    pes.appendChild(btn);
+  });
+
+  /* ---------- highlight logic ---------- */
+  function focusQuad(q) {
+    board.classList.add("focus");
+    var m = Q[q];
+    board.querySelectorAll(".cell").forEach(function (el) { el.classList.remove("hot"); });
+    board.querySelectorAll('.cell.a[data-q="' + q + '"]').forEach(function (el) { el.classList.add("hot"); });
+    m.cols.forEach(function (c) {
+      var xh = board.querySelector('.cell.xh[data-xcol="' + c + '"]');
+      if (xh) xh.classList.add("hot");
+    });
+    if (m.bslice) m.bslice.forEach(function (r) {
+      var bc = board.querySelector('.cell.b[data-brow="' + r + '"]');
+      if (bc) bc.classList.add("hot");
+    });
+    document.getElementById("quadNote").textContent =
+      m.name + " " + m.coord + " holds A[rows " + m.rows.join(",") + ", cols " + m.cols.join(",") + "]";
+  }
+  function clearFocus() {
+    board.classList.remove("focus");
+    board.querySelectorAll(".cell").forEach(function (el) { el.classList.remove("hot"); });
+    document.getElementById("quadNote").textContent = "Columns are grouped 0–2 · 3–5  |  rows 0–1 · 2–3";
+  }
+
+  /* ---------- selection drives the compute panel ---------- */
+  var selected = "nw";
+  function select(q) {
+    selected = q;
+    board.classList.add("locked");
+    document.querySelectorAll(".pe").forEach(function (el) { el.classList.toggle("sel", el.dataset.q === q); });
+    focusQuad(q);
+    renderCompute(q);
+  }
+
+  function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  var timers = [];
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+  function pulseColumn(q, c) {
+    var m = Q[q];
+    var targets = [];
+    var xh = board.querySelector('.cell.xh[data-xcol="' + c + '"]');
+    if (xh) targets.push(xh);
+    [m.rows[0], m.rows[1]].forEach(function (r) {
+      var ac = board.querySelector('.cell.a[data-r="' + r + '"][data-c="' + c + '"]');
+      if (ac) targets.push(ac);
+    });
+    targets.forEach(function (el) {
+      el.classList.remove("wave"); void el.offsetWidth; el.classList.add("wave");
+      var t = setTimeout(function () { el.classList.remove("wave"); }, 660);
+      timers.push(t);
+    });
+  }
+
+  function renderCompute(q) {
+    clearTimers();
+    var m = Q[q];
+    var wrap = document.getElementById("compute");
+    var color = css(qColorVar[q]);
+    var init = m.bslice ? [b[m.bslice[0]], b[m.bslice[1]]] : [0, 0];
+    var run = init.slice();
+
+    var rows = '<tr class="init"><td class="op">y starts = ' + (m.bslice ? 'b' : '0') + '</td>' +
+      '<td></td><td></td><td class="runY">' + fmt(init) + '</td></tr>';
+    m.cols.forEach(function (c, i) {
+      var colv = [A[m.rows[0]][c], A[m.rows[1]][c]];
+      run = [run[0] + colv[0] * x[c], run[1] + colv[1] * x[c]];
+      rows += '<tr class="step pending" data-step="' + i + '">' +
+        '<td class="op">y += A[:,<span class="col">' + c + '</span>] · x[' + c + ']</td>' +
+        '<td>' + fmt(colv) + '</td>' +
+        '<td>× ' + x[c] + '</td>' +
+        '<td class="runY">' + fmt(run) + '</td></tr>';
+    });
+    rows += '<tr class="total pending"><td class="op">partial y (rows ' + m.rows.join(",") + ')</td><td></td><td></td><td>' + fmt(run) + '</td></tr>';
+
+    wrap.innerHTML =
+      '<div class="compute-head">' +
+        '<span class="pill" style="background:' + color + '">' + m.name + ' ' + m.coord + '</span>' +
+        '<span class="desc">sums columns <code>' + m.cols.join(", ") + '</code> of its quadrant' +
+          (m.bslice ? ', starting from its <code>b</code> slice' : ', starting from <code>0</code>') + '</span>' +
+        '<span class="cc"><span class="status" id="cstatus"></span>' +
+        '<button class="replay" type="button" id="replay">▶ replay</button></span>' +
+      '</div>' +
+      '<div class="calc"><table class="mac">' +
+        '<thead><tr><th>step</th><th>column A[:,j]</th><th>x[j]</th><th>running y</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+
+    document.getElementById("replay").addEventListener("click", function () { playCompute(q); });
+    playCompute(q);
+  }
+
+  function playCompute(q) {
+    clearTimers();
+    var m = Q[q];
+    var wrap = document.getElementById("compute");
+    var steps = wrap.querySelectorAll("tr.step");
+    var total = wrap.querySelector("tr.total");
+    var status = wrap.querySelector("#cstatus");
+    steps.forEach(function (r) { r.classList.remove("show", "active"); r.classList.add("pending"); });
+    total.classList.remove("show"); total.classList.add("pending");
+
+    var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      steps.forEach(function (r) { r.classList.remove("pending"); r.classList.add("show"); });
+      total.classList.remove("pending"); total.classList.add("show");
+      status.textContent = "";
+      return;
+    }
+
+    var delay = 850;
+    status.textContent = "streaming x…";
+    steps.forEach(function (r, i) {
+      var c = m.cols[i];
+      var t = setTimeout(function () {
+        steps.forEach(function (rr) { rr.classList.remove("active"); });
+        r.classList.remove("pending"); r.classList.add("show", "active");
+        status.innerHTML = 'wavelet <b>x[' + c + ']</b> arrived → <b>@fmacs</b>';
+        pulseColumn(q, c);
+      }, delay * (i + 1));
+      timers.push(t);
+    });
+    var tt = setTimeout(function () {
+      steps.forEach(function (rr) { rr.classList.remove("active"); });
+      total.classList.remove("pending"); total.classList.add("show");
+      status.textContent = "partial complete ✓";
+    }, delay * (steps.length + 1));
+    timers.push(tt);
+  }
+
+  /* ---------- reduce panel ---------- */
+  (function buildReduce() {
+    var pNW = partial("nw"), pNE = partial("ne"), pSW = partial("sw"), pSE = partial("se");
+    var topFinal = [pNW[0] + pNE[0], pNW[1] + pNE[1]];
+    var botFinal = [pSW[0] + pSE[0], pSW[1] + pSE[1]];
+    var el = document.getElementById("reduce");
+    function box(cls, lab, val) {
+      return '<div class="rbox ' + cls + '"><div class="lab">' + lab + '</div><div class="val">' + fmt(val) + '</div></div>';
+    }
+    el.innerHTML =
+      '<div style="display:grid;gap:10px">' +
+        box("left", "NW (0,0) partial", pNW) + box("left", "SW (0,1) partial", pSW) +
+      '</div>' +
+      '<div class="op">+</div>' +
+      '<div style="display:grid;gap:10px">' +
+        box("right", "NE (1,0) partial", pNE) + box("right", "SE (1,1) partial", pSE) +
+      '</div>' +
+      '<div class="op">=</div>' +
+      '<div style="display:grid;gap:10px">' +
+        box("final", "PE (1,0) → y[0:2]", topFinal) + box("final", "PE (1,1) → y[2:4]", botFinal) +
+      '</div>';
+
+    var y = topFinal.concat(botFinal);
+    document.getElementById("checkLine").innerHTML =
+      '<b>Final y = ' + fmt(y) + '</b> — matches A·x + b. The host reads it from the right column.';
+  })();
+
+  // start on NW
+  select("nw");
+})();
+</script>
+
+</body>
+</html>
