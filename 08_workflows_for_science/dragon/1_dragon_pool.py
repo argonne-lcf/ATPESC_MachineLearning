@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # sleep_times are the inputs to the pool tasks
     sleep_times = np.ones(num_tasks) * 1.0  # Sleep for 1 second each
 
-    # Distribute tasks across availble nodes with a simple pool
+    # Distribute tasks across available nodes with a simple pool
     # Unlike standard multiprocessing, Dragon will launch pool processes across multiple nodes
     # This pool does not use any GPU affinity
     print("Launching tasks with a simple Pool across nodes, no GPU affinity...", flush=True)

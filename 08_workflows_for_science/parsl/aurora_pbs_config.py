@@ -54,7 +54,7 @@ aurora_config = Config(
                 walltime="0:05:00",
                 # Change if data/modules located on other filesystem
                 scheduler_options="#PBS -l filesystems=home:flare",
-                # Ensures 1 manger per node
+                # Ensures 1 manager per node
                 launcher=MpiExecLauncher(bind_cmd="--cpu-bind", overrides="--ppn 1"),
                 # options added to #PBS -l select aside from ncpus
                 select_options="",
