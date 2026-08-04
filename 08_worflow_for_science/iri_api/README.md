@@ -2,6 +2,13 @@
 
 A small demo of submitting work to ALCF resources through the [IRI Facility API](https://api.alcf.anl.gov). Run the scripts in order.
 
+## Environment
+
+For the workshop, the prestaged environment with dragon can be loaded here:
+```shell
+source ../0_activate_preinstall.sh
+```
+
 ## 1. Create a token
 
 ```bash

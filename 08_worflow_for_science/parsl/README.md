@@ -13,28 +13,15 @@ We will begin by exploring how to define functions and dependencies.  Then we wi
 
 # Setup and installation
 
-First, login to Aurora and clone this repo:
-
+To activate the workshop environment:
 ```bash
-# Login to Aurora
-ssh aurora.alcf.anl.gov
-
-# Clone the repo
-git clone git@github.com:argonne-lcf/ALCF_Hands_on_HPC_Workshop.git
-cd ALCF_Hands_on_HPC_Workshop/workflows/parsl
+source ../0_activate_preinstall.sh
 ```
 
-For the workshop, you can use the workshop python virtual environment that has parsl installed:
+To install the environment yourself on Aurora:
 ```bash
-source /flare/alcf_training/workflows/_env/bin/activate
-```
-
-To create your own environment:
-```bash
-module load frameworks
-python -m venv _env
-source _env/bin/activate
-pip install parsl
+cd ..
+./install_env.sh
 ```
 
 # Parsl functions and logic

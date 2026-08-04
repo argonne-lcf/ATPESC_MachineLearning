@@ -14,7 +14,7 @@ We'll run these tests in an interactive session, however a sample submit script 
 qsub -I -A ATPESC2026 -l select=2 -l walltime=0:30:0 -l filesystems=home:flare -q ATPESC
 ```
 
-## Install
+## Environment
 
 For the workshop, the prestaged environment with dragon can be loaded here:
 ```shell
