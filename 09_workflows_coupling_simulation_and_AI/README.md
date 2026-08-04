@@ -22,7 +22,7 @@ The simulation and surrogate model are applied sequentially in an iterative loop
 
 A schematic of the loop is shown below.
 
-![workflow](../figures/workflow.svg)
+![workflow](./figures/workflow.svg)
 
 This example walks through three implementations of the same AL loop; two of the implementations use [Parsl](https://github.com/Parsl/parsl) and one uses [Dragon](https://dragonhpc.org/). Parsl builds upon Python's [`concurrent.futures`](https://docs.python.org/3/library/concurrent.futures.html#module-concurrent.futures), so downstream tasks that consume upstream futures form an implicit dependency graph. Data dependencies between tasks can be shared through Parsl's `AppFuture` objects directly. 
 Dragon extends Python `multiprocessing.Pool` to enable multi-node process launching and provides a distributed dictionary (DDict) for shared in-memory data staging. 
