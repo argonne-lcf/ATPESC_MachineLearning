@@ -3,15 +3,18 @@ from dragon.native.machine import System
 from multiprocessing import Pool, set_start_method, current_process
 from dragon.data.ddict import DDict
 
-def setup(dist_dict):
+def setup(dd):
     me = current_process()
     me.stash = {}
-    me.stash["ddict"] = dist_dict
+    me.stash["ddict"] = dd
 
 def assign(x):
-    dist_dict = current_process().stash["ddict"]
+    import socket
+
+    hostname = socket.gethostname()
+    dd = current_process().stash["ddict"]
     key = 'key_' + str(x)
-    dist_dict[key] = x
+    dd[key] = hostname
 
 if __name__ == '__main__':
     set_start_method("dragon")
