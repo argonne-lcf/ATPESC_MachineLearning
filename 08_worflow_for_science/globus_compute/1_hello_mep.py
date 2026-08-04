@@ -26,7 +26,6 @@ def hello_affinity():
 
     return f""" Hello Aurora! I'm Polaris! Here's some of my info:
                 hostname: {socket.gethostname()}
-                CUDA_VISIBLE_DEVICES: {os.environ.get('CUDA_VISIBLE_DEVICES')}
                 remote environment: {sys.executable}
                 python version: {sys.version}
                 parsl version: {parsl.__version__}
