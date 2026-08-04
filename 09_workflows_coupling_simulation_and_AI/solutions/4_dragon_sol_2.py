@@ -50,9 +50,9 @@ np.random.seed(seed)
 random.seed(seed)
 
 # ~~~ Define parameters for the workflow
-initial_training_count = 32  # Number of trianing samples to collect for first model training
-max_training_count = 64  # Maximum number of training samples to collect for training
-batch_size = 16  # Number of molecules to simulate in each iteration of active learning loop
+initial_training_count = 256  # Number of trianing samples to collect for first model training
+max_training_count = 512  # Maximum number of training samples to collect for training
+batch_size = 64  # Number of molecules to simulate in each iteration of active learning loop
 if initial_training_count >= max_training_count:
     print("Must do at least 1 active trianing iteration.")
     print("Change the values of initial_training_count and/or max_training_count and try again.")
@@ -60,7 +60,12 @@ if initial_training_count >= max_training_count:
 
 # ~~~ Define Python apps for each step in the workflow
 # Simulation app to compute the ionization energy of a molecule 
-compute_vertical_app = compute_vertical
+def compute_vertical_app(smiles):
+    try:
+        return compute_vertical(smiles)
+    except Exception as e:
+        # Catch RDKit "Bad Conformer Id" and similar failures
+        return -1.
 
 # Model training app 
 def train_model_app():
@@ -95,7 +100,7 @@ def inference_app(proc_id):
     dd[f"predictions_{proc_id}"] = outputs["predictions"]
     return outputs["time"]
 
-# Setup function to stach the DDict at Pool init
+# Setup function to stash the DDict at Pool init
 def setup(dd: DDict):
     me = mp.current_process()
     me.stash = {}
@@ -148,8 +153,7 @@ if __name__ == "__main__":
     ddict_mem_per_node = 0.3 * head_node.physical_mem # dedicate 30% of each node's memory to the DDict
     tot_ddict_mem = int(ddict_mem_per_node * num_nodes)
     managers_per_node = 4
-    dd_policy = Policy(cpu_affinity=[50,51,100,101])
-    dd = DDict(managers_per_node, num_nodes, tot_ddict_mem, policy=dd_policy, streams_per_manager=0)
+    dd = DDict(managers_per_node, num_nodes, tot_ddict_mem, streams_per_manager=0)
     print(f"Started DDict on {num_nodes} nodes with {tot_ddict_mem/1024/1024/1024:.1f} GB of memory\n",flush=True)
 
     # ~~~ Chunk the search space into smaller pieces and add those to the DDict
@@ -158,23 +162,30 @@ if __name__ == "__main__":
     for i, chunk in enumerate(chunks):
         dd[f"chunk_{i}"] = chunk
 
+    # ~~~ Create a single Pool for the whole to avoid overhead of process launching
+    # Mimic Parsl's configuration -- 12 workers per node, one per PVC tile
+    pool = Pool(
+        policy=[p for p in gpu_policy for _ in range(num_nodes)],    # Dragon round-robins across nodes first
+        processes_per_policy=1,
+        initializer=setup,
+        initargs=(dd,),
+    )
+
     # ~~~ Start with some random guesses of molecules to create initial training data
     init_mols = search_space.sample(initial_training_count)['smiles'].to_list()
     print(f"Sampled {initial_training_count}/{search_space_size} random molecules", flush=True)
 
-    # ~~~ Launch the simulations with Dragon native Pool
+    # ~~~ Launch the initial simulations 
     tic = perf_counter()
-    num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
-    pool = Pool(num_workers)
     print(f'Submitted {initial_training_count} simulations ...', flush=True)
     results = pool.map_async(compute_vertical_app, init_mols).get()
-    pool.close()
-    pool.join()
 
     # ~~~ Generate the initial training data
     already_ran = set()
     train_data = []
     for i, result in enumerate(results):
+        if result < 0:
+            continue
         train_data.append({
             'smiles': init_mols[i],
             'ie': result,
@@ -199,59 +210,45 @@ if __name__ == "__main__":
         start_loop_time = perf_counter()
         print(f"Iteration {batch}:")
 
-        # Train on subset of molecules
+        # Train on subset of molecules (single instance, use apply_async)
         tic = perf_counter()
-        pool = Pool(policy=[gpu_policy[0]],
-                      processes_per_policy=1, 
-                      initializer=setup, 
-                      initargs=(dd,)
-        )
         model_fit_time = pool.apply_async(train_model_app).get()
-        pool.close()
-        pool.join()
         t_train = perf_counter() - tic
         print(
             f"\tTrained on {len(train_data)} molecules:\n"
             f"\t\ttotal time: {t_train:.2f} sec\n",
-            f"\t\tfit_model time: {model_fit_time:.2f} sec", 
+            f"\t\tfit_model time: {model_fit_time:.2f} sec\n", 
+            f"\t\tworkflow overhead: {t_train - model_fit_time:.2f} sec", 
             flush=True
         )
 
-        # Inference on all molecules (divided into chunks)
+        # Inference on all molecules (divided into chunks) 
         tic = perf_counter()
-        chunk_id = [i for i in range(num_chunks)]
-        pool = Pool(policy=gpu_policy, # launches one process per GPU, binding each process to a single GPU
-                        processes_per_policy=1, 
-                        initializer=setup, 
-                        initargs=(dd,)
-        )
-        model_pred_times = pool.map_async(inference_app, chunk_id).get()
-        pool.close()
-        pool.join()
+        chunk_id = list(range(num_chunks))
+        model_pred_times = pool.map_async(inference_app, chunk_id, chunksize=1).get() # encourage use of all workers and GPU
         t_inf = perf_counter() - tic
         model_pred_time = sum(model_pred_times) / len(model_pred_times)
         print(
             f"\tPredicted {search_space_size} molecules:\n",
             f"\t\ttotal time: {t_inf:.2f} sec\n",
-            f"\t\tpredict_model time: {model_pred_time:.2f} sec", 
+            f"\t\tpredict_model time: {model_pred_time:.2f} sec\n",
+            f"\t\tworkflow overhead: {t_inf - model_pred_time:.2f} sec",  
             flush=True
         )
         
         # Sort inference predictions and store best molecules
         predictions = pd.concat([dd[f"predictions_{i}"] for i in chunk_id], ignore_index=True)
         predictions.sort_values('ie', ascending=False, inplace=True)
-        for i in range(5):
+        for i in range(50):
             best_molecules.append({
                     'smiles': predictions['smiles'].iloc[i],
                     'ie': predictions['ie'].iloc[i],
                     'batch': batch,
                     'time': perf_counter() - start_time
             })
-        print(f"\tBest predicted molecule: {predictions['smiles'].iloc[0]} with ionization energy {predictions['ie'].iloc[0]:.2f} Ha", flush=True)
         
-        # Submit new simulations for the top predictions
+        # Submit new simulations for the top predictions 
         tic = perf_counter()
-        num_workers = min(num_cores_per_node * num_nodes, initial_training_count)
         new_smiles = []
         for smiles in predictions['smiles']:
             if smiles not in already_ran:
@@ -259,14 +256,13 @@ if __name__ == "__main__":
                 already_ran.add(smiles)
                 if len(new_smiles) >= batch_size:
                     break
-        
-        pool = Pool(num_workers)
+
         results = pool.map_async(compute_vertical_app, new_smiles).get()
-        pool.close()
-        pool.join()
 
         new_results = []
         for i, result in enumerate(results):
+            if result < 0:
+                continue
             new_results.append({
                 'smiles': new_smiles[i],
                 'ie': result,
@@ -277,22 +273,37 @@ if __name__ == "__main__":
         new_results = pd.DataFrame(new_results)
         print(f"\tSimulated {len(new_results)} new molecules in {t_sim:.2f} sec", flush=True)
         
-        # Update the training data
-        train_data = pd.concat((train_data, new_results), ignore_index=True)
-        dd["train_data"] = train_data
-        
-        # Compute model error estimate 
+        # Compute model error estimate
         error = 0.
-        for smiles in train_data['smiles']:
-            true_ie = train_data[train_data['smiles'] == smiles]['ie'].iloc[0]
+        for smiles in new_results['smiles']:
+            true_ie = new_results[new_results['smiles'] == smiles]['ie'].iloc[0]
             predicted_ie = predictions[predictions['smiles'] == smiles]['ie'].iloc[0]
-            error += abs(true_ie - predicted_ie) / true_ie
-        error /= len(train_data)
+            error += abs(true_ie - predicted_ie) / abs(true_ie)
+        error /= len(new_results)
         model_accuracy.append({
             'batch': batch,
             'error': error,
         })
-        print(f"\tEstimate of MoLFormer Model Mean Relative Error (MRE): {error:.2f} %", flush=True)
+        print(f"\tEstimated MRE: {100 * error:.2f}%", flush=True)
+        best_smiles = predictions['smiles'].iloc[0]
+        best_pred = predictions['ie'].iloc[0]
+        best_new = new_results[new_results['smiles'] == best_smiles]
+        if len(best_new) > 0:
+            best_true = best_new['ie'].iloc[0]
+        elif best_smiles in already_ran:
+            best_prev = train_data[train_data['smiles'] == best_smiles]
+            best_true = best_prev['ie'].iloc[0] if len(best_prev) > 0 else None
+        else:
+            best_true = None
+        if best_true is not None:
+            best_err = abs(best_true - best_pred) / abs(best_true)
+            print(f"\tBest predicted molecule: {best_smiles}, IE={best_pred:.2f} Ha, relative error={100 * best_err:.2f}%", flush=True)
+        else:
+            print(f"\tBest predicted molecule: {best_smiles}, IE={best_pred:.2f} Ha", flush=True)
+
+        # Update the training data
+        train_data = pd.concat((train_data, new_results), ignore_index=True)
+        dd["train_data"] = train_data
            
         # Repeat
         batch += 1
@@ -301,7 +312,11 @@ if __name__ == "__main__":
         
     end_time = perf_counter()
     print(f"Training completed in {(end_time - start_time):.2f} seconds")
-        
+
+    # ~~~ Shut down the shared Pool
+    pool.close()
+    pool.join()
+
     # ~~~ Plot results of active learning loop
     print("\nPlotting results...")
     best_molecules = pd.DataFrame(best_molecules)

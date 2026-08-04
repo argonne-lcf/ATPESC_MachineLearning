@@ -76,13 +76,13 @@ To make comparisons of the workflow's computational performance and ability to f
     python 2_parsl_futures.py
     ```
 
-5. Run the Parsl workflow script moving data through disk:
+5. Run the Parsl workflow script moving data through disk (requires code additions):
 
     ```bash
     python 3_parsl_io.py
     ```
 
-6. Run the Dragon workflow script moving data through the DDict:
+6. Run the Dragon workflow script moving data through the DDict (requires code additions):
 
     ```bash
     dragon 4_dragon.py
