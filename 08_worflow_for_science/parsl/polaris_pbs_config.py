@@ -10,8 +10,8 @@ from parsl.executors import HighThroughputExecutor
 from parsl.launchers import MpiExecLauncher
 
 # Set your queue and account
-queue = "alcf_training"
-account = "alcf_training"
+queue = "ATPESC"
+account = "ATPESC2026"
 
 # Set how to load environment
 load_env = f"source /grand/alcf_training/workflows/_env/bin/activate"
