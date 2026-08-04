@@ -20,7 +20,7 @@ curl -X POST "https://api.alcf.anl.gov/api/v1/compute/job/${resource_id}" \
            },
            "attributes": {
                "duration": 300,
-               "queue_name": "debug",
+               "queue_name": "ATPESC",
                "account": "ATPESC2026",
                "custom_attributes": {"filesystems": "home:eagle"}
            }

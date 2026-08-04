@@ -103,11 +103,13 @@ with parsl.load():
     for i in range(5):
         rand_nums.append(generate(10, i))
 
+    print("Submitted tasks, waiting for results...")
+
     # Wait for all apps to finish and collect the results
     outputs = [i.result() for i in rand_nums]
 
     # Print results
-    print(outputs)
+    print(f"{outputs=}")
 ```
 
 ## Running tasks with sequential dependencies (3_sequential_workflow.py)
@@ -174,6 +176,9 @@ def add(*args):
     return accumulator
 
 
+# Here we use a join_app that can launch a sub-workflow
+# Join apps return a future object so that the parsl workflow can
+# continue to run other tasks while waiting for the sub-workflow
 @join_app
 def fibonacci(n):
     if n == 0:
@@ -329,12 +334,12 @@ with parsl.load(config):
 
 ```
 
-Run this example by submitting the script `5_hello_injob_orchestration.sh`:
+Run this example by submitting the script `5_submit_parsl_by_hand.sh`:
 ```shell
-qsub 5_hello_injob_orchestration.sh
+qsub 5_submit_parsl_by_hand.sh
 ```
 
-## PBSProProvider Example for Elastic Execution (6_hello_external_orchestration.py)
+## PBSProProvider Example for Elastic Execution (6_parsl_submits_to_pbs.py)
 
 If you wish to distribute your tasks elastically over many PBS jobs, use the `PBSProProvider` in your config and execute your workflow on the login node.
 The Config object below will run 12 workers at a time.  These workers will be run on one Aurora node and each will access 1 GPU tile.
@@ -352,11 +357,11 @@ from parsl.executors import HighThroughputExecutor
 from parsl.launchers import MpiExecLauncher
 
 # Set your queue and account
-queue = "alcf_training"
-account = "alcf_training"
+queue = "ATPESC"
+account = "ATPESC2026"
 
 # Set how to load environment
-load_env = f"source /flare/alcf_training/workflows/_env/bin/activate"
+load_env = f"source {os.getcwd()}/../0_activate_preinstall.sh"
 
 # These options will run work in 1 node batch jobs run one at a time
 nodes_per_job = 1
@@ -420,20 +425,20 @@ aurora_config = Config(
 
 ```
 
-To use this config, execute script `6_hello_external_orchestration.py` from a login node:
+To use this config, execute script `6_parsl_submits_to_pbs.py` from a login node:
 ```shell
-python 6_hello_external_orchestration.py
+python 6_parsl_submits_to_pbs.py
 ```
 
 
-## Run MPI application (7_mpi_app_example.py)
+## Run MPI application (7_mpi_app_example_aurora.py)
 
 In the previous example, `mpiexec` was used as a launcher, rather than an executor.  In order to run applications that have MPI communication, `mpiexec` has to be used a different way by Parsl.  To run MPI applications, use the `SimpleLauncher` and the `MPIExecutor`.  Note that the configuration has to set `max_workers_per_block` to align with the resource needs of the application.  To run applications with different node numbers, a different `Config` object is needed.
 
 This script runs the application hello_affinity from our [GettingStarted](https://github.com/argonne-lcf/GettingStarted/tree/master/Examples/Polaris/affinity_gpu) repo.  It is a C++ program with MPI enabled.
 
 ```shell
-python 7_mpi_app_example.py
+python 7_mpi_app_example_aurora.py
 ```
 
 ```python
@@ -441,37 +446,41 @@ import parsl
 import os
 from parsl.config import Config
 from parsl import bash_app
-# PBSPro is the right provider for polaris:
+# PBSPro is the right provider for aurora:
 from parsl.providers import PBSProProvider
 # The MPIExecutor is for running MPI applications:
 from parsl.executors import MPIExecutor
 # Use the Simple launcher
 from parsl.launchers import SimpleLauncher
+from parsl.addresses import address_by_interface
 
 # We will save outputs in the current working directory
 working_directory = os.getcwd()
 
 # Set your queue, account and environment
-queue = "alcf_training"
-account = "alcf_training"
-load_env = f"source /grand/alcf_training/workflows/_env/bin/activate"
+queue = "ATPESC"
+account = "ATPESC2026"
+load_env = f"source {working_directory}/../0_activate_preinstall.sh"
 
 config = Config(
     executors=[
         MPIExecutor(
+            # hsn0 is Aurora's Slingshot network interface
+            address=address_by_interface('hsn0'),
             max_workers_per_block=2,  # Assuming 2 nodes per task
             provider=PBSProProvider(
                 account=account,
                 worker_init=f"""{load_env};
+                                export TMPDIR=/tmp;
                                 cd {working_directory}""",
                 walltime="00:10:00",
                 queue=queue,
-                scheduler_options="#PBS -l filesystems=home:eagle:grand",
+                scheduler_options="#PBS -l filesystems=home:flare",
                 launcher=SimpleLauncher(),
-                select_options="ngpus=4",
+                select_options="",
                 nodes_per_block=2,
                 max_blocks=1,
-                cpus_per_node=64,
+                cpus_per_node=208,
             ),
         ),
     ]
@@ -479,17 +488,17 @@ config = Config(
 
 resource_specification = {
   'num_nodes': 2,        # Number of nodes required for the application instance
-  'ranks_per_node': 4,   # Number of ranks / application elements to be launched per node
-  'num_ranks': 8,        # Number of ranks in total
+  'ranks_per_node': 12,  # Number of ranks / application elements to be launched per node (1 per GPU tile)
+  'num_ranks': 24,       # Number of ranks in total
 }
 
 @bash_app
 def mpi_hello_affinity(parsl_resource_specification, depth=8, stdout='mpi_hello.stdout', stderr='mpi_hello.stderr'):
-    # PARSL_MPI_PREFIX will resolve to `mpiexec -n 8 -ppn 4 -hosts NODE001,NODE002`
-    APP_DIR = "/grand/alcf_training/workflows/GettingStarted/Examples/Polaris/affinity_gpu"
-    # wrap application with set_affinity_gpu_polaris.sh to set GPU affinity; see GettingStarted/Examples/Polaris/affinity_gpu for details
+    # PARSL_MPI_PREFIX will resolve to `mpiexec -n 24 -ppn 12 -hosts NODE001,NODE002`
+    APP_DIR = "/flare/ATPESC2026/EXAMPLES/track-6-workflows-for-science/GettingStarted"
+    # wrap application with set_affinity_gpu.sh to set GPU tile affinity; see HelperScripts/Aurora for details
     return f"$PARSL_MPI_PREFIX --cpu-bind depth --depth={depth} \
-            {APP_DIR}/set_affinity_gpu_polaris.sh {APP_DIR}/hello_affinity"
+            {APP_DIR}/HelperScripts/Aurora/set_affinity_gpu.sh {APP_DIR}/Examples/Aurora/affinity_gpu/sycl/hello_affinity"
 
 with parsl.load(config):
     tasks = []
@@ -497,7 +506,7 @@ with parsl.load(config):
         tasks.append(mpi_hello_affinity(parsl_resource_specification=resource_specification,
                                         stdout=f"{working_directory}/mpi_output/hello_{i}.stdout",
                                         stderr=f"{working_directory}/mpi_output/hello_{i}.stderr"))
-        
+
     # Wait on futures to return, and print results
     for i, t in enumerate(tasks):
         t.result()

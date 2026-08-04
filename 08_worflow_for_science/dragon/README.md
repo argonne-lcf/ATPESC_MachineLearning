@@ -26,11 +26,9 @@ source ../0_activate_preinstall.sh
 
 Dragon's Python API uses Python's `multiprocessing` API.  Dragon can therefore be used to extend scripts written for single shared memory devices with `multiprocessing` to run on multiple nodes.
 
-This example shows how to run tasks with `Pool` in two different ways.  The first way uses `multiprocessing Pool` with the start method set to `dragon`.  This allows for pool processes to be distributed across nodes, but it is not possible to bind them to paricular gpus or cpus.
+This example shows how to run tasks with `Pool` using `multiprocessing Pool` with the start method set to `dragon`.  This allows for pool processes to be distributed across nodes, but it is not possible to bind them to paricular gpus or cpus.
 
-The second approach uses Dragon's native Pool object that allows a list of dragon Policies to be passed to the `Pool` that specify the gpu affinity.
-
-These tests run a python function that sleeps and reports the hostname and GPU tile it sees pinned by `CUDA_VISIBLE_DEVICES` or `ZE_AFFINITY_MASK`.
+This test runs a python function that sleeps and reports the hostname it sees.
 
 Dragon scripts are launched with the `dragon` application, included in the demo environment.  To run the example script:
 
@@ -60,13 +58,7 @@ def hello_gpu_affinity(sleep_time):
     time.sleep(sleep_time)  # Simulate some work being done
     hostname = socket.gethostname()
 
-    # First look for cuda device
-    gpu_id = os.environ.get("CUDA_VISIBLE_DEVICES")
-    # If no cuda device set, look for intel device
-    if gpu_id is None:
-        gpu_id = os.environ.get("ZE_AFFINITY_MASK", "No GPUs assigned")
-
-    return f"Hello from host {hostname}, GPU ID(s): {gpu_id}"
+    return f"Hello from host {hostname}"
 
 if __name__ == '__main__':
     # Set the start method for multiprocessing to 'dragon'
@@ -82,7 +74,6 @@ if __name__ == '__main__':
     # sleep_times are the inputs to the pool tasks
     sleep_times = np.ones(num_tasks) * 1.0  # Sleep for 1 second each
 
-    # Test 1:
     # Distribute tasks across availble nodes with a simple pool
     # Unlike standard multiprocessing, Dragon will launch pool processes across multiple nodes
     # This pool does not use any GPU affinity
@@ -94,20 +85,6 @@ if __name__ == '__main__':
         print(res, flush=True)
     pool.close()
     pool.join()
-
-    # Test 2:
-    # Distribute tasks across availble nodes with a Dragon Native Pool
-    # Unlike a standard multiprocessing Pool, a Dragon Native Pool uses Dragon policies to launch processes
-    # This pool binds 1 worker per GPU
-    print("\nLaunching tasks with a Dragon Pool across nodes with GPU affinity...", flush=True)
-    dragon_pool = DragonPool(policy=System().gpu_policies(), processes_per_policy=1)
-    async_results = dragon_pool.map_async(hello_gpu_affinity, sleep_times)
-    results = async_results.get()
-    for res in results:
-        print(res, flush=True)
-    dragon_pool.close()
-    dragon_pool.join()
-
 ```
 
 ## Dragon ProcessGroup
@@ -217,15 +194,18 @@ from dragon.native.machine import System
 from multiprocessing import Pool, set_start_method, current_process
 from dragon.data.ddict import DDict
 
-def setup(dist_dict):
+def setup(dd):
     me = current_process()
     me.stash = {}
-    me.stash["ddict"] = dist_dict
+    me.stash["ddict"] = dd
 
 def assign(x):
-    dist_dict = current_process().stash["ddict"]
+    import socket
+
+    hostname = socket.gethostname()
+    dd = current_process().stash["ddict"]
     key = 'key_' + str(x)
-    dist_dict[key] = x
+    dd[key] = hostname
 
 if __name__ == '__main__':
     set_start_method("dragon")
@@ -248,6 +228,9 @@ if __name__ == '__main__':
     print("Distributed dictionary contents:", flush=True)
     for k in dist_dict.keys():
         print(f"{k} = {dist_dict[k]}", flush=True)
+
+    # Destroy dictionary and free resources
+    dist_dict.destroy()
 ```
 
 ## Submitting to PBS
@@ -271,9 +254,6 @@ qsub 5_submit_dragon.sh
 #PBS -q ATPESC
 
 cd $PBS_O_WORKDIR
-
-# Avoids "OSError: AF_UNIX path too long" in single node jobs on Aurora
-export TMPDIR=/tmp
 
 source ../0_activate_preinstall.sh
 

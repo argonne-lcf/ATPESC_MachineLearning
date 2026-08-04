@@ -66,7 +66,8 @@ QUEUE = "ATPESC"
 
 def hello_affinity():
     import sys, os, socket, parsl, globus_compute_endpoint
-    return f""" hostname: {socket.gethostname()}
+    return f""" Hello Aurora! I'm Polaris! Here's some of my info:
+                hostname: {socket.gethostname()}
                 remote environment: {sys.executable}
                 python version: {sys.version}
                 parsl version: {parsl.__version__}
@@ -80,6 +81,8 @@ gce = Executor(endpoint_id=POLARIS_MEP,
 future = gce.submit(hello_affinity)
 print(future.result())
 ```
+
+Note that this function gives some useful information for creating python environments on the remote machine, if necessary.  If you wish to use your own python environment on the remote machine, it is necessary to install `parsl` and `globus-compute-endpoint`.  However, it is necessary to match the exact version of `parsl` in your remote environment with the version of `parsl` run by the MEP.  This convenient function gives you the `parsl` version run by the MEP.
 
 ## 2. Configuring the user endpoint (`2_configure_endpoint.py`)
 
