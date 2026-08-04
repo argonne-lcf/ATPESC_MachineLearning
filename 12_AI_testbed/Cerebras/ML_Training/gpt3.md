@@ -16,7 +16,7 @@ lesson. 🎯
 ```bash
 mkdir ~/ATPESC/precompiled
 cd ~/ATPESC/precompiled
-cp -r /software/datasets/ATPESC .
+cp -r /software/datasets/ATPESC/modelzoo .
 cd ~/ATPESC/precompiled/modelzoo/src/cerebras/modelzoo/models/nlp/gpt3
 ```
 
