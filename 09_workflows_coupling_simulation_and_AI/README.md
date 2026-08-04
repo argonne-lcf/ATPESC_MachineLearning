@@ -30,7 +30,7 @@ On Aurora both implementations route xTB simulations to CPU cores and MoLFormer 
 
 The three implementations showcase different ways of moving data (model state and search-space chunks) between tasks and launching processes across nodes:
 
-- **[2_parsl_futures.py](./2_parsl_futures.py)** -- processes are launched with Parsl's `HighThroughputExecutor` while data flows entirely through the `AppFuture` objects. The trained model weights (~200 MB) are serialized and transferred from the training worker back to the driver, then back to every inference worker along with the chunked SMILES on each iteration of the loop.
+- **[2_parsl_futures.py](./2_parsl_futures.py)** -- processes are launched with Parsl's `HighThroughputExecutor` while data flows entirely through the `AppFuture` objects. The trained model weights (~170 MB) are serialized and transferred from the training worker back to the driver, then back to every inference worker along with the chunked SMILES on each iteration of the loop.
 - **[3_parsl_io.py](./3_parsl_io.py)** -- processes are launched with Parsl's `HighThroughputExecutor` while model weights and chunked SMILES are read/written to Lustre. Training and inference workers only pass light-weight metadata across the futures. 
 - **[4_dragon.py](./4_dragon.py)** -- processes are launched with Dragon's native Pool and data is staged in a distributed in-memory dictionary provided by Dragon called the DDict. Dragon supports RDMA-based transfers across nodes, meaning that workers either read/write to their local RAM or have fast access to other nodes' RAM instead of hitting the filesystem.
 
