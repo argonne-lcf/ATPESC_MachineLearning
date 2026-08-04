@@ -17,14 +17,8 @@ def hello_gpu_affinity(sleep_time):
 
     time.sleep(sleep_time)  # Simulate some work being done
     hostname = socket.gethostname()
-
-    # First look for cuda device
-    gpu_id = os.environ.get("CUDA_VISIBLE_DEVICES")
-    # If no cuda device set, look for intel device
-    if gpu_id is None:
-        gpu_id = os.environ.get("ZE_AFFINITY_MASK", "No GPUs assigned")
-
-    return f"Hello from host {hostname}, GPU ID(s): {gpu_id}"
+    
+    return f"Hello from host {hostname}"
 
 if __name__ == '__main__':
     # Set the start method for multiprocessing to 'dragon'
@@ -40,7 +34,6 @@ if __name__ == '__main__':
     # sleep_times are the inputs to the pool tasks
     sleep_times = np.ones(num_tasks) * 1.0  # Sleep for 1 second each
 
-    # Test 1:
     # Distribute tasks across availble nodes with a simple pool
     # Unlike standard multiprocessing, Dragon will launch pool processes across multiple nodes
     # This pool does not use any GPU affinity
@@ -52,17 +45,3 @@ if __name__ == '__main__':
         print(res, flush=True)
     pool.close()
     pool.join()
-
-    # Test 2:
-    # Distribute tasks across availble nodes with a Dragon Native Pool
-    # Unlike a standard multiprocessing Pool, a Dragon Native Pool uses Dragon policies to launch processes
-    # This pool binds 1 worker per GPU
-    print("\nLaunching tasks with a Dragon Pool across nodes with GPU affinity...", flush=True)
-    dragon_pool = DragonPool(policy=System().gpu_policies(), processes_per_policy=1)
-    async_results = dragon_pool.map_async(hello_gpu_affinity, sleep_times)
-    results = async_results.get()
-    for res in results:
-        print(res, flush=True)
-    dragon_pool.close()
-    dragon_pool.join()
-

@@ -10,9 +10,6 @@
 
 cd $PBS_O_WORKDIR
 
-# Avoids "OSError: AF_UNIX path too long" in single node jobs on Aurora
-export TMPDIR=/tmp
-
 source ../0_activate_preinstall.sh
 
 dragon 1_dragon_pool.py
