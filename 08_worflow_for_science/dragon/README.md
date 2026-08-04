@@ -11,29 +11,16 @@ The Dragon python API uses python's `multiprocessing` API.  Dragon can therefore
 We'll run these tests in an interactive session, however a sample submit script is provided to test running in a batch job.
 
 ```shell
-qsub -V -I -A alcf_training -l select=2 -l walltime=0:30:0 -l filesystems=home:eagle -q alcf_training
+qsub -I -A ATPESC2026 -l select=2 -l walltime=0:30:0 -l filesystems=home:flare -q ATPESC
 ```
 
 ## Install
 
 For the workshop, the prestaged environment with dragon can be loaded here:
 ```shell
-module unload xalt
-source /grand/alcf_training/workflows/_env/bin/activate
+cd $PBS_O_WORKDIR
+source ../0_activate_preinstall.sh
 ```
-
-To create your own environment:
-```shell
-module unload xalt
-module load conda
-conda activate base
-python -m venv _env
-source _env/bin/activate
-pip install dragonhpc
-dragon-config add --ofi-runtime-lib=/opt/cray/libfabric/1.22.0/lib64
-```
-
-The last installation step of running `dragon-config` configures `dragon` to use fast RDMA transfers across Polaris' slingshot network.  Without this step, `dragon` would run in the default mode that uses slower TCP transfers.
 
 ## Dragon Pool
 
@@ -48,10 +35,10 @@ These tests run a python function that sleeps and reports the hostname and GPU t
 Dragon scripts are launched with the `dragon` application, included in the demo environment.  To run the example script:
 
 ```shell
-dragon 0_dragon_pool.py
+dragon 1_dragon_pool.py
 ```
 
-**0_dragon_pool.py**
+**1_dragon_pool.py**
 ```python
 import dragon
 from dragon.native.machine import System
@@ -59,10 +46,10 @@ from multiprocessing import set_start_method, Pool
 from dragon.native.pool import Pool as DragonPool
 import numpy as np
 
-# For Polaris, we have 4 GPUs per node
-num_gpus_per_node = 4 # Assume one GPU/tile per process
 # For Aurora, we have 12 GPU tiles per node
-# num_gpus_per_node = 12 # Assume one GPU/tile per process
+num_gpus_per_node = 12 # Assume one GPU/tile per process
+# For Polaris, we have 4 GPUs per node
+# num_gpus_per_node = 4 # Assume one GPU/tile per process
 
 # A simple function to demonstrate task execution and GPU affinity
 def hello_gpu_affinity(sleep_time):
@@ -127,10 +114,10 @@ if __name__ == '__main__':
 
 Dragon provides another way of distributing tasks to groups of workers called the dragon `ProcessGroup`.  Every process in the `ProcessGroup` can be given a specific node, gpu, and cpu, allowing for finegrained control of processes.
 
-There are two example cases using `ProcessGroup`.  `1_dragon_process_group.py` distributes a simple python function to independent processes across the allocation.  This is done by assigning a `Policy` to each process in the group that specifies the node, gpu and cpu where it is to be run.
+There are two example cases using `ProcessGroup`.  `2_dragon_process_group.py` distributes a simple python function to independent processes across the allocation.  This is done by assigning a `Policy` to each process in the group that specifies the node, gpu and cpu where it is to be run.
 
 ```shell
-dragon 1_dragon_process_group.py
+dragon 2_dragon_process_group.py
 ```
 
 ```python
@@ -142,12 +129,12 @@ from dragon.native.process_group import ProcessGroup
 from dragon.native.process import ProcessTemplate
 
 # Optimal CPU and GPU affinities for Aurora Nodes
-# gpu_affinities = [[float(f'{gid}.{tid}')] for gid in range(6) for tid in range(2)]
-# cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(c, c+8)) for c in range(53, 104-8, 8)]
+gpu_affinities = [[float(f'{gid}.{tid}')] for gid in range(6) for tid in range(2)]
+cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(c, c+8)) for c in range(53, 104-8, 8)]
 
 # Optimal CPU and GPU affinities for Polaris Nodes
-gpu_affinities = [[3],[2],[1],[0]]
-cpu_affinities = [list(range(c, c+8)) for c in range(0, 32, 8)]
+# gpu_affinities = [[3],[2],[1],[0]]
+# cpu_affinities = [list(range(c, c+8)) for c in range(0, 32, 8)]
 
 
 # A simple function to demonstrate task execution and GPU affinity
@@ -210,7 +197,7 @@ if __name__ == '__main__':
 
 ```
 
-`2_dragon_mpi_process_group.py` uses `ProcessGroup` to run an MPI-enabled executable, where every process in the group is an MPI rank.  To enable message passing between processes in a process group, the `pmi` flag needs to be set in the `ProcessGroup` as shown in `2_dragon_mpi_process_group.py`.
+`3_dragon_mpi_process_group.py` uses `ProcessGroup` to run an MPI-enabled executable, where every process in the group is an MPI rank.  To enable message passing between processes in a process group, the `pmi` flag needs to be set in the `ProcessGroup` as shown in `3_dragon_mpi_process_group.py`.
 
 ## Dragon Distributed Dictionary
 
@@ -218,10 +205,10 @@ In addition to task launching, `dragon` provides a distributed data layer in its
 
 `DDict`s can be used with `Pool` or `ProcessGroup`.  Multiple processes or `Pool`s and `ProcessGroup`s can use the same `DDict`.  This enables efficient sharing of data between processes in the runtime.
 
-`3_dragon_dictionary.py` gives a simple example of how to create a `DDict` and use a `Pool` to store data within it.  The main process (running on the head node) then retrieves all the data stored in the `DDict`.
+`4_dragon_dictionary.py` gives a simple example of how to create a `DDict` and use a `Pool` to store data within it.  The main process (running on the head node) then retrieves all the data stored in the `DDict`.
 
 ```shell
-dragon 3_dragon_dictionary.py
+dragon 4_dragon_dictionary.py
 ```
 
 ```python
@@ -268,32 +255,33 @@ if __name__ == '__main__':
 To submit these tests to multiple nodes with PBS, use the following submit script:
 
 ```shell
-qsub 4_submit_dragon.sh
+qsub 5_submit_dragon.sh
 ```
 
-**4_submit_dragon.sh**
+**5_submit_dragon.sh**
 ```bash
 #!/bin/bash -l
-#PBS -A alcf_training
+#PBS -A ATPESC2026
 #PBS -l select=2
 #PBS -N dragon_test
 #PBS -l walltime=0:10:00
 #PBS -l filesystems=home:flare
 #PBS -k doe
 #PBS -l place=scatter
-#PBS -q alcf_training
-#PBS -V
+#PBS -q ATPESC
 
 cd $PBS_O_WORKDIR
 
-module unload xalt
-source /grand/alcf_training/workflows/_env/bin/activate
+# Avoids "OSError: AF_UNIX path too long" in single node jobs on Aurora
+export TMPDIR=/tmp
 
-dragon 0_dragon_pool.py
+source ../0_activate_preinstall.sh
+
+dragon 1_dragon_pool.py
 sleep 1
-dragon 1_dragon_process_group.py
+dragon 2_dragon_process_group.py
 sleep 1
-dragon 2_dragon_mpi_process_group.py
+dragon 3_dragon_mpi_process_group.py
 sleep 1
-dragon 3_dragon_dictionary.py
+dragon 4_dragon_dictionary.py
 ```

@@ -6,12 +6,12 @@ from dragon.native.process_group import ProcessGroup
 from dragon.native.process import ProcessTemplate
 
 # Optimal CPU and GPU affinities for Aurora Nodes
-# gpu_affinities = [[float(f'{gid}.{tid}')] for gid in range(6) for tid in range(2)]
-# cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(c, c+8)) for c in range(53, 104-8, 8)]
+gpu_affinities = [[float(f'{gid}.{tid}')] for gid in range(6) for tid in range(2)]
+cpu_affinities = [list(range(c, c+8)) for c in range(1, 52-8, 8)] + [list(range(c, c+8)) for c in range(53, 104-8, 8)]
 
 # Optimal CPU and GPU affinities for Polaris Nodes
-gpu_affinities = [[3],[2],[1],[0]]
-cpu_affinities = [list(range(c, c+8)) for c in range(0, 32, 8)]
+# gpu_affinities = [[3],[2],[1],[0]]
+# cpu_affinities = [list(range(c, c+8)) for c in range(0, 32, 8)]
 
 
 # A simple function to demonstrate task execution and GPU affinity
