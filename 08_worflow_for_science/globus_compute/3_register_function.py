@@ -24,30 +24,28 @@ def adder(a, b):
     return a + b
 '''
 
+# Register the function with the Globus service and get back its id.
+gcc = Client()
+func_id = gcc.register_source_code(
+    source=source,
+    function_name="adder",
+    description="Adds two numbers",
+)
+print(f"Registered adder; id {func_id}")
 
-if __name__ == "__main__":
-    # Register the function with the Globus service and get back its id.
-    gcc = Client()
-    func_id = gcc.register_source_code(
-        source=source,
-        function_name="adder",
-        description="Adds two numbers",
-    )
-    print(f"Registered adder; id {func_id}")
+# Call the registered function on the Polaris MEP by its id.
+serializer = ComputeSerializer(strategy_code=AllCodeStrategies())
+gce = Executor(
+    endpoint_id=POLARIS_MEP,
+    serializer=serializer,
+    user_endpoint_config={
+        "account": ACCOUNT,
+        "queue": QUEUE,
+    },
+)
 
-    # Call the registered function on the Polaris MEP by its id.
-    serializer = ComputeSerializer(strategy_code=AllCodeStrategies())
-    gce = Executor(
-        endpoint_id=POLARIS_MEP,
-        serializer=serializer,
-        user_endpoint_config={
-            "account": ACCOUNT,
-            "queue": QUEUE,
-        },
-    )
+print("Calling registered adder on the Polaris MEP, waiting for result...")
+future = gce.submit_to_registered_function(args=(5, 10), function_id=func_id)
+print(f"5 + 10 = {future.result()}")
 
-    print("Calling registered adder on the Polaris MEP, waiting for result...")
-    future = gce.submit_to_registered_function(args=(5, 10), function_id=func_id)
-    print(f"5 + 10 = {future.result()}")
-
-    gce.shutdown()
+gce.shutdown()

@@ -32,27 +32,25 @@ def hello_affinity():
                 GCE version: {globus_compute_endpoint.__version__}
             """
 
+# The AllCodeStrategies serializer avoids serialization errors 
+# when the client (Aurora) and the MEP workers (Polaris, python 3.13) 
+# run different python versions.
+serializer = ComputeSerializer(strategy_code=AllCodeStrategies())
 
-if __name__ == "__main__":
-    # The AllCodeStrategies serializer avoids serialization errors 
-    # when the client (Aurora) and the MEP workers (Polaris, python 3.13) 
-    # run different python versions.
-    serializer = ComputeSerializer(strategy_code=AllCodeStrategies())
+# user_endpoint_config is passed to the MEP, which uses it to provision a
+# user endpoint (UEP) that submits PBS jobs under your account.  "account"
+# and "queue" are always required.
+gce = Executor(
+    endpoint_id=POLARIS_MEP,
+    serializer=serializer,
+    user_endpoint_config={
+        "account": ACCOUNT,
+        "queue": QUEUE,
+    },
+)
 
-    # user_endpoint_config is passed to the MEP, which uses it to provision a
-    # user endpoint (UEP) that submits PBS jobs under your account.  "account"
-    # and "queue" are always required.
-    gce = Executor(
-        endpoint_id=POLARIS_MEP,
-        serializer=serializer,
-        user_endpoint_config={
-            "account": ACCOUNT,
-            "queue": QUEUE,
-        },
-    )
+print("Submitting hello_affinity to the Polaris MEP, waiting for result...")
+future = gce.submit(hello_affinity)
+print(future.result())
 
-    print("Submitting hello_affinity to the Polaris MEP, waiting for result...")
-    future = gce.submit(hello_affinity)
-    print(future.result())
-
-    gce.shutdown()
+gce.shutdown()

@@ -163,7 +163,8 @@ def host_sleep_wrapper(sleeptime):
         f.write(res.stderr.decode("utf-8"))
 
     if res.returncode != 0:
-        raise Exception(f"Application failed with return code {res.returncode}")
+        raise Exception(f"Application failed with return code {res.returncode}: "
+                        f"stderr='{res.stderr.decode('utf-8')}'")
     return res.returncode, res.stdout.decode("utf-8"), res.stderr.decode("utf-8")
 ```
 

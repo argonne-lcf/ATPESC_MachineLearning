@@ -40,7 +40,7 @@ aurora_config = Config(
             prefetch_capacity=0,
             # Use LocalProvider for in-job execution
             provider=LocalProvider(
-                # Ensures 1 manger per node and allows it to divide work to all 64 threads
+                # Ensures 1 manger per node
                 launcher=MpiExecLauncher(bind_cmd="--cpu-bind", overrides="--ppn 1"),
                 # Number of nodes per batch job
                 nodes_per_block=num_nodes,
