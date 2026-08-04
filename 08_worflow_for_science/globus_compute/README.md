@@ -1,269 +1,216 @@
-Globus Compute: Remote execution of applications with Globus
+Globus Compute Multi-User Endpoints (MEPs)
 ===============================================
 
-This tutorial demonstrates how to run applications on Polaris using [Globus Compute](https://globus-compute.readthedocs.io/en/3.16.1/index.html).  These matterials apply to Globus Compute version 3.16.1.  These materials will be updated to version 4 in 2026.  Globus Compute (formerly called FuncX) operates on a "fire-and-forget" model in which functions are sent to the Globus service to be deployed on a machine of the user's choice.  Globus Compute will communicate with a user process operating on a machine's login node callend an [endpoint](https://globus-compute.readthedocs.io/en/3.16.1/endpoints/endpoints.html).  The Globus Compute endpoint will use Parsl locally to communicate with the scheduler and execute work on compute nodes.
+[Globus Compute](https://globus-compute.readthedocs.io/en/stable/index.html) lets you execute Python functions remotely by submitting them to endpoints running on ALCF systems.  This demo focuses on the **facility-supported multi-user endpoints (MEPs)**, which are persistent endpoints run by ALCF.
 
-Globus Compute can be used to execute functions remotely as a service and can be integrated with [Globus Flows](https://docs.globus.org/api/flows/) to create workflows that automate the inegration of data transfers and function execution.
+The key advantage of a MEP is that **you do not have to configure, start, or babysit an endpoint yourself.** 
 
-There are several requirements to deploying an application through Globus Compute on Polaris.
-* An application that runs on Polaris compute nodes, either a compiled executable or a python function.
-* A programming environment on Polaris with packages needed to run your your application and required globus packages installed.
-* A programming environment on the machine from which you wish to deploy your functions with required globus packages installed.
-* An active Globus Compute endpoint on a Polaris login node.
-* An http connection on the remote machine deploying work.
+In this demo, **the client runs on an Aurora login node (UAN)** and the functions run on **Polaris compute nodes** via the Polaris MEP.  The user could replace Aurora with any machine that has an HTTP connection (laptop, lab workstation, etc.).
+
+Facility MEPs are currently offered on Polaris and Crux:
+
+| System  | UUID |
+| ------  | ---- |
+| Polaris | [9a947ba5-f537-4681-acf3-cc66485aadec](https://app.globus.org/compute/endpoints/9a947ba5-f537-4681-acf3-cc66485aadec) |
+| Crux    | [fd8b54bb-9452-411d-8e3a-09408156a886](https://app.globus.org/compute/endpoints/fd8b54bb-9452-411d-8e3a-09408156a886) |
+
+The Globus pages linked above give up-to-date details on each endpoint's configuration template, schema, and status.  For full documentation see the [ALCF Globus Compute guide](https://docs.alcf.anl.gov/services/globus-compute/) and the [Globus Compute docs](https://globus-compute.readthedocs.io/en/stable/index.html).
 
 # Setup
 
-## Installing Globus modules
+All of these scripts are **client** scripts: they run on an Aurora login node and only need the `globus_compute_sdk` (v4+).
 
-### Polaris
+Activate the tutorial environment:
+```
+source ../0_activate_preinstall.sh
+```
 
-On Polaris, you will need to create a python virtual environment or a conda environment with the module `globus-compute-endpoint`.
+## First-time authentication
 
-For the workshop, you can use the workshop python virtual environment.  You will also need to unload xalt:
+The first time you contact the Globus service, you will be prompted to authenticate at the command line.  Copy the URL that appears into a web browser, select **Argonne LCF** from the organizations menu, and log in with your ALCF username and MobilePass+ code.  Globus will give you a token; paste it back at the command line to complete authentication.
+
+
+## Serialization across python versions (important)
+
+The Aurora client and the Polaris MEP workers (python 3.13) may run different python versions.  To avoid serialization errors (a `ManagerLost` error mentioning serialization), every script that submits a function uses the `AllCodeStrategies` serializer, which sends the full function source to the endpoint:
+
+```python
+from globus_compute_sdk.serialize import ComputeSerializer, AllCodeStrategies
+serializer = ComputeSerializer(strategy_code=AllCodeStrategies())
+gce = Executor(endpoint_id=..., serializer=serializer, user_endpoint_config=...)
+```
+
+## A note on filesystems (important)
+
+The MEP runs your functions **on Polaris**, so any file paths your functions touch must live on a **Polaris-visible filesystem** — `home`, `eagle`, or `grand`.  **Polaris cannot see Aurora's `/flare` filesystem.**  This is why the `scheduler_options` in these scripts request `filesystems=home:eagle:grand` and the run directories live under `$HOME`.
+
+# Exercises
+
+## 1. Hello MEP (`1_hello_mep.py`)
+
+The simplest possible test: submit a function that reports the hostname, python version, and package versions of the environment it lands in on Polaris.  Run this first to confirm your client can reach the MEP and that authentication works.
+
 ```bash
-module unload xalt
-source /grand/alcf_training/workflows/_env/bin/activate
+python 1_hello_mep.py
 ```
 
-To create your own environment:
-```bash
-module unload xalt
-module load conda
-conda activate base
-python -m venv env
-source env/bin/activate
-pip install globus-compute-endpoint==3.16.1
-```
-
-Also, verify the version of python you are running on Polaris:
-```bash
-python --version
-```
-
-The pre-staged workshop environment has python version `3.11.8`, but make a note of the version in your environment if you have built your own, whichever you are running.
-
-### Your remote machine
-
-Your remote machine could be your laptop or a machine at another facility.  This remote machine will be the location from which you will send functions to the Globus Compute service.  You will need an environment with python 3.8+ to install the required globus compute client packages on the remote machine.  **It is recommended that you use the same major python version on the remote machine as you are using on Polaris.**  This may not be necessary for all functions, but the serialization and deserialization steps that Globus Compute will put your function through on the different machines may lead to incompatibility issues with different versions.  For this workshop, the functions we will test will be simple and this likely won't be an issue.
-
-You will need to install the package `globus-compute-sdk` in this environment.  As an example, on a laptop running Mac OS with python installed through miniconda, a conda environment could be installed like this:
-```bash
-# Create remote machine conda environment with the same python version as the environment on Polaris
-conda create -n workshop python==3.11.8
-conda activate workshop
-
-# Install globus compute client module
-pip install globus-compute-sdk
-```
-
-## Creating and Starting an Endpoint on Polaris
-
-Login to Polaris and clone this repo.  Activate your environment.
-```bash
-# Login to Polaris
-ssh polaris.alcf.anl.gov
-
-# Clone the repo
-git clone git@github.com:argonne-lcf/ALCF_Hands_on_HPC_Workshop.git
-cd ALCF_Hands_on_HPC_Workshop/workflows/globus_compute
-
-# If you haven't already, activate the environment
-source /grand/alcf_training/workflows_2024/_env/bin/activate
-```
-
-Use the sample config [polaris_config.yaml](polaris_config.yaml) provided to configure and start your endpoint.  The sample config has similar features to the Parsl config and looks like this:
-```yaml
-engine:
-    # This engine uses the HighThroughputExecutor
-    type: GlobusComputeEngine
-    
-    available_accelerators: 4 # Assign one worker per GPU
-    max_workers_per_node: 4
-    
-    cpu_affinity: "list:24-31,56-63:16-23,48-55:8-15,40-47:0-7,32-39"
-    
-    prefetch_capacity: 0  # Increase if you have many more tasks than workers                                              
-    max_retries_on_system_failure: 2
-
-    strategy: simple
-    job_status_kwargs:
-        max_idletime: 300
-        strategy_period: 60
-
-    provider:
-        type: PBSProProvider
-
-        launcher:
-            type: MpiExecLauncher
-            # Ensures 1 manger per node, work on all 64 cores
-            bind_cmd: --cpu-bind
-            overrides: --ppn 1
-
-        account: alcf_training
-        queue: HandsOnHPC
-        cpus_per_node: 64
-        select_options: ngpus=4
-
-        # e.g., "#PBS -l filesystems=home:grand:eagle\n#PBS -k doe"
-        scheduler_options: "#PBS -l filesystems=home:eagle:grand"
-
-        # Node setup: activate necessary conda environment and such
-        worker_init: "source /grand/alcf_training/workflows_2024/_env/bin/activate; module load PrgEnv-nvhpc; cd $HOME/.globus_compute/workshop-endpoint"
-
-        walltime: 00:30:00
-        nodes_per_block: 1
-        init_blocks: 0
-        min_blocks: 0
-        max_blocks: 1
-```
-
-The config `aurora_config.yaml` can be used in the same way to set up an endpoint on Aurora that will run on worker per GPU tile.
-
-There will be a command line tool `globus-compute-endpoint` in your path that will allow you to manage your endpoint process.  
-
-Congiure and start the endpoint:
-```bash
-globus-compute-endpoint configure --endpoint-config ./polaris_config.yaml workshop-endpoint
-globus-compute-endpoint start workshop-endpoint
-```
-During this step, if this is your first time using globus tools, you will be prompted to validate your ALCF credentials with the Globus.  When this happens, a URL to the globus service will be given to you at the command line; paste this into a web brower and follow the instructions.  You will need your MobilePass+ credentials (that you use to login to ALCF machines) during this step.  Once the Globus website completes your credential validation, it will give you a code that you will paste back into your shell.  One this code is accepted, your credential validation for this endpoint will be complete and you can interact with the endpoint through the globus service.
-
-Verify that your endpoint is active.
-```bash
-globus-compute-endpoint list
-```
-
-Your endpoint will have and id, copy this unique id, you will need it on your local machine.
-
-If you need to make changes to your endpoint config, look for the file `$HOME/.globus_compute/workshop-endpoint/config.yaml` and make changes.  Then restart the endpoint process to activate the changes:
-```bash
-globus-compute-endpoint restart workshop-endpoint
-```
-
-You can also verify that your endpoint is communicating with the Globus Service by looking at https://app.globus.org/compute.
-
-# Examples
-## Remote execution of a simple function (0_remote_adder.py)
-
-We can send a simple function, adding two numbers to your endpoint.  To run this script, paste your endpoint's id into the script below.  Like Parsl functions, a Globus Compute function returns a future.  Include a call that waits on the result of the future to make your script wait for the result to return.
+Because the MEP has to submit and start a PBS job on Polaris the first time, expect this to take a couple of minutes.  The result shows a Polaris compute-node hostname and the remote python/parsl/GCE versions.
 
 ```python
 from globus_compute_sdk import Executor
+from globus_compute_sdk.serialize import ComputeSerializer, AllCodeStrategies
 
-# This script is intended to be run from your remote machine
+POLARIS_MEP = "9a947ba5-f537-4681-acf3-cc66485aadec"
+ACCOUNT = "ATPESC2026"
+QUEUE = "ATPESC"
 
-# Scripts adapted from Globus Compute docs
-# https://globus-compute.readthedocs.io/en/latest/quickstart.html
+def hello_affinity():
+    import sys, os, socket, parsl, globus_compute_endpoint
+    return f""" hostname: {socket.gethostname()}
+                remote environment: {sys.executable}
+                python version: {sys.version}
+                parsl version: {parsl.__version__}
+                GCE version: {globus_compute_endpoint.__version__}
+            """
 
-# First, define the function ...
-def add_func(a, b):
-    return a + b
-
-# Paste your endpoint id here, e.g.
-endpoint_id = ''
-
-# ... then create the executor, ...
-with Executor(endpoint_id=endpoint_id) as gce:
-    # ... then submit for execution, ...
-    future = gce.submit(add_func, 5, 10)
-
-    print("Submitted task to remote endpoint, waiting for result...")
-
-    # ... and finally, wait for the result
-    print(f"Remote result returned: add_func result={future.result()}")
-
+serializer = ComputeSerializer(strategy_code=AllCodeStrategies())
+gce = Executor(endpoint_id=POLARIS_MEP,
+               serializer=serializer,
+               user_endpoint_config={"account": ACCOUNT, "queue": QUEUE})
+future = gce.submit(hello_affinity)
+print(future.result())
 ```
 
-## Register a function with Globus Service (1_register_function.py)
+## 2. Configuring the user endpoint (`2_configure_endpoint.py`)
 
-A function can be registered with the Globus service to be executed later.  It can be called with an id.
+A single-user endpoint is configured once with a yaml file.  A **MEP user endpoint is configured at submit time** through the `user_endpoint_config` dictionary.  This exercise walks through the common options and shows how they shape the PBS job the MEP submits for you:
 
-This function wraps around a compiled executable, in this example a program that reports cpu and gpu affinity.  This example both saves stdout and stderr to the file system on Polaris and returns it as the function result which can be accessed from the remote machine.
+| Key | Meaning |
+|---|---|
+| `account` / `queue` | project to charge and queue to submit to (**required**) |
+| `walltime` | walltime of the PBS job the MEP submits |
+| `nodes_per_block` | nodes per PBS job |
+| `max_workers_per_node` | concurrent function executions per node |
+| `max_idletime` | seconds an idle PBS job waits before shutting down |
+| `scheduler_options` | extra `#PBS` lines (filesystems, placement, etc.) |
 
-```python
-import globus_compute_sdk
+The script submits 8 tasks to a node with 4 workers, so the node runs two waves of 4.  Watch the reported task durations to see the second wave start after the first completes.
 
-# This script is intended to be run from your remote machine
-
-# Define a function that calls executable on Polaris
-def hello_affinity(run_directory):
-    import subprocess, os
-
-    # This will create a run directory for the application to execute
-    os.makedirs(os.path.expandvars(run_directory), exist_ok=True)
-    os.chdir(os.path.expandvars(run_directory))
-
-    # This is the command that calls the compiled executable
-    command = f"/grand/alcf_training/workflows_2024/GettingStarted/Examples/Polaris/affinity_gpu/hello_affinity"
-
-    # This runs the application command
-    res = subprocess.run(command.split(" "), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # Write stdout and stderr to files on Polaris filesystem
-    with open("hello.stdout","w") as f:
-        f.write(res.stdout.decode("utf-8"))
-    
-    with open("hello.stderr","w") as f:
-        f.write(res.stderr.decode("utf-8"))
-
-    # This does some error handling for safety, in case your application fails.
-    # stdout and stderr are returned by the function
-    if res.returncode != 0:
-        raise Exception(f"Application failed with non-zero return code: {res.returncode} stdout='{res.stdout.decode('utf-8')}' stderr='{res.stderr.decode('utf-8')}'")
-    else:
-        return res.returncode, res.stdout.decode("utf-8"), res.stderr.decode("utf-8")
-    
-gc = globus_compute_sdk.Client()
-fusion_func = gc.register_function(hello_affinity)
-print(f"Registered hello_affinity; id {fusion_func}")
+```bash
+python 2_configure_endpoint.py
 ```
 
-## Call registered function (2_call_registered_function.py)
+The full list of options and their defaults is in the [MEP configuration options](https://docs.alcf.anl.gov/services/globus-compute/#configuration-options) documentation.
 
-This script shows how to call the function registered in the previous example.  Copy the function id printed from that example in the script below.  Also paste in your endpoint id.
+## 3. Registering a function (`3_register_function.py`)
+
+Globus Compute lets you **register** a function with the Globus service so it can be called later by a function id.  Registered functions can be shared, reused, and used as building blocks in [Globus Flows](https://docs.globus.org/api/flows/).
+
+Registration talks only to the Globus service — no endpoint is contacted, so no account or queue is needed here.  We register the function's **source code** with `register_source_code` (rather than a pickled object) so it is robust to python-version differences between the Aurora client and the Polaris workers.  The function itself is a trivial `adder` that adds two numbers:
 
 ```python
 from globus_compute_sdk import Client
-from globus_compute_sdk import Executor
 
-# This script is intended to be run from your remote machine
+source = '''
+def adder(a, b):
+    return a + b
+'''
 
-# Paste your endpoint id here
-endpoint_id = ''
-
-# Paste your hello_affinity function id here
-affinity_func_id = ''
-
-# Set a directory where application will run on Polaris file system
-run_dir = '$HOME/workshop_globus_compute'
-
-# Get an Executor client
-gce = Executor(endpoint_id=endpoint_id)
-
-# Create tasks.  Task ids are saved to list tasks
-tasks = []
-for i in range(32):
-    tasks.append(gce.submit_to_registered_function(args=[f"{run_dir}/{i}"], function_id=affinity_func_id))
-
-print("Submitted tasks to remote endpoint, waiting for results...")
-
-# Wait for tasks to return
-for t in tasks:
-    print(t.result())
-
-print("Affinity Reported! \n")
-
-print("Details on task execution:")
-# Print task execution details
-# First get a client
 gcc = Client()
-# Loop through tasks and get task record
-for t in tasks:
-    print(gcc.get_task(t.task_id),"\n")
-
+func_id = gcc.register_source_code(source=source,
+                                   function_name="adder",
+                                   description="Adds two numbers")
+print(f"Registered adder; id {func_id}")
 ```
 
-# Next Steps
+The same script then calls the registered function on the MEP by its id with `submit_to_registered_function`, and prints the result:
 
-Globus compute allows for the remote execution of applications on ALCF machines.  Often, projects wish to couple the remote execution of tasks with data transfers or the execution of other associated tasks.  [Globus Flows](https://docs.globus.org/api/flows/) allows for the integration of Globus Compute tasks with other actions.
+```python
+future = gce.submit_to_registered_function(args=(5, 10), function_id=func_id)
+print(f"5 + 10 = {future.result()}")
+```
+
+```bash
+python 3_register_function.py
+```
+
+## 4. Wrapping a compiled executable (`4_wrap_executable.py`)
+
+Globus Compute runs Python functions, but most HPC work is a compiled executable.  The pattern is to **wrap the executable in a Python function** that shells out to it with `subprocess`.  In this example the shell command `hostname; sleep <sleeptime>` stands in for the path to a real compiled executable.
+
+```python
+def host_sleep_wrapper(sleeptime):
+    import os
+    import subprocess
+
+    command = f"hostname; sleep {sleeptime}"
+
+    # Run in a directory on a Polaris-visible filesystem
+    run_directory = "$HOME/atpesc_globus_mep"
+    os.makedirs(os.path.expandvars(run_directory), exist_ok=True)
+    os.chdir(os.path.expandvars(run_directory))
+
+    res = subprocess.run(command, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, shell=True)
+
+    # Save stdout/stderr to the Polaris filesystem, and return them too
+    with open("hello.stdout", "w") as f:
+        f.write(res.stdout.decode("utf-8"))
+    with open("hello.stderr", "w") as f:
+        f.write(res.stderr.decode("utf-8"))
+
+    if res.returncode != 0:
+        raise Exception(f"Application failed with return code {res.returncode}")
+    return res.returncode, res.stdout.decode("utf-8"), res.stderr.decode("utf-8")
+```
+
+The wrapper writes its output to a run directory on the Polaris filesystem and also returns stdout/stderr to the client.  A real command must live on a Polaris-visible filesystem (`home`, `eagle`, `grand`) — not Aurora's `/flare` — which is why the config requests `filesystems=home:eagle:grand`.
+
+```bash
+python 4_wrap_executable.py
+```
+
+## 5. Running across multiple nodes (`5_multinode.py`)
+
+By default the MEP runs functions with the `SimpleLauncher` on a single node.  To spread work across nodes, switch to the `MpiExecLauncher` and request a multi-node block:
+
+```python
+user_endpoint_config = {
+    "account": ACCOUNT,
+    "queue": QUEUE,
+    "launcher_type": "MpiExecLauncher",
+    "nodes_per_block": 2,
+    "max_workers_per_node": 1,
+    "scheduler_options": "#PBS -l filesystems=home:eagle:grand\n#PBS -l place=scatter",
+}
+```
+
+Note the `place=scatter` line, which is important for multi-node jobs so the block's workers are spread across nodes.  With one worker per node, the script submits two tasks per node (they run one at a time on each node), so you should see each Polaris compute-node hostname reported twice.
+
+```bash
+python 5_multinode.py
+```
+
+# Troubleshooting
+
+## Runaway job submission
+
+The most common pitfall is an endpoint that loops, queuing PBS jobs that immediately fail (for example, because of a bad `worker_init` or an unreachable filesystem).  Because the MEP runs your UEP under your account **on Polaris**, you stop it from Polaris:
+
+```bash
+# Login to Polaris (not Aurora) and remove the endpoint pid file(s)
+ssh polaris.alcf.anl.gov
+rm ~/.globus_compute/*/daemon.pid
+```
+
+This stops all PBS submissions made on your behalf.  To diagnose, inspect the PBS submit scripts and job logs the MEP created under `~/.globus_compute/<endpoint_name>/submit_scripts` on Polaris (MEP user endpoint names begin with `uep`).
+
+## Serialization errors (`ManagerLost`)
+
+A `ManagerLost` error mentioning serialization usually means the client and endpoint python versions differ.  These scripts already use the `AllCodeStrategies` serializer to avoid this; if you write your own, do the same.
+
+# Running your own endpoints
+
+Facility MEPs cover most common workloads, but they are only offered on some systems (currently Polaris and Crux) and expose a fixed set of configuration options.  If you need to run on a system without a MEP (for example, Aurora) or need options the MEP does not support, you can run your own **single-user endpoint** on a login node.  This means you install `globus-compute-endpoint`, write a config, and keep the endpoint process alive yourself — the operational burden the MEP otherwise handles for you.
+
+The [ALCF Globus Compute repository](https://github.com/argonne-lcf/alcf-globus-compute) provides example config templates and instructions for running your own endpoints on ALCF systems.
