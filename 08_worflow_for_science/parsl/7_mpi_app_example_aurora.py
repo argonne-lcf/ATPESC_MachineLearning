@@ -14,9 +14,9 @@ from parsl.addresses import address_by_interface
 working_directory = os.getcwd()
 
 # Set your queue, account and environment
-queue = "alcf_training"
-account = "alcf_training"
-load_env = f"source /flare/alcf_training/workflows/_env/bin/activate"
+queue = "ATPESC"
+account = "ATPESC2026"
+load_env = f"source {working_directory}/../0_activate_preinstall.sh"
 
 config = Config(
     executors=[
@@ -51,7 +51,7 @@ resource_specification = {
 @bash_app
 def mpi_hello_affinity(parsl_resource_specification, depth=8, stdout='mpi_hello.stdout', stderr='mpi_hello.stderr'):
     # PARSL_MPI_PREFIX will resolve to `mpiexec -n 24 -ppn 12 -hosts NODE001,NODE002`
-    APP_DIR = "/flare/alcf_training/workflows/GettingStarted"
+    APP_DIR = "/flare/ATPESC2026/EXAMPLES/track-6-workflows-for-science/GettingStarted"
     # wrap application with set_affinity_gpu.sh to set GPU tile affinity; see HelperScripts/Aurora for details
     return f"$PARSL_MPI_PREFIX --cpu-bind depth --depth={depth} \
             {APP_DIR}/HelperScripts/Aurora/set_affinity_gpu.sh {APP_DIR}/Examples/Aurora/affinity_gpu/sycl/hello_affinity"
