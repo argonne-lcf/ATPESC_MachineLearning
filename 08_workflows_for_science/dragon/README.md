@@ -4,7 +4,7 @@ Dragon HPC is a composable distributed run-time for managing processes, memory, 
 
 This demo focuses on the Dragon's Python API (more information on Dragon's C API can be found in the [dragon docs](https://dragonhpc.org/portal/index.html)).
 
-The Dragon python API uses python's `multiprocessing` API.  Dragon can therefore be used to extend scripts written for single shared memory devices with `multiprocessing` to run on multiple nodes on HPC systems.  Dragon also has a distributed dictionary that can be used by processes across the runtime to store and transfer data within memory pools arcross multiple nodes.  This demo will show multiple ways of running applications and tasks with Dragon process launching tools and how to make use of the distributed dictionary.
+The Dragon python API uses python's `multiprocessing` API.  Dragon can therefore be used to extend scripts written for single shared memory devices with `multiprocessing` to run on multiple nodes on HPC systems.  Dragon also has a distributed dictionary that can be used by processes across the runtime to store and transfer data within memory pools across multiple nodes.  This demo will show multiple ways of running applications and tasks with Dragon process launching tools and how to make use of the distributed dictionary.
 
 ## Get Interactive Nodes
 
@@ -26,7 +26,7 @@ source ../0_activate_preinstall.sh
 
 Dragon's Python API uses Python's `multiprocessing` API.  Dragon can therefore be used to extend scripts written for single shared memory devices with `multiprocessing` to run on multiple nodes.
 
-This example shows how to run tasks with `Pool` using `multiprocessing Pool` with the start method set to `dragon`.  This allows for pool processes to be distributed across nodes, but it is not possible to bind them to paricular gpus or cpus.
+This example shows how to run tasks with `Pool` using `multiprocessing Pool` with the start method set to `dragon`.  This allows for pool processes to be distributed across nodes, but it is not possible to bind them to particular gpus or cpus.
 
 This test runs a python function that sleeps and reports the hostname it sees.
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # sleep_times are the inputs to the pool tasks
     sleep_times = np.ones(num_tasks) * 1.0  # Sleep for 1 second each
 
-    # Distribute tasks across availble nodes with a simple pool
+    # Distribute tasks across available nodes with a simple pool
     # Unlike standard multiprocessing, Dragon will launch pool processes across multiple nodes
     # This pool does not use any GPU affinity
     print("Launching tasks with a simple Pool across nodes, no GPU affinity...", flush=True)
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
 ## Dragon ProcessGroup
 
-Dragon provides another way of distributing tasks to groups of workers called the dragon `ProcessGroup`.  Every process in the `ProcessGroup` can be given a specific node, gpu, and cpu, allowing for finegrained control of processes.
+Dragon provides another way of distributing tasks to groups of workers called the dragon `ProcessGroup`.  Every process in the `ProcessGroup` can be given a specific node, gpu, and cpu, allowing for fine-grained control of processes.
 
 There are two example cases using `ProcessGroup`.  `2_dragon_process_group.py` distributes a simple python function to independent processes across the allocation.  This is done by assigning a `Policy` to each process in the group that specifies the node, gpu and cpu where it is to be run.
 
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     # Create a process for each policy in the ProcessGroup targeting the hello_gpu_affinity function
     for ppol in proc_policies:
         pg.add_process(nproc=1, 
-                    template=ProcessTemplate(target=hello_gpu_affinity, # to run a compiled appication, set target to the path of compiled executable
+                    template=ProcessTemplate(target=hello_gpu_affinity, # to run a compiled application, set target to the path of compiled executable
                                                 args=(1.0,), # sleep time
                                                 cwd=os.getcwd(),
                                                 policy=ppol,))
@@ -178,7 +178,7 @@ if __name__ == '__main__':
 
 ## Dragon Distributed Dictionary
 
-In addition to task launching, `dragon` provides a distributed data layer in its runtime called the `DDict` or Dragon Dictionary.  The `DDict` provisions pools of memory on nodes across the runtime where key-value data pairs can be stored.  Any process in the runtime can access any key-value pair in the `DDict`.  This is enabeld by dictionary manager processes that are created in the background within the runtime and manage the transfer of data between nodes.
+In addition to task launching, `dragon` provides a distributed data layer in its runtime called the `DDict` or Dragon Dictionary.  The `DDict` provisions pools of memory on nodes across the runtime where key-value data pairs can be stored.  Any process in the runtime can access any key-value pair in the `DDict`.  This is enabled by dictionary manager processes that are created in the background within the runtime and manage the transfer of data between nodes.
 
 `DDict`s can be used with `Pool` or `ProcessGroup`.  Multiple processes or `Pool`s and `ProcessGroup`s can use the same `DDict`.  This enables efficient sharing of data between processes in the runtime.
 

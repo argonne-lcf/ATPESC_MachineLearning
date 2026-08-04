@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # Create a process for each policy in the ProcessGroup targeting the hello_gpu_affinity function
     for ppol in proc_policies:
         pg.add_process(nproc=1, 
-                    template=ProcessTemplate(target=hello_gpu_affinity, # to run a compiled appication, set target to the path of compiled executable
+                    template=ProcessTemplate(target=hello_gpu_affinity, # to run a compiled application, set target to the path of compiled executable
                                                 args=(1.0,), # sleep time
                                                 cwd=os.getcwd(),
                                                 policy=ppol,))
