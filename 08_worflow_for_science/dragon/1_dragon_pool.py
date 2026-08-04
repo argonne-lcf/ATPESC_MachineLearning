@@ -4,10 +4,10 @@ from multiprocessing import set_start_method, Pool
 from dragon.native.pool import Pool as DragonPool
 import numpy as np
 
-# For Polaris, we have 4 GPUs per node
-num_gpus_per_node = 4 # Assume one GPU/tile per process
 # For Aurora, we have 12 GPU tiles per node
-# num_gpus_per_node = 12 # Assume one GPU/tile per process
+num_gpus_per_node = 12 # Assume one GPU/tile per process
+# For Polaris, we have 4 GPUs per node
+# num_gpus_per_node = 4 # Assume one GPU/tile per process
 
 # A simple function to demonstrate task execution and GPU affinity
 def hello_gpu_affinity(sleep_time):

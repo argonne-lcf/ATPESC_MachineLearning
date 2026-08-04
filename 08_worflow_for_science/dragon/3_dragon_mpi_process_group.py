@@ -22,7 +22,6 @@ exe = "/flare/ATPESC2026/EXAMPLES/track-6-workflows-for-science/GettingStarted/E
 # pmi_backend = PMIBackend.CRAY
 # exe = ""
 
-
 if __name__ == '__main__':
 
     # Number of processes to run in ProcessGroup
