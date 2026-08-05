@@ -1,0 +1,13 @@
+name: atpesc-academy
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.13.11
+  - pip
+
+  - pip:
+      - globus-compute-sdk
+      - academy-py
+      - langchain
+      - langchain-openai
