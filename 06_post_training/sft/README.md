@@ -14,7 +14,7 @@ This follows the training recipe from the [SmolLM2 paper](https://arxiv.org/abs/
 | `run_sft.sh` | Launcher (`mpiexec --ppn 12`, env vars, CCL tuning) |
 | `submit_sft.sh` | PBS batch job script (4 nodes) |
 | `../configure_ccl.sh` | oneCCL / libfabric / PALS env vars (sourced by `run_sft.sh`) |
-| `chatml.jinja` | ChatML chat template with `{% generation %}` markers |
+| `chatml.jinja` | ChatML chat template |
 
 ## Training Results (2 nodes, 500 steps)
 
@@ -137,7 +137,7 @@ Prompt: *"What is the capital of France? What is the capital of Spain?"*
 | Weight decay | 0.01 | |
 | Max steps | 500 | |
 | Save interval | 500 steps | Final checkpoint only (save_limit=1) |
-| Loss masking | assistant-only | Via TRL `{% generation %}` markers |
+| Loss masking | assistant-only | |
 | Distribution | DDP (`--no_fsdp`) | 1.7B fits in single tile (64 GB HBM) |
 
 ### Paper's hyperparameters (for reference)
