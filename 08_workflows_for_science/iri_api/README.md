@@ -4,7 +4,7 @@ A small demo of submitting work to ALCF resources through the [IRI Facility API]
 
 ## Environment
 
-For the workshop, the prestaged environment with dragon can be loaded here:
+For the workshop, the prestaged environment with necessary software for token generation can be loaded here:
 ```shell
 source ../0_activate_preinstall.sh
 ```
