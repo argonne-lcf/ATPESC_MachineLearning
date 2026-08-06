@@ -31,7 +31,7 @@ Queries the status of all ALCF resources, then the status of Polaris specificall
 ./3_submit_job.sh
 ```
 
-Retrieves an access token and submits a short job to Polaris via a `POST` to the compute endpoint. The example runs `echo Start; sleep 10; echo End` on one node under the `ATPESC` queue and `ATPESC2026` account, writing stdout/stderr to `$HOME/logs`.
+Retrieves an access token and submits a short job to Polaris via a `POST` through the API. The example runs `echo Start; sleep 10; echo End` on one node under the `ATPESC` queue and `ATPESC2026` account, writing stdout/stderr to `$HOME/logs`.
 
 ## Notes
 
