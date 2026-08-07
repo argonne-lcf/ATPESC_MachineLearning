@@ -26,7 +26,7 @@ Time    | Talk                                                                  
 Time    | Talk                                                                                          | Speaker
 |--     |--                                                                                             |--
 8:30AM | Welcome and introduction | Shilpika, ANL
-8:35AM | [Workflows for Science - Parsl, Balsam, etc.](08_worflow_for_science) | Christine Simpson, ANL
+8:35AM | [Workflow Tools for Science](08_workflows_for_science) | Christine Simpson, ANL
 9:30AM | [Coupled Workflows for Science (Simulations + AI Workflows)](09_workflows_coupling_simulation_and_AI) | Riccardo Balin and Christine Simpson, ANL
 10:30AM | *Break* |
 10:50AM | [Inference](10_LLM_inference) | Misha Salim, ANL
